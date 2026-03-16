@@ -1,0 +1,107 @@
+:root {
+  color-scheme: light;
+  font-family: "Segoe UI", sans-serif;
+  background: linear-gradient(180deg, #f7f2e8 0%, #efe7d9 100%);
+  color: #1f1b16;
+}
+
+body {
+  margin: 0;
+  width: 340px;
+  min-height: 260px;
+}
+
+.app {
+  box-sizing: border-box;
+  min-height: 260px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+h1 {
+  margin: 0;
+  font-size: 22px;
+  line-height: 1.1;
+}
+
+p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.fact-card {
+  padding: 12px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(31, 27, 22, 0.08);
+  animation: pulse 1.6s linear infinite;
+}
+
+.fact-label {
+  display: inline-block;
+  margin-bottom: 6px;
+  padding-left: 18px;
+  position: relative;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #7b4f1d;
+}
+
+.fact-label::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 10px;
+  height: 10px;
+  margin-top: -5px;
+  border-radius: 999px;
+  border: 2px solid #7b4f1d;
+  border-top-color: transparent;
+  animation: spin 1s linear infinite;
+}
+
+button {
+  margin-top: auto;
+  border: 0;
+  border-radius: 999px;
+  padding: 12px 16px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  background: #1f1b16;
+  color: #fff9ef;
+}
+
+button[disabled] {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.hidden {
+  display: none;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(123, 79, 29, 0.05);
+  }
+  50% {
+    box-shadow: 0 10px 24px 0 rgba(123, 79, 29, 0.08);
+  }
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
