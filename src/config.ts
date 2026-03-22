@@ -12,14 +12,14 @@ export const AI_CONFIG = {
       apiKey: "__GPT_API_KEY__",
       // Change this model when activeProvider is "gpt".
       model: "gpt-5-mini",
-      apiBaseUrl: "https://api.openai.com/v1"
+      apiBaseUrl: "https://api.openai.com/v1",
     },
     gemini: {
       // Build script injects GEMINI_API_KEY from .env for local prototyping.
       apiKey: "__GEMINI_API_KEY__",
       // Change this model when activeProvider is "gemini".
       model: "gemini-3-flash-preview",
-      apiBaseUrl: "https://generativelanguage.googleapis.com/v1beta"
-    }
-  }
+      apiBaseUrl: "https://generativelanguage.googleapis.com/v1beta",
+    },
+  },
 } as const;

@@ -1,10 +1,21 @@
-import { detectDarkPatterns, getActiveProviderName, hasConfiguredDetectionProvider } from "../providers";
+import {
+  detectDarkPatterns,
+  getActiveProviderName,
+  hasConfiguredDetectionProvider,
+} from "../providers";
 import { DARK_PATTERN_FACTS } from "../shared/facts";
 import { getPageKeyFromUrl, isSupportedPageUrl } from "../shared/pageKey";
 import { buildDarkPatternPrompt } from "../shared/prompt";
 import { loadArchive, saveArchive } from "../shared/storage";
-import type { ExtensionMessage, ExtensionMessageResponse } from "../shared/messages";
-import type { DetectionResult, FixApplicationResult, PageContext } from "../shared/types";
+import type {
+  ExtensionMessage,
+  ExtensionMessageResponse,
+} from "../shared/messages";
+import type {
+  DetectionResult,
+  FixApplicationResult,
+  PageContext,
+} from "../shared/types";
 
 type PopupState = "initial" | "fixing" | "finished";
 type TimedRunnerResult<T> = Promise<{ value: T; durationMs: number }>;
@@ -12,8 +23,12 @@ type TimedRunnerResult<T> = Promise<{ value: T; durationMs: number }>;
 const bodyCopy = document.getElementById("body-copy") as HTMLParagraphElement;
 const factCard = document.getElementById("fact-card") as HTMLElement;
 const factCopy = document.getElementById("fact-copy") as HTMLParagraphElement;
-const resetButton = document.getElementById("reset-button") as HTMLButtonElement;
-const actionButton = document.getElementById("action-button") as HTMLButtonElement;
+const resetButton = document.getElementById(
+  "reset-button",
+) as HTMLButtonElement;
+const actionButton = document.getElementById(
+  "action-button",
+) as HTMLButtonElement;
 
 let activeTabId: number | null = null;
 let activeWindowId: number | null = null;
@@ -21,6 +36,10 @@ let activePageKey = "";
 let factTimer: number | null = null;
 let currentFactIndex = 0;
 const POPUP_LOG_PREFIX = "[DarkPatternFixer:popup]";
+const SCREENSHOT_OUTPUT_QUALITY = 0.7;
+const SCREENSHOT_TARGET_PIXEL_COUNT = 945000;
+const SCREENSHOT_MIN_WIDTH = 640;
+const SCREENSHOT_MIN_HEIGHT = 360;
 
 function logInfo(step: string, details?: Record<string, unknown>): void {
   if (details) {
@@ -30,9 +49,17 @@ function logInfo(step: string, details?: Record<string, unknown>): void {
   console.info(`${POPUP_LOG_PREFIX} ${step}`);
 }
 
-function logError(step: string, error: unknown, details?: Record<string, unknown>): void {
-  const normalizedMessage = error instanceof Error ? error.message : String(error);
-  console.error(`${POPUP_LOG_PREFIX} ${step}`, { ...details, error: normalizedMessage });
+function logError(
+  step: string,
+  error: unknown,
+  details?: Record<string, unknown>,
+): void {
+  const normalizedMessage =
+    error instanceof Error ? error.message : String(error);
+  console.error(`${POPUP_LOG_PREFIX} ${step}`, {
+    ...details,
+    error: normalizedMessage,
+  });
 }
 
 async function withTiming<T>(run: () => Promise<T>): TimedRunnerResult<T> {
@@ -40,7 +67,7 @@ async function withTiming<T>(run: () => Promise<T>): TimedRunnerResult<T> {
   const value = await run();
   return {
     value,
-    durationMs: Math.round(performance.now() - startedAt)
+    durationMs: Math.round(performance.now() - startedAt),
   };
 }
 
@@ -83,7 +110,10 @@ async function resetCache(): Promise<void> {
   try {
     await chrome.storage.local.clear();
     logInfo("reset-cache:done");
-    setState("initial", "Cache cleared. Start to run a fresh detection on this page.");
+    setState(
+      "initial",
+      "Cache cleared. Start to run a fresh detection on this page.",
+    );
   } catch (error) {
     logError("reset-cache:failed", error);
     const message = error instanceof Error ? error.message : String(error);
@@ -101,7 +131,8 @@ function clearFactRotator(): void {
 }
 
 function rotateFact(): void {
-  factCopy.textContent = DARK_PATTERN_FACTS[currentFactIndex % DARK_PATTERN_FACTS.length];
+  factCopy.textContent =
+    DARK_PATTERN_FACTS[currentFactIndex % DARK_PATTERN_FACTS.length];
   currentFactIndex += 1;
 }
 
@@ -117,7 +148,7 @@ async function getActiveTab(): Promise<chrome.tabs.Tab> {
   logInfo("active-tab:resolved", {
     tabId: activeTabId,
     windowId: activeWindowId,
-    pageKey: activePageKey
+    pageKey: activePageKey,
   });
   return tab;
 }
@@ -127,8 +158,10 @@ function isMissingReceiverError(error: unknown): boolean {
     return false;
   }
 
-  return error.message.includes("Receiving end does not exist")
-    || error.message.includes("Could not establish connection");
+  return (
+    error.message.includes("Receiving end does not exist") ||
+    error.message.includes("Could not establish connection")
+  );
 }
 
 async function ensureContentScriptReady(): Promise<void> {
@@ -137,7 +170,9 @@ async function ensureContentScriptReady(): Promise<void> {
   }
 
   try {
-    await chrome.tabs.sendMessage(activeTabId, { type: "PING" } satisfies ExtensionMessage);
+    await chrome.tabs.sendMessage(activeTabId, {
+      type: "PING",
+    } satisfies ExtensionMessage);
     logInfo("content-script:ping-ok", { tabId: activeTabId });
     return;
   } catch (error) {
@@ -149,24 +184,86 @@ async function ensureContentScriptReady(): Promise<void> {
 
   await chrome.scripting.executeScript({
     target: { tabId: activeTabId },
-    files: ["content.js"]
+    files: ["content.js"],
   });
 
-  await chrome.tabs.sendMessage(activeTabId, { type: "PING" } satisfies ExtensionMessage);
+  await chrome.tabs.sendMessage(activeTabId, {
+    type: "PING",
+  } satisfies ExtensionMessage);
   logInfo("content-script:injected-and-ready", { tabId: activeTabId });
 }
 
-async function sendMessage<T extends ExtensionMessageResponse>(message: ExtensionMessage): Promise<T> {
+async function sendMessage<T extends ExtensionMessageResponse>(
+  message: ExtensionMessage,
+): Promise<T> {
   if (!activeTabId) {
     throw new Error("No active tab is available.");
   }
 
   await ensureContentScriptReady();
   const startedAt = performance.now();
-  const response = await (chrome.tabs.sendMessage(activeTabId, message) as Promise<T>);
+  const response = await (chrome.tabs.sendMessage(
+    activeTabId,
+    message,
+  ) as Promise<T>);
   const durationMs = Math.round(performance.now() - startedAt);
   logInfo("message:response", { type: message.type, durationMs });
   return response;
+}
+
+function loadImageFromDataUrl(dataUrl: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = () => reject(new Error("Could not decode screenshot data URL."));
+    image.src = dataUrl;
+  });
+}
+
+async function downscaleScreenshotDataUrl(
+  dataUrl: string,
+  quality: number,
+): Promise<{
+  dataUrl: string;
+  width: number;
+  height: number;
+  scaleFactor: number;
+  sourceWidth: number;
+  sourceHeight: number;
+}> {
+  const image = await loadImageFromDataUrl(dataUrl);
+  const sourceWidth = image.naturalWidth;
+  const sourceHeight = image.naturalHeight;
+  const sourcePixelCount = sourceWidth * sourceHeight;
+  const areaScale =
+    sourcePixelCount > SCREENSHOT_TARGET_PIXEL_COUNT
+      ? Math.sqrt(SCREENSHOT_TARGET_PIXEL_COUNT / sourcePixelCount)
+      : 1;
+  const minScaleByWidth = SCREENSHOT_MIN_WIDTH / sourceWidth;
+  const minScaleByHeight = SCREENSHOT_MIN_HEIGHT / sourceHeight;
+  const minRequiredScale = Math.max(minScaleByWidth, minScaleByHeight);
+  const scaleFactor = Math.min(1, Math.max(areaScale, minRequiredScale));
+  const width = Math.max(1, Math.round(sourceWidth * scaleFactor));
+  const height = Math.max(1, Math.round(sourceHeight * scaleFactor));
+
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+
+  const context = canvas.getContext("2d");
+  if (!context) {
+    throw new Error("Could not initialize canvas 2D context for screenshot downscale.");
+  }
+
+  context.drawImage(image, 0, 0, width, height);
+  return {
+    dataUrl: canvas.toDataURL("image/jpeg", quality),
+    width,
+    height,
+    scaleFactor,
+    sourceWidth,
+    sourceHeight,
+  };
 }
 
 async function captureScreenshot(): Promise<string> {
@@ -174,12 +271,22 @@ async function captureScreenshot(): Promise<string> {
     throw new Error("No active window is available.");
   }
 
-  const screenshotDataUrl = await chrome.tabs.captureVisibleTab(activeWindowId, {
-    format: "jpeg",
-    quality: 70
+  const rawScreenshotDataUrl = await chrome.tabs.captureVisibleTab(activeWindowId, {
+    format: "png",
   });
+  const downscaled = await downscaleScreenshotDataUrl(
+    rawScreenshotDataUrl,
+    SCREENSHOT_OUTPUT_QUALITY,
+  );
+  const screenshotDataUrl = downscaled.dataUrl;
   logInfo("screenshot:captured", {
-    length: screenshotDataUrl.length
+    sourceWidth: downscaled.sourceWidth,
+    sourceHeight: downscaled.sourceHeight,
+    width: downscaled.width,
+    height: downscaled.height,
+    downscaleFactor: Number(downscaled.scaleFactor.toFixed(4)),
+    outputQuality: SCREENSHOT_OUTPUT_QUALITY,
+    length: screenshotDataUrl.length,
   });
   return screenshotDataUrl;
 }
@@ -191,40 +298,48 @@ async function maybeApplySavedArchive(): Promise<boolean> {
     return false;
   }
 
-  logInfo("archive:hit", { pageKey: activePageKey, fixes: archive.fixes.length });
+  logInfo("archive:hit", {
+    pageKey: activePageKey,
+    fixes: archive.fixes.length,
+  });
   setState("fixing");
   const applied = await sendMessage<FixApplicationResult>({
     type: "APPLY_SAVED_FIXES",
-    archive
+    archive,
   });
   logInfo("archive:applied", {
-    appliedCount: applied.appliedCount
+    appliedCount: applied.appliedCount,
   });
   setState("finished");
   return true;
 }
 
 function truncateScreenshotString(dataUrl: string): string {
-  return dataUrl.length > 60000 ? `${dataUrl.slice(0, 60000)}...[truncated]` : dataUrl;
+  return dataUrl.length > 60000
+    ? `${dataUrl.slice(0, 60000)}...[truncated]`
+    : dataUrl;
 }
 
-async function runDetection(pageContext: PageContext, screenshotDataUrl: string): Promise<DetectionResult> {
+async function runDetection(
+  pageContext: PageContext,
+  screenshotDataUrl: string,
+): Promise<DetectionResult> {
   const prompt = buildDarkPatternPrompt({
     screenshotString: truncateScreenshotString(screenshotDataUrl),
-    truncatedHtml: pageContext.truncatedHtml
+    truncatedHtml: pageContext.truncatedHtml,
   });
   logInfo("detection:request", {
     provider: getActiveProviderName(),
     truncatedHtmlLength: pageContext.truncatedHtml.length,
-    promptLength: prompt.length
+    promptLength: prompt.length,
   });
 
   const result = await detectDarkPatterns({
     prompt,
-    screenshotDataUrl
+    screenshotDataUrl,
   });
   logInfo("detection:response", {
-    patterns: result.identified_dark_patterns.length
+    patterns: result.identified_dark_patterns.length,
   });
   return result;
 }
@@ -234,40 +349,53 @@ async function startFixFlow(): Promise<void> {
   try {
     setState("fixing");
 
-    const pageContextResult = await withTiming(() => sendMessage<PageContext>({
-      type: "COLLECT_PAGE_CONTEXT"
-    }));
+    const pageContextResult = await withTiming(() =>
+      sendMessage<PageContext>({
+        type: "COLLECT_PAGE_CONTEXT",
+      }),
+    );
     const pageContext = pageContextResult.value;
     logInfo("flow:page-context-collected", {
       durationMs: pageContextResult.durationMs,
       truncatedHtmlLength: pageContext.truncatedHtml.length,
-      viewport: pageContext.viewport
+      viewport: pageContext.viewport,
     });
 
     const screenshotResult = await withTiming(captureScreenshot);
     const screenshotDataUrl = screenshotResult.value;
-    logInfo("flow:screenshot-captured", { durationMs: screenshotResult.durationMs });
+    logInfo("flow:screenshot-captured", {
+      durationMs: screenshotResult.durationMs,
+    });
 
-    const detectionStepResult = await withTiming(() => runDetection(pageContext, screenshotDataUrl));
+    const detectionStepResult = await withTiming(() =>
+      runDetection(pageContext, screenshotDataUrl),
+    );
     const detectionResult = detectionStepResult.value;
     logInfo("flow:detection-finished", {
       durationMs: detectionStepResult.durationMs,
-      patterns: detectionResult.identified_dark_patterns
+      patterns: detectionResult.identified_dark_patterns,
     });
 
-    const fixStepResult = await withTiming(() => sendMessage<FixApplicationResult>({
-      type: "PLAN_AND_APPLY_FIXES",
-      patterns: detectionResult.identified_dark_patterns
-    }));
+    const fixStepResult = await withTiming(() =>
+      sendMessage<FixApplicationResult>({
+        type: "PLAN_AND_APPLY_FIXES",
+        patterns: detectionResult.identified_dark_patterns,
+      }),
+    );
     const fixResult = fixStepResult.value;
     logInfo("flow:fixes-applied", {
       durationMs: fixStepResult.durationMs,
       appliedCount: fixResult.appliedCount,
-      fixes: fixResult.archive.fixes.length
+      fixes: fixResult.archive.fixes.length,
     });
 
-    const saveStepResult = await withTiming(() => saveArchive(fixResult.archive));
-    logInfo("flow:archive-saved", { durationMs: saveStepResult.durationMs, pageKey: fixResult.archive.page_key });
+    const saveStepResult = await withTiming(() =>
+      saveArchive(fixResult.archive),
+    );
+    logInfo("flow:archive-saved", {
+      durationMs: saveStepResult.durationMs,
+      pageKey: fixResult.archive.page_key,
+    });
     setState("finished");
     logInfo("flow:finished");
   } catch (error) {
