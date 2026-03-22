@@ -7,10 +7,12 @@ import type { ExtensionMessage, ExtensionMessageResponse } from "../shared/messa
 import type { DetectionResult, FixApplicationResult, PageContext } from "../shared/types";
 
 type PopupState = "initial" | "fixing" | "finished";
+type TimedRunnerResult<T> = Promise<{ value: T; durationMs: number }>;
 
 const bodyCopy = document.getElementById("body-copy") as HTMLParagraphElement;
 const factCard = document.getElementById("fact-card") as HTMLElement;
 const factCopy = document.getElementById("fact-copy") as HTMLParagraphElement;
+const resetButton = document.getElementById("reset-button") as HTMLButtonElement;
 const actionButton = document.getElementById("action-button") as HTMLButtonElement;
 
 let activeTabId: number | null = null;
@@ -18,9 +20,33 @@ let activeWindowId: number | null = null;
 let activePageKey = "";
 let factTimer: number | null = null;
 let currentFactIndex = 0;
+const POPUP_LOG_PREFIX = "[DarkPatternFixer:popup]";
+
+function logInfo(step: string, details?: Record<string, unknown>): void {
+  if (details) {
+    console.info(`${POPUP_LOG_PREFIX} ${step}`, details);
+    return;
+  }
+  console.info(`${POPUP_LOG_PREFIX} ${step}`);
+}
+
+function logError(step: string, error: unknown, details?: Record<string, unknown>): void {
+  const normalizedMessage = error instanceof Error ? error.message : String(error);
+  console.error(`${POPUP_LOG_PREFIX} ${step}`, { ...details, error: normalizedMessage });
+}
+
+async function withTiming<T>(run: () => Promise<T>): TimedRunnerResult<T> {
+  const startedAt = performance.now();
+  const value = await run();
+  return {
+    value,
+    durationMs: Math.round(performance.now() - startedAt)
+  };
+}
 
 function setState(state: PopupState, errorMessage = ""): void {
   clearFactRotator();
+  resetButton.disabled = state === "fixing";
 
   if (state === "initial") {
     bodyCopy.textContent =
@@ -51,6 +77,22 @@ function setState(state: PopupState, errorMessage = ""): void {
   actionButton.onclick = () => window.close();
 }
 
+async function resetCache(): Promise<void> {
+  resetButton.disabled = true;
+  logInfo("reset-cache:start");
+  try {
+    await chrome.storage.local.clear();
+    logInfo("reset-cache:done");
+    setState("initial", "Cache cleared. Start to run a fresh detection on this page.");
+  } catch (error) {
+    logError("reset-cache:failed", error);
+    const message = error instanceof Error ? error.message : String(error);
+    setState("initial", `Could not clear cache. ${message}`);
+  } finally {
+    resetButton.disabled = false;
+  }
+}
+
 function clearFactRotator(): void {
   if (factTimer !== null) {
     window.clearInterval(factTimer);
@@ -72,6 +114,11 @@ async function getActiveTab(): Promise<chrome.tabs.Tab> {
   activeTabId = tab.id;
   activeWindowId = tab.windowId ?? chrome.windows.WINDOW_ID_CURRENT;
   activePageKey = getPageKeyFromUrl(tab.url);
+  logInfo("active-tab:resolved", {
+    tabId: activeTabId,
+    windowId: activeWindowId,
+    pageKey: activePageKey
+  });
   return tab;
 }
 
@@ -91,11 +138,13 @@ async function ensureContentScriptReady(): Promise<void> {
 
   try {
     await chrome.tabs.sendMessage(activeTabId, { type: "PING" } satisfies ExtensionMessage);
+    logInfo("content-script:ping-ok", { tabId: activeTabId });
     return;
   } catch (error) {
     if (!isMissingReceiverError(error)) {
       throw error;
     }
+    logInfo("content-script:not-ready-injecting", { tabId: activeTabId });
   }
 
   await chrome.scripting.executeScript({
@@ -104,6 +153,7 @@ async function ensureContentScriptReady(): Promise<void> {
   });
 
   await chrome.tabs.sendMessage(activeTabId, { type: "PING" } satisfies ExtensionMessage);
+  logInfo("content-script:injected-and-ready", { tabId: activeTabId });
 }
 
 async function sendMessage<T extends ExtensionMessageResponse>(message: ExtensionMessage): Promise<T> {
@@ -112,7 +162,11 @@ async function sendMessage<T extends ExtensionMessageResponse>(message: Extensio
   }
 
   await ensureContentScriptReady();
-  return chrome.tabs.sendMessage(activeTabId, message) as Promise<T>;
+  const startedAt = performance.now();
+  const response = await (chrome.tabs.sendMessage(activeTabId, message) as Promise<T>);
+  const durationMs = Math.round(performance.now() - startedAt);
+  logInfo("message:response", { type: message.type, durationMs });
+  return response;
 }
 
 async function captureScreenshot(): Promise<string> {
@@ -120,22 +174,31 @@ async function captureScreenshot(): Promise<string> {
     throw new Error("No active window is available.");
   }
 
-  return chrome.tabs.captureVisibleTab(activeWindowId, {
+  const screenshotDataUrl = await chrome.tabs.captureVisibleTab(activeWindowId, {
     format: "jpeg",
     quality: 70
   });
+  logInfo("screenshot:captured", {
+    length: screenshotDataUrl.length
+  });
+  return screenshotDataUrl;
 }
 
 async function maybeApplySavedArchive(): Promise<boolean> {
   const archive = await loadArchive(activePageKey);
   if (!archive || archive.fixes.length === 0) {
+    logInfo("archive:miss", { pageKey: activePageKey });
     return false;
   }
 
+  logInfo("archive:hit", { pageKey: activePageKey, fixes: archive.fixes.length });
   setState("fixing");
-  await sendMessage<FixApplicationResult>({
+  const applied = await sendMessage<FixApplicationResult>({
     type: "APPLY_SAVED_FIXES",
     archive
+  });
+  logInfo("archive:applied", {
+    appliedCount: applied.appliedCount
   });
   setState("finished");
   return true;
@@ -150,30 +213,65 @@ async function runDetection(pageContext: PageContext, screenshotDataUrl: string)
     screenshotString: truncateScreenshotString(screenshotDataUrl),
     truncatedHtml: pageContext.truncatedHtml
   });
+  logInfo("detection:request", {
+    provider: getActiveProviderName(),
+    truncatedHtmlLength: pageContext.truncatedHtml.length,
+    promptLength: prompt.length
+  });
 
-  return detectDarkPatterns({
+  const result = await detectDarkPatterns({
     prompt,
     screenshotDataUrl
   });
+  logInfo("detection:response", {
+    patterns: result.identified_dark_patterns.length
+  });
+  return result;
 }
 
 async function startFixFlow(): Promise<void> {
+  logInfo("flow:start");
   try {
     setState("fixing");
 
-    const pageContext = await sendMessage<PageContext>({
+    const pageContextResult = await withTiming(() => sendMessage<PageContext>({
       type: "COLLECT_PAGE_CONTEXT"
+    }));
+    const pageContext = pageContextResult.value;
+    logInfo("flow:page-context-collected", {
+      durationMs: pageContextResult.durationMs,
+      truncatedHtmlLength: pageContext.truncatedHtml.length,
+      viewport: pageContext.viewport
     });
-    const screenshotDataUrl = await captureScreenshot();
-    const detectionResult = await runDetection(pageContext, screenshotDataUrl);
-    const fixResult = await sendMessage<FixApplicationResult>({
-      type: "PLAN_AND_APPLY_FIXES",
+
+    const screenshotResult = await withTiming(captureScreenshot);
+    const screenshotDataUrl = screenshotResult.value;
+    logInfo("flow:screenshot-captured", { durationMs: screenshotResult.durationMs });
+
+    const detectionStepResult = await withTiming(() => runDetection(pageContext, screenshotDataUrl));
+    const detectionResult = detectionStepResult.value;
+    logInfo("flow:detection-finished", {
+      durationMs: detectionStepResult.durationMs,
       patterns: detectionResult.identified_dark_patterns
     });
 
-    await saveArchive(fixResult.archive);
+    const fixStepResult = await withTiming(() => sendMessage<FixApplicationResult>({
+      type: "PLAN_AND_APPLY_FIXES",
+      patterns: detectionResult.identified_dark_patterns
+    }));
+    const fixResult = fixStepResult.value;
+    logInfo("flow:fixes-applied", {
+      durationMs: fixStepResult.durationMs,
+      appliedCount: fixResult.appliedCount,
+      fixes: fixResult.archive.fixes.length
+    });
+
+    const saveStepResult = await withTiming(() => saveArchive(fixResult.archive));
+    logInfo("flow:archive-saved", { durationMs: saveStepResult.durationMs, pageKey: fixResult.archive.page_key });
     setState("finished");
+    logInfo("flow:finished");
   } catch (error) {
+    logError("flow:failed", error);
     const prefix = hasConfiguredDetectionProvider()
       ? "Fixing failed."
       : `Configure ${getActiveProviderName()} in src/config.ts/.env first.`;
@@ -183,16 +281,21 @@ async function startFixFlow(): Promise<void> {
 }
 
 async function bootstrap(): Promise<void> {
+  logInfo("bootstrap:start");
   try {
-    await getActiveTab();
+    const tabResult = await withTiming(getActiveTab);
+    logInfo("bootstrap:active-tab-ready", { durationMs: tabResult.durationMs });
     const reused = await maybeApplySavedArchive();
     if (!reused) {
       setState("initial");
+      logInfo("bootstrap:ready-for-start");
     }
   } catch (error) {
+    logError("bootstrap:failed", error);
     const message = error instanceof Error ? error.message : String(error);
     setState("initial", message);
   }
 }
 
 void bootstrap();
+resetButton.onclick = () => void resetCache();

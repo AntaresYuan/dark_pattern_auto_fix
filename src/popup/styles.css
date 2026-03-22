@@ -78,6 +78,12 @@ button {
   color: #fff9ef;
 }
 
+.secondary-button {
+  margin-top: 0;
+  background: rgba(31, 27, 22, 0.12);
+  color: #1f1b16;
+}
+
 button[disabled] {
   opacity: 0.55;
   cursor: default;
