@@ -70,6 +70,39 @@ Identification rules:
 7. Only use issue tags from this set: ["color", "font_size", "background_color", "add_advertisement_title", "enhance_advertisement_title"].
 8. If no dark pattern is confidently identified, return an empty result.
 
+9. For every identified dark pattern, set selector_stability:
+    - "stable": the CSS selector uses an #id, a [data-*] attribute, a semantic element name, or a descriptive class name that belongs to the site's design system (e.g. .product-title, .price-block, [data-testid="add-to-cart"])
+    - "dynamic": the selector relies on hashed or generated class names (e.g. ._3Bx2a, .s-1k9p4m), deeply-nested :nth-child paths with no class anchoring, or text-content-specific matches that would not survive across different instances of this template
+
+Template matching features (for local-only reuse on future visits):
+
+10. Fill template_match_features so the extension can match this page template locally without calling the LLM again.
+    Every token must be stable across ALL URLs sharing this template — never include product titles, prices, ASINs, user names, query strings, or any other page-specific content.
+
+    - url_path_tokens: 2–4 path segments that identify this URL pattern.
+      Use normalized placeholders for variable segments.
+      Good: ["dp", "{id}"] for an Amazon product page, ["search"] for search results.
+      Bad: ["B08N5WRWNW", "the-product-title"].
+
+    - required_attributes: up to 8 HTML attributes that MUST appear on every page of this template.
+      Format each token exactly as one of: "data-X" (attribute name only), "role:value", "type:value",
+      "aria-X" (attribute name only), "attr:id" (presence of any id attribute), "name:value".
+      Good: ["data-asin", "role:button", "type:submit", "data-add-to-cart"].
+      Bad: ["data-asin:B08N5WRWNW", "class:a-button"] — do not include class names here.
+
+    - optional_attributes: up to 6 attributes present on most pages of this template but not guaranteed.
+      Same format as required_attributes.
+
+    - negative_attributes: up to 4 attributes whose presence would indicate this is a DIFFERENT template.
+      Good (for a product page): ["data-search-result", "data-filter-panel"] — these appear on search pages, not product pages.
+
+    - fingerprint_tokens: up to 10 CSS class names that are distinctive to this site's design system for this template.
+      Use only descriptive, stable class names visible in the HTML — not hashed names (e.g. "_3Bx2a").
+      Good: ["a-price-whole", "a-button-primary", "s-result-item"].
+
+    - match_confidence: "high" if features are highly distinctive across many URLs of this template;
+      "medium" if some features may occasionally be absent; "low" if uncertain or the page is not clearly templated.
+
 Now analyze the following webpage.
 
 Screenshot string:

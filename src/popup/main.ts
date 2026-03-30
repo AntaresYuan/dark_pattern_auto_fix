@@ -7,6 +7,20 @@ import { DARK_PATTERN_FACTS } from "../shared/facts";
 import { getPageKeyFromUrl, isSupportedPageUrl } from "../shared/pageKey";
 import { buildDarkPatternPrompt } from "../shared/prompt";
 import { loadArchive, saveArchive } from "../shared/storage";
+import { deriveUrlShape, extractHtmlSignature } from "../shared/patternMatcher";
+import { findBestPatternMatch, upsertPatternArchive } from "../shared/patternStorage";
+import {
+  beginVerification,
+  flushVerification,
+  recordContextReuse,
+  recordExactLayer,
+  recordPatternLayerAttempt,
+  recordPatternLayerHit,
+  recordPatternLayerMiss,
+  recordPatternLayerSkipped,
+  recordPatternUpsertSuccess,
+  recordResetCacheSuccess,
+} from "../shared/verificationTelemetry";
 import type {
   ExtensionMessage,
   ExtensionMessageResponse,
@@ -33,6 +47,8 @@ const actionButton = document.getElementById(
 let activeTabId: number | null = null;
 let activeWindowId: number | null = null;
 let activePageKey = "";
+/** Cached page context from bootstrap's pattern-matching probe — reused in startFixFlow */
+let cachedPageContext: PageContext | null = null;
 let factTimer: number | null = null;
 let currentFactIndex = 0;
 const POPUP_LOG_PREFIX = "[DarkPatternFixer:popup]";
@@ -109,6 +125,7 @@ async function resetCache(): Promise<void> {
   logInfo("reset-cache:start");
   try {
     await chrome.storage.local.clear();
+    recordResetCacheSuccess();
     logInfo("reset-cache:done");
     setState(
       "initial",
@@ -294,10 +311,12 @@ async function captureScreenshot(): Promise<string> {
 async function maybeApplySavedArchive(): Promise<boolean> {
   const archive = await loadArchive(activePageKey);
   if (!archive || archive.fixes.length === 0) {
+    recordExactLayer("MISS");
     logInfo("archive:miss", { pageKey: activePageKey });
     return false;
   }
 
+  recordExactLayer("HIT", archive.fixes.length);
   logInfo("archive:hit", {
     pageKey: activePageKey,
     fixes: archive.fixes.length,
@@ -311,6 +330,60 @@ async function maybeApplySavedArchive(): Promise<boolean> {
     appliedCount: applied.appliedCount,
   });
   setState("finished");
+  flushVerification("finished");
+  return true;
+}
+
+async function maybeApplyPatternArchive(pageContext: PageContext): Promise<boolean> {
+  const urlShape = deriveUrlShape(activePageKey);
+  const sig = extractHtmlSignature(pageContext.truncatedHtml);
+  recordPatternLayerAttempt(urlShape);
+
+  logInfo("pattern:matching", { urlShape });
+
+  let match;
+  try {
+    match = await findBestPatternMatch(urlShape, sig);
+  } catch (error) {
+    recordPatternLayerMiss();
+    logError("pattern:lookup-failed", error, { urlShape });
+    return false;
+  }
+
+  if (!match) {
+    recordPatternLayerMiss();
+    logInfo("pattern:miss", { urlShape });
+    return false;
+  }
+
+  recordPatternLayerHit({
+    urlShape,
+    candidateCount: match.candidateCount,
+    fixes: match.archive.fixes.length,
+    scoreBreakdown: match.scoreBreakdown,
+  });
+  logInfo("pattern:hit", {
+    urlShape,
+    score: Number(match.score.toFixed(3)),
+    matchPath: match.scoreBreakdown.matchPath,
+    urlConsistencyScore: match.scoreBreakdown.urlConsistencyScore != null
+      ? Number(match.scoreBreakdown.urlConsistencyScore.toFixed(3))
+      : undefined,
+    fixes: match.archive.fixes.length,
+    hitCount: match.archive.hitCount,
+  });
+
+  setState("fixing");
+  const applied = await sendMessage<FixApplicationResult>({
+    type: "APPLY_SAVED_FIXES",
+    archive: {
+      page_key: activePageKey,
+      fixes: match.archive.fixes,
+    },
+  });
+  logInfo("pattern:applied", { appliedCount: applied.appliedCount });
+  setState("finished");
+  flushVerification("finished");
   return true;
 }
 
@@ -349,11 +422,14 @@ async function startFixFlow(): Promise<void> {
   try {
     setState("fixing");
 
-    const pageContextResult = await withTiming(() =>
-      sendMessage<PageContext>({
-        type: "COLLECT_PAGE_CONTEXT",
-      }),
-    );
+    const pageContextResult = await withTiming(async () => {
+      if (cachedPageContext) {
+        logInfo("flow:page-context-reused-from-cache");
+        recordContextReuse();
+        return cachedPageContext;
+      }
+      return sendMessage<PageContext>({ type: "COLLECT_PAGE_CONTEXT" });
+    });
     const pageContext = pageContextResult.value;
     logInfo("flow:page-context-collected", {
       durationMs: pageContextResult.durationMs,
@@ -396,7 +472,19 @@ async function startFixFlow(): Promise<void> {
       durationMs: saveStepResult.durationMs,
       pageKey: fixResult.archive.page_key,
     });
+
+    // Persist pattern archive (fire-and-forget — must not block or break main flow)
+    const sig = extractHtmlSignature(pageContext.truncatedHtml);
+    void upsertPatternArchive(activePageKey, sig, fixResult.archive.fixes, detectionResult).then(() => {
+      const urlShape = deriveUrlShape(activePageKey);
+      recordPatternUpsertSuccess(`Pattern archive stored for ${urlShape}`);
+      logInfo("flow:pattern-archive-upserted", { urlShape });
+    }).catch((error: unknown) => {
+      logError("flow:pattern-archive-upsert-failed", error);
+    });
+
     setState("finished");
+    flushVerification("finished");
     logInfo("flow:finished");
   } catch (error) {
     logError("flow:failed", error);
@@ -405,6 +493,7 @@ async function startFixFlow(): Promise<void> {
       : `Configure ${getActiveProviderName()} in src/config.ts/.env first.`;
     const message = error instanceof Error ? error.message : String(error);
     setState("initial", `${prefix} ${message}`);
+    flushVerification("initial");
   }
 }
 
@@ -413,15 +502,41 @@ async function bootstrap(): Promise<void> {
   try {
     const tabResult = await withTiming(getActiveTab);
     logInfo("bootstrap:active-tab-ready", { durationMs: tabResult.durationMs });
-    const reused = await maybeApplySavedArchive();
-    if (!reused) {
-      setState("initial");
-      logInfo("bootstrap:ready-for-start");
+    beginVerification(activePageKey);
+
+    // Layer 1: exact page-key cache (fast, no content script needed)
+    const exactReused = await maybeApplySavedArchive();
+    if (exactReused) return;
+
+    // Layer 2: pattern-level cache (requires page context from content script)
+    try {
+      const ctxResult = await withTiming(() =>
+        sendMessage<PageContext>({ type: "COLLECT_PAGE_CONTEXT" }),
+      );
+      cachedPageContext = ctxResult.value;
+      logInfo("bootstrap:page-context-cached", {
+        durationMs: ctxResult.durationMs,
+        truncatedHtmlLength: cachedPageContext.truncatedHtml.length,
+      });
+
+      const patternReused = await maybeApplyPatternArchive(cachedPageContext);
+      if (patternReused) return;
+    } catch (error) {
+      // Pattern matching is non-critical — log and fall through to manual start
+      recordPatternLayerSkipped(error instanceof Error ? error.message : String(error));
+      logInfo("bootstrap:pattern-match-skipped", {
+        reason: error instanceof Error ? error.message : String(error),
+      });
     }
+
+    setState("initial");
+    flushVerification("initial");
+    logInfo("bootstrap:ready-for-start");
   } catch (error) {
     logError("bootstrap:failed", error);
     const message = error instanceof Error ? error.message : String(error);
     setState("initial", message);
+    flushVerification("initial");
   }
 }
 
