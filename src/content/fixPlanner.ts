@@ -6,6 +6,7 @@ import type {
   PageFix,
   PageFixArchive
 } from "../shared/types";
+import { logEvent, startStep, truncateText } from "../shared/logger";
 import { applyFixesToPage } from "./patchInjector";
 
 const FIXABLE_TYPES = new Set(["Disguised ad", "False hierarchy"]);
@@ -14,6 +15,7 @@ const FALLBACK_FONT_SIZE = "16px";
 const FALLBACK_BACKGROUND_COLOR = "#e7e0d2";
 const ADVERTISEMENT_LABEL_TEXT = "ADVERTISEMENT";
 const MIN_AD_LABEL_BLACKNESS = 0.5;
+type FixTargetResolutionReason = "clickable_ancestor" | "styled_surface_ancestor";
 
 function isVisible(element: Element): boolean {
   const rect = element.getBoundingClientRect();
@@ -97,15 +99,15 @@ function getNearbyElements(element: Element): Element[] {
   return Array.from(candidates).filter((candidate) => isVisible(candidate));
 }
 
-function inferSafeColor(element: Element): string {
+function inferSafeColor(element: Element): { value: string; usedFallback: boolean } {
   for (const candidate of getNearbyElements(element)) {
     const color = window.getComputedStyle(candidate).color;
     if (color && color !== "rgba(0, 0, 0, 0)" && color !== "transparent") {
-      return color;
+      return { value: color, usedFallback: false };
     }
   }
 
-  return FALLBACK_COLOR;
+  return { value: FALLBACK_COLOR, usedFallback: true };
 }
 
 function isUsableBackground(style: CSSStyleDeclaration): boolean {
@@ -253,18 +255,18 @@ function getBackgroundCandidates(element: Element): Element[] {
   ];
 }
 
-function inferSafeBackgroundColor(element: Element): string {
+function inferSafeBackgroundColor(element: Element): { value: string; usedFallback: boolean } {
   for (const candidate of getBackgroundCandidates(element)) {
     const style = window.getComputedStyle(candidate);
     if (hasStyledBackground(style) && looksButtonLike(candidate)) {
-      return style.backgroundColor;
+      return { value: style.backgroundColor, usedFallback: false };
     }
   }
 
   for (const candidate of getBackgroundCandidates(element)) {
     const style = window.getComputedStyle(candidate);
     if (isUsableBackground(style)) {
-      return style.backgroundColor;
+      return { value: style.backgroundColor, usedFallback: false };
     }
   }
 
@@ -272,36 +274,39 @@ function inferSafeBackgroundColor(element: Element): string {
   if (parent) {
     const parentStyle = window.getComputedStyle(parent);
     if (isUsableBackground(parentStyle)) {
-      return parentStyle.backgroundColor;
+      return { value: parentStyle.backgroundColor, usedFallback: false };
     }
   }
 
-  return FALLBACK_BACKGROUND_COLOR;
+  return { value: FALLBACK_BACKGROUND_COLOR, usedFallback: true };
 }
 
-function inferSafeFontSize(element: Element): string {
+function inferSafeFontSize(element: Element): { value: string; usedFallback: boolean } {
   for (const candidate of getNearbyElements(element)) {
     const fontSize = window.getComputedStyle(candidate).fontSize;
     if (fontSize) {
-      return fontSize;
+      return { value: fontSize, usedFallback: false };
     }
   }
 
-  return FALLBACK_FONT_SIZE;
+  return { value: FALLBACK_FONT_SIZE, usedFallback: true };
 }
 
-function resolveFixTarget(element: Element, issues: IssueTag[]): Element {
+function resolveFixTarget(
+  element: Element,
+  issues: IssueTag[]
+): { target: Element; reason?: FixTargetResolutionReason } {
   if (
     !issues.includes("background_color")
     && !issues.includes("add_advertisement_title")
     && !issues.includes("enhance_advertisement_title")
   ) {
-    return element;
+    return { target: element };
   }
 
   const clickableAncestor = getClickableAncestor(element);
   if (clickableAncestor && isVisible(clickableAncestor)) {
-    return clickableAncestor;
+    return { target: clickableAncestor, reason: "clickable_ancestor" };
   }
 
   let current: Element | null = element;
@@ -313,12 +318,12 @@ function resolveFixTarget(element: Element, issues: IssueTag[]): Element {
       && looksLikeCompactSurface(current, element)
       && looksButtonLike(current)
     ) {
-      return current;
+      return { target: current, reason: "styled_surface_ancestor" };
     }
     current = current.parentElement;
   }
 
-  return element;
+  return { target: element };
 }
 
 function findAdvertisementLabel(target: Element): HTMLElement | null {
@@ -345,13 +350,26 @@ function findAdvertisementLabel(target: Element): HTMLElement | null {
 
 function createAdvertisementLabelFix(
   target: Element,
-  pattern: IdentifiedDarkPattern
+  pattern: IdentifiedDarkPattern,
+  traceId: string
 ): AdvertisementLabelFix | null {
   const existingLabel = findAdvertisementLabel(target);
   if (existingLabel) {
+    logEvent("content", "fix.pattern.ad_label.skip", {
+      traceId,
+      sourceSelector: truncateText(pattern.css_selector, 120),
+      targetSelector: truncateText(buildStableSelector(target), 120),
+      outcome: "existing_label_present"
+    }, "debug");
     return null;
   }
 
+  logEvent("content", "fix.pattern.ad_label.create", {
+    traceId,
+    sourceSelector: truncateText(pattern.css_selector, 120),
+    targetSelector: truncateText(buildStableSelector(target), 120),
+    outcome: "fix_created"
+  }, "info");
   return {
     css_selector: buildStableSelector(target),
     patch_type: "advertisement_label",
@@ -363,18 +381,37 @@ function createAdvertisementLabelFix(
 
 function createAdvertisementLabelEnhancementFix(
   target: Element,
-  pattern: IdentifiedDarkPattern
+  pattern: IdentifiedDarkPattern,
+  traceId: string
 ): CssFix | null {
   const existingLabel = findAdvertisementLabel(target);
   if (!existingLabel) {
+    logEvent("content", "fix.pattern.ad_label.skip", {
+      traceId,
+      sourceSelector: truncateText(pattern.css_selector, 120),
+      targetSelector: truncateText(buildStableSelector(target), 120),
+      outcome: "label_missing_for_enhancement"
+    }, "debug");
     return null;
   }
 
   const existingColor = window.getComputedStyle(existingLabel).color;
   if (computeBlackness(existingColor) >= MIN_AD_LABEL_BLACKNESS) {
+    logEvent("content", "fix.pattern.ad_label.skip", {
+      traceId,
+      sourceSelector: truncateText(pattern.css_selector, 120),
+      targetSelector: truncateText(buildStableSelector(existingLabel), 120),
+      outcome: "label_already_dark_enough"
+    }, "debug");
     return null;
   }
 
+  logEvent("content", "fix.pattern.ad_label.enhance", {
+    traceId,
+    sourceSelector: truncateText(pattern.css_selector, 120),
+    targetSelector: truncateText(buildStableSelector(existingLabel), 120),
+    outcome: "fix_created"
+  }, "info");
   return {
     css_selector: buildStableSelector(existingLabel),
     patch_type: "css",
@@ -386,36 +423,80 @@ function createAdvertisementLabelEnhancementFix(
   };
 }
 
-function createFixesForPattern(pattern: IdentifiedDarkPattern): PageFix[] {
-  if (!FIXABLE_TYPES.has(pattern.dark_pattern_type) || pattern.issues.length === 0) {
+function createFixesForPattern(pattern: IdentifiedDarkPattern, traceId: string): PageFix[] {
+  if (!FIXABLE_TYPES.has(pattern.dark_pattern_type)) {
+    logEvent("content", "fix.pattern.skip", {
+      traceId,
+      darkPatternType: pattern.dark_pattern_type,
+      sourceSelector: truncateText(pattern.css_selector, 120),
+      issues: pattern.issues,
+      outcome: "unfixable_type"
+    }, "debug");
+    return [];
+  }
+
+  if (pattern.issues.length === 0) {
+    logEvent("content", "fix.pattern.skip", {
+      traceId,
+      darkPatternType: pattern.dark_pattern_type,
+      sourceSelector: truncateText(pattern.css_selector, 120),
+      outcome: "no_issues"
+    }, "debug");
     return [];
   }
 
   const matchedElement = tryQuerySelector(pattern.css_selector);
   if (!matchedElement || !isVisible(matchedElement)) {
+    logEvent("content", "fix.pattern.skip", {
+      traceId,
+      darkPatternType: pattern.dark_pattern_type,
+      sourceSelector: truncateText(pattern.css_selector, 120),
+      outcome: !matchedElement ? "selector_not_found" : "not_visible"
+    }, "debug");
     return [];
   }
 
-  const targetElement = resolveFixTarget(matchedElement, pattern.issues);
+  const resolution = resolveFixTarget(matchedElement, pattern.issues);
+  const targetElement = resolution.target;
+  if (resolution.reason) {
+    logEvent("content", "fix.pattern.resolve_target", {
+      traceId,
+      darkPatternType: pattern.dark_pattern_type,
+      sourceSelector: truncateText(pattern.css_selector, 120),
+      resolvedSelector: truncateText(buildStableSelector(targetElement), 120),
+      reason: resolution.reason
+    }, "debug");
+  }
   const fixes: PageFix[] = [];
+  const appliedIssueSummaries: Array<{ issue: IssueTag; value: string; usedFallback: boolean }> = [];
 
   const cssRules: CssFix["css_rules"] = {};
   const appliedIssues: IssueTag[] = [];
 
   if (pattern.issues.includes("color")) {
-    cssRules.color = inferSafeColor(targetElement);
+    const inferred = inferSafeColor(targetElement);
+    cssRules.color = inferred.value;
     appliedIssues.push("color");
+    appliedIssueSummaries.push({ issue: "color", value: inferred.value, usedFallback: inferred.usedFallback });
   }
 
   if (pattern.issues.includes("background_color")) {
-    cssRules["background-color"] = inferSafeBackgroundColor(targetElement);
+    const inferred = inferSafeBackgroundColor(targetElement);
+    cssRules["background-color"] = inferred.value;
     cssRules["background-image"] = "none";
     appliedIssues.push("background_color");
+    appliedIssueSummaries.push({
+      issue: "background_color",
+      value: inferred.value,
+      usedFallback: inferred.usedFallback
+    });
   }
 
   if (pattern.issues.includes("font_size")) {
-    cssRules["font-size"] = inferSafeFontSize(targetElement);
+    const inferred = inferSafeFontSize(targetElement);
+    cssRules["font-size"] = inferred.value;
     appliedIssues.push("font_size");
+    appliedIssueSummaries.push({ issue: "font_size", value: inferred.value, usedFallback: inferred.usedFallback });
   }
 
   if (appliedIssues.length > 0) {
@@ -426,20 +507,37 @@ function createFixesForPattern(pattern: IdentifiedDarkPattern): PageFix[] {
       source_dark_pattern_type: pattern.dark_pattern_type,
       applied_issues: appliedIssues
     });
+    logEvent("content", "fix.pattern.generate", {
+      traceId,
+      darkPatternType: pattern.dark_pattern_type,
+      sourceSelector: truncateText(pattern.css_selector, 120),
+      resolvedSelector: truncateText(buildStableSelector(targetElement), 120),
+      appliedIssues,
+      inferredStyles: appliedIssueSummaries
+    }, "info");
   }
 
   if (pattern.dark_pattern_type === "Disguised ad" && pattern.issues.includes("add_advertisement_title")) {
-    const labelFix = createAdvertisementLabelFix(targetElement, pattern);
+    const labelFix = createAdvertisementLabelFix(targetElement, pattern, traceId);
     if (labelFix) {
       fixes.push(labelFix);
     }
   }
 
   if (pattern.dark_pattern_type === "Disguised ad" && pattern.issues.includes("enhance_advertisement_title")) {
-    const titleEnhancementFix = createAdvertisementLabelEnhancementFix(targetElement, pattern);
+    const titleEnhancementFix = createAdvertisementLabelEnhancementFix(targetElement, pattern, traceId);
     if (titleEnhancementFix) {
       fixes.push(titleEnhancementFix);
     }
+  }
+
+  if (fixes.length === 0) {
+    logEvent("content", "fix.pattern.skip", {
+      traceId,
+      darkPatternType: pattern.dark_pattern_type,
+      sourceSelector: truncateText(pattern.css_selector, 120),
+      outcome: "no_fixes_generated"
+    }, "debug");
   }
 
   return fixes;
@@ -449,21 +547,33 @@ function isPageFix(fix: PageFix | null): fix is PageFix {
   return Boolean(fix);
 }
 
-function flattenFixes(patterns: IdentifiedDarkPattern[]): PageFix[] {
-  return patterns.flatMap((pattern) => createFixesForPattern(pattern)).filter(isPageFix);
-}
-
 export function planAndApplyFixes(
   pageKey: string,
-  patterns: IdentifiedDarkPattern[]
+  patterns: IdentifiedDarkPattern[],
+  traceId: string
 ): { archive: PageFixArchive; appliedCount: number } {
-  const fixes = flattenFixes(patterns);
+  const step = startStep("content", "fix.plan", {
+    pageKey,
+    patternCount: patterns.length,
+    traceId
+  });
+
+  const fixes = patterns.flatMap((pattern) => createFixesForPattern(pattern, traceId)).filter(isPageFix);
 
   const archive: PageFixArchive = {
     page_key: pageKey,
     fixes
   };
 
-  const appliedCount = applyFixesToPage(fixes);
+  const appliedCount = applyFixesToPage(fixes, {
+    pageKey,
+    traceId
+  });
+  step.finish({
+    pageKey,
+    patternCount: patterns.length,
+    fixCount: fixes.length,
+    appliedCount
+  });
   return { archive, appliedCount };
 }

@@ -1,3 +1,5 @@
+import { startStep } from "../shared/logger";
+
 const DEFAULT_MAX_HTML_LENGTH = 100000;
 
 function getDoctypeString(doc: Document): string {
@@ -57,7 +59,11 @@ function isPreformattedTextNode(textNode: Text): boolean {
   }
 }
 
-function cloneAndCleanVisibleBody(doc: Document): HTMLElement {
+function cloneAndCleanVisibleBody(doc: Document): {
+  body: HTMLElement;
+  removedNodeCount: number;
+  normalizedTextNodeCount: number;
+} {
   const bodyClone = (doc.body?.cloneNode(true) as HTMLElement | null) ?? document.createElement("body");
   const removableSelectors = [
     "script",
@@ -69,7 +75,11 @@ function cloneAndCleanVisibleBody(doc: Document): HTMLElement {
     "[aria-hidden='true']"
   ];
 
-  bodyClone.querySelectorAll(removableSelectors.join(",")).forEach((node) => node.remove());
+  let removedNodeCount = 0;
+  bodyClone.querySelectorAll(removableSelectors.join(",")).forEach((node) => {
+    node.remove();
+    removedNodeCount += 1;
+  });
 
   const walker = document.createTreeWalker(bodyClone, NodeFilter.SHOW_ELEMENT);
   const extraRemovals: Element[] = [];
@@ -83,6 +93,7 @@ function cloneAndCleanVisibleBody(doc: Document): HTMLElement {
   }
 
   extraRemovals.forEach((node) => node.remove());
+  removedNodeCount += extraRemovals.length;
 
   const textWalker = document.createTreeWalker(bodyClone, NodeFilter.SHOW_TEXT);
   const textNodes: Text[] = [];
@@ -93,13 +104,23 @@ function cloneAndCleanVisibleBody(doc: Document): HTMLElement {
     textNode = textWalker.nextNode() as Text | null;
   }
 
+  let normalizedTextNodeCount = 0;
   textNodes.forEach((node) => {
     if (!isPreformattedTextNode(node)) {
-      node.textContent = node.textContent?.replace(/\s+/g, " ") ?? "";
+      const before = node.textContent ?? "";
+      const after = before.replace(/\s+/g, " ");
+      if (after !== before) {
+        normalizedTextNodeCount += 1;
+      }
+      node.textContent = after;
     }
   });
 
-  return bodyClone;
+  return {
+    body: bodyClone,
+    removedNodeCount,
+    normalizedTextNodeCount
+  };
 }
 
 function buildOptimizedHead(doc: Document): string {
@@ -124,26 +145,72 @@ function buildOptimizedHead(doc: Document): string {
   return fragments.join("");
 }
 
-export function extractTruncatedHtml(maxLength = DEFAULT_MAX_HTML_LENGTH): string {
+export function extractTruncatedHtml(input: {
+  maxLength?: number;
+  pageKey?: string;
+  traceId?: string;
+} = {}): string {
+  const maxLength = input.maxLength ?? DEFAULT_MAX_HTML_LENGTH;
+  const step = startStep("content", "html.extract", {
+    maxLength,
+    hasDocumentElement: Boolean(document.documentElement),
+    hasBody: Boolean(document.body),
+    hasHead: Boolean(document.head),
+    pageKey: input.pageKey,
+    traceId: input.traceId
+  });
+
   const doctype = getDoctypeString(document);
   const fullHtml = `${doctype}${document.documentElement.outerHTML}`;
-  const body = cloneAndCleanVisibleBody(document);
+  const cleanup = cloneAndCleanVisibleBody(document);
   const headContent = buildOptimizedHead(document);
 
   const finalHtml = `${doctype}
 <html>
 <head>${headContent}</head>
-<body>${body.innerHTML}</body>
+<body>${cleanup.body.innerHTML}</body>
 </html>`;
+  const compressedHtml = finalHtml.replace(/\s+/g, " ").trim();
 
   if (finalHtml.length <= maxLength) {
+    step.finish({
+      mode: "final_html",
+      fullHtmlLength: fullHtml.length,
+      finalHtmlLength: finalHtml.length,
+      compressedHtmlLength: compressedHtml.length,
+      pageKey: input.pageKey,
+      removedNodeCount: cleanup.removedNodeCount,
+      traceId: input.traceId,
+      normalizedTextNodeCount: cleanup.normalizedTextNodeCount
+    });
     return finalHtml;
   }
 
-  const compressedHtml = finalHtml.replace(/\s+/g, " ").trim();
   if (compressedHtml.length <= maxLength) {
+    step.finish({
+      mode: "compressed_html",
+      fullHtmlLength: fullHtml.length,
+      finalHtmlLength: finalHtml.length,
+      compressedHtmlLength: compressedHtml.length,
+      pageKey: input.pageKey,
+      removedNodeCount: cleanup.removedNodeCount,
+      traceId: input.traceId,
+      normalizedTextNodeCount: cleanup.normalizedTextNodeCount
+    });
     return compressedHtml;
   }
 
-  return fullHtml.length < finalHtml.length ? fullHtml : finalHtml;
+  const fallbackHtml = fullHtml.length < finalHtml.length ? fullHtml : finalHtml;
+  step.finish({
+    mode: "full_html_fallback",
+    fullHtmlLength: fullHtml.length,
+    finalHtmlLength: finalHtml.length,
+    compressedHtmlLength: compressedHtml.length,
+    pageKey: input.pageKey,
+    removedNodeCount: cleanup.removedNodeCount,
+    traceId: input.traceId,
+    normalizedTextNodeCount: cleanup.normalizedTextNodeCount,
+    fallbackLength: fallbackHtml.length
+  }, "warn");
+  return fallbackHtml;
 }
