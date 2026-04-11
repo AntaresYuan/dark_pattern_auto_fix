@@ -77,6 +77,9 @@ export const DARK_PATTERN_SCHEMA = {
         match_confidence: {
           type: "string",
           enum: ["high", "medium", "low"]
+        },
+        url_shape: {
+          anyOf: [{ type: "string" }, { type: "null" }]
         }
       },
       required: [
@@ -85,7 +88,8 @@ export const DARK_PATTERN_SCHEMA = {
         "optional_attributes",
         "negative_attributes",
         "fingerprint_tokens",
-        "match_confidence"
+        "match_confidence",
+        "url_shape"
       ],
       additionalProperties: false
     }

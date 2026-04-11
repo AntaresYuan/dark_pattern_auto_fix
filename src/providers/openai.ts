@@ -35,18 +35,7 @@ export const openAIProvider: DetectionProvider = {
         messages: [
           {
             role: "user",
-            content: [
-              {
-                type: "text",
-                text: input.prompt
-              },
-              {
-                type: "image_url",
-                image_url: {
-                  url: input.screenshotDataUrl
-                }
-              }
-            ]
+            content: input.prompt
           }
         ],
         response_format: {

@@ -48,6 +48,11 @@ export function deriveUrlShape(pageKey: string): string {
   return [hostname, ...normalized].join("/");
 }
 
+/** Extract the hostname portion from a URL shape (the segment before the first '/'). */
+export function getHostFromUrlShape(urlShape: string): string {
+  return urlShape.split("/")[0];
+}
+
 function logBucket(n: number): number {
   return Math.floor(Math.log2(n + 1));
 }
@@ -212,7 +217,15 @@ export function scoreLlmFeatures(
   features: TemplateMatchFeatures,
   sig: HtmlSignature,
   urlShape: string,
-): { score: number; requiredCoverage: number; negativePenalty: number } {
+): {
+  score: number;
+  requiredCoverage: number;
+  negativePenalty: number;
+  optionalScore: number;
+  fingerprintScore: number;
+  urlMatchRate: number;
+  negativeHitRate: number;
+} {
   const pageAttrSet = new Set(Array.isArray(sig.attrTokens) ? sig.attrTokens : []);
 
   // required_coverage — high weight; these must be present for a template match
@@ -247,5 +260,5 @@ export function scoreLlmFeatures(
   const negativePenalty = 0.50 * negativeHitRate;
   const score = Math.max(0, rawScore - negativePenalty);
 
-  return { score, requiredCoverage, negativePenalty };
+  return { score, requiredCoverage, negativePenalty, optionalScore, fingerprintScore, urlMatchRate, negativeHitRate };
 }

@@ -13,18 +13,6 @@ interface GeminiGenerateContentResponse {
   }>;
 }
 
-function parseDataUrl(dataUrl: string): { mimeType: string; data: string } {
-  const match = dataUrl.match(/^data:(.+?);base64,(.+)$/);
-  if (!match) {
-    throw new Error("Screenshot data URL was not in the expected base64 format.");
-  }
-
-  return {
-    mimeType: match[1],
-    data: match[2]
-  };
-}
-
 export const geminiProvider: DetectionProvider = {
   async detectDarkPatterns(input: DetectionProviderInput): Promise<DetectionResult> {
     const config = AI_CONFIG.providers.gemini;
@@ -32,7 +20,6 @@ export const geminiProvider: DetectionProvider = {
       throw new Error("Configure GEMINI_API_KEY in .env before running the Gemini provider.");
     }
 
-    const screenshot = parseDataUrl(input.screenshotDataUrl);
     const endpoint = `${config.apiBaseUrl}/models/${config.model}:generateContent?key=${encodeURIComponent(config.apiKey)}`;
     const response = await fetch(endpoint, {
       method: "POST",
@@ -45,12 +32,6 @@ export const geminiProvider: DetectionProvider = {
             parts: [
               {
                 text: input.prompt
-              },
-              {
-                inline_data: {
-                  mime_type: screenshot.mimeType,
-                  data: screenshot.data
-                }
               }
             ]
           }

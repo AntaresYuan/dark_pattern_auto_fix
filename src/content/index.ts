@@ -2,6 +2,7 @@ import { extractTruncatedHtml } from "./htmlExtractor";
 import { planAndApplyFixes } from "./fixPlanner";
 import { applyFixesToPage } from "./patchInjector";
 import { getPageKeyFromUrl } from "../shared/pageKey";
+import { normalizeError } from "../shared/utils";
 import type { ExtensionMessage } from "../shared/messages";
 import type { FixApplicationResult, PageContext, PageFixArchive } from "../shared/types";
 
@@ -48,7 +49,7 @@ chrome.runtime.onMessage.addListener((message: ExtensionMessage, _sender, sendRe
         fixes: []
       },
       appliedCount: 0,
-      error: error instanceof Error ? error.message : String(error)
+      error: normalizeError(error)
     });
   });
 
