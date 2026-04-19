@@ -1,9 +1,21 @@
+import { startStep } from "./logger";
+
 export function buildDarkPatternPrompt(input: {
+  pageKey?: string;
+  screenshotString: string;
+  traceId?: string;
   truncatedHtml: string;
   screenshotString: string;
   pageUrl: string;
 }): string {
-  return `You are a website dark pattern evaluator.
+  const step = startStep("prompt", "buildDarkPatternPrompt", {
+    pageKey: input.pageKey,
+    screenshotStringLength: input.screenshotString.length,
+    traceId: input.traceId,
+    truncatedHtmlLength: input.truncatedHtml.length
+  });
+
+  const prompt = `You are a website dark pattern evaluator.
 
 Your task is to identify the top 3 most obvious dark patterns on the current webpage.
 
@@ -119,4 +131,12 @@ ${input.truncatedHtml}
 
 Screenshot (base64-encoded JPEG):
 ${input.screenshotString}`;
+${input.truncatedHtml}`;
+
+  step.finish({
+    pageKey: input.pageKey,
+    promptLength: prompt.length
+  });
+
+  return prompt;
 }

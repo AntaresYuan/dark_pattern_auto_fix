@@ -78,9 +78,16 @@ button {
   color: #fff9ef;
 }
 
+.button-stack {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
 .secondary-button {
   margin-top: 0;
-  background: rgba(31, 27, 22, 0.12);
+  background: rgba(31, 27, 22, 0.08);
   color: #1f1b16;
 }
 
