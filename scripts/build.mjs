@@ -172,15 +172,17 @@ const manifest = {
   name: "Dark Pattern Fixer",
   version: "0.1.0",
   description: "Detect obvious dark patterns, apply default visual fixes, and reuse them on future visits.",
-  permissions: ["activeTab", "scripting", "storage", "tabs"],
+  permissions: ["activeTab", "scripting", "storage", "tabs", "sidePanel"],
   host_permissions: [
     "<all_urls>",
     "https://api.openai.com/*",
     "https://generativelanguage.googleapis.com/*"
   ],
   action: {
-    default_title: "Dark Pattern Fixer",
-    default_popup: "popup.html"
+    default_title: "Dark Pattern Fixer"
+  },
+  side_panel: {
+    default_path: "popup.html"
   },
   background: {
     service_worker: "background.js"

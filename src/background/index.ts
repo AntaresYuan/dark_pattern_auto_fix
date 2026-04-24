@@ -14,6 +14,7 @@ chrome.runtime.onInstalled.addListener((details) => {
     previousVersion: details.previousVersion ?? null,
     version: chrome.runtime.getManifest().version
   });
+  void chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
 });
 
 chrome.runtime.onStartup.addListener(() => {
@@ -21,4 +22,5 @@ chrome.runtime.onStartup.addListener(() => {
     traceId: backgroundTraceId,
     version: chrome.runtime.getManifest().version
   });
+  void chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
 });

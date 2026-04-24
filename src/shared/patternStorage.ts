@@ -202,6 +202,18 @@ export async function findBestPatternMatch(
  *
  * Returns an UpsertOutcome so callers can log truthfully (wrote vs skipped).
  */
+export async function clearAllPatternArchives(): Promise<number> {
+  const archives = await loadAllPatternArchives();
+  if (archives.length === 0) return 0;
+  await chrome.storage.local.remove(archives.map((a) => patternKey(a.id)));
+  return archives.length;
+}
+
+export async function countPatternArchives(): Promise<number> {
+  const archives = await loadAllPatternArchives();
+  return archives.length;
+}
+
 export async function upsertPatternArchive(
   pageKey: string,
   sig: HtmlSignature,

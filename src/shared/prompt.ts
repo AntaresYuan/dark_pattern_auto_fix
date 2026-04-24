@@ -5,7 +5,6 @@ export function buildDarkPatternPrompt(input: {
   screenshotString: string;
   traceId?: string;
   truncatedHtml: string;
-  screenshotString: string;
   pageUrl: string;
 }): string {
   const step = startStep("prompt", "buildDarkPatternPrompt", {
@@ -30,30 +29,79 @@ Dark pattern taxonomy:
 
 - Disguised ad:
   Presents advertisements as legitimate interface elements, making users more likely to click on them unintentionally.
+  Real examples:
+  • Softpedia / SourceForge: multiple large "Download" buttons styled identically to the real download button — the ad buttons are larger and more prominent; the real download link is smaller and placed aside.
+  • CNN / news sites: sponsored articles formatted exactly like editorial content with only a small, low-contrast "Sponsored" or "Ad" label that blends into the header.
+  • Search result pages: ad listings that mimic organic results, distinguished only by a tiny "Ad" badge with very low contrast.
+  Typical HTML: an '<a>' or '<div>' inside a wrapper that shares the same visual style as real content, sometimes with a barely-visible label like '<span class="ad-label">Sponsored</span>'.
 
 - False hierarchy:
   Manipulates the visual prominence, size, color, placement, or layout order of interface elements to mislead users about which option is more important, safer, or recommended.
+  Real examples:
+  • Subscription cancel flows: "Keep my subscription" rendered as a large filled button (e.g. blue background) while "Cancel" is a tiny, low-contrast text link below it.
+  • Cookie consent banners: "Accept All" is a large, brightly-colored button; "Manage Preferences" or "Reject" is a small gray text link or outlined button.
+  • E-commerce checkout: "Express Checkout" (higher margin for site) is the primary CTA; "Continue as Guest" is de-emphasized with smaller font and gray color.
+  Typical HTML: primary option is '<button class="btn-primary">' with high-contrast color; secondary option is '<a class="btn-link">' or '<button class="btn-secondary">' with muted color and smaller size.
 
 - Preselection:
-  Makes options that benefit the platform automatically checked, toggled on, or selected by default without the user's explicit consent.
+  Makes options that benefit the platform automatically checked, toggled on, or selected by default without the user’s explicit consent.
+  Real examples:
+  • Ryanair checkout: marketing email opt-in checkbox is pre-ticked; users must actively uncheck to opt out.
+  • Online donation pages (e.g. Trump 2020 campaign): "Make this a monthly recurring donation" checkbox is checked by default — users unknowingly sign up for recurring charges.
+  • Cookie banners: "Accept all cookies" toggle is on by default; users must manually toggle each category off.
+  • E-commerce: "Add travel insurance" or "Add protection plan" is pre-added to the cart and must be removed manually.
+  Typical HTML: '<input type="checkbox" checked>' or '<input type="radio" checked>' for an option that benefits the platform.
 
 - Pop-up ad:
   Displays intrusive overlay windows, modal dialogs, or pop-ups that interrupt the user’s browsing flow or pressure the user into taking an action.
+  Real examples:
+  • Exit-intent modals: appear when the cursor moves toward the browser bar — "Wait! Don’t leave yet — here’s 10% off."
+  • Time-delayed newsletter popups: appear after 5–15 seconds of reading, covering the article content with a sign-up form.
+  • Hard-to-close modals: the close button (×) is tiny, low-contrast, or positioned off-screen; only "Continue" or a paid option is clearly visible.
+  Typical HTML: '<div class="modal-overlay" style="position:fixed;z-index:9999">' wrapping a centered dialog; close button may be '<button class="close-btn">' with very small size or opacity.
 
 - Trick wording:
   Uses confusing, ambiguous, or misleading wording to manipulate users into taking actions they did not intend.
+  Real examples:
+  • Double-negative opt-outs: "Uncheck here if you do not wish to receive marketing emails" — users must uncheck to opt out, reversing normal checkbox logic.
+  • Free trial fine print: large headline says "Free for 30 days"; the cancellation requirement ("cancel before trial ends or you will be charged") is in small gray text at the bottom.
+  • Urgency copy: "HURRY — only a few left!", "Offer expires in 00:03:42" countdown timers that reset on page reload, creating false scarcity.
+  • Ambiguous button labels: "Get started" on a page that actually initiates a paid subscription.
+  Typical HTML: urgency text in '<span>' or '<p>' with high-contrast color (red/orange); fine-print in '<small>' or '<p class="disclaimer">' with low-contrast gray.
 
 - Confirm shaming:
   Uses guilt-inducing or emotionally manipulative language to pressure users into accepting an option or avoiding rejection.
+  Real examples:
+  • Newsletter decline link: "No thanks, I don’t want to save money" or "No, I prefer to pay full price."
+  • VPN / security service cancellation: "Yes, cancel my protection" (the cancel option) vs. "No, keep me safe" (retain).
+  • Subscription modal: "Yes, I want exclusive deals!" vs. "No, I don’t want deals" as the opt-out.
+  Typical HTML: the dismiss/decline option is an '<a>' or '<button>' with shame-inducing label text, positioned below the primary CTA; often styled in small, gray or muted text.
 
 - Fake social proof:
   Creates a misleading impression of popularity, urgency, trust, or credibility through fabricated or unverifiable social signals.
+  Real examples:
+  • Booking.com product pages: "Only 2 rooms left at this price!", "12 people are looking at this right now", "Booked 47 times today" — messages that may be based on platform-exclusive inventory, not total availability.
+  • E-commerce: floating notification toasts like "Alycia from San Francisco just purchased this" with randomized or fabricated names and timestamps.
+  • Review widgets: star-rating badges showing "4.9/5 from 2,847 reviews" where the review source or methodology is unverifiable.
+  • Countdown timers: "Sale ends in 00:12:34" that reset on every page load.
+  Typical HTML: '<div class="urgency-badge">' or '<span class="social-proof">' with red or orange text; floating notification as '<div class="toast" style="position:fixed;bottom:20px">'.
 
 - Forced Action:
   Compels users to perform an unrelated or unwanted action before completing their intended task.
+  Real examples:
+  • LinkedIn contact importer: during signup, the "Continue" button secretly accessed the user’s full email contact list and spammed all contacts — the actual function was described in small, low-contrast gray text; "Skip this step" was a tiny link outside the main flow (LinkedIn paid $13M settlement in 2015).
+  • Account creation walls: news sites or tools require creating an account (and accepting marketing) before allowing access to free content.
+  • App permission over-ask: a flashlight app requesting access to contacts, microphone, and location before it will turn on.
+  Typical HTML: a prominent '<button class="btn-primary">Continue</button>' where the secondary "Skip" is '<a class="skip-link">' with very small font-size, positioned outside the main card.
 
 - Hidden information:
   Conceals, obscures, minimizes, or delays important information, options, costs, or consequences relevant to user decision-making.
+  Real examples:
+  • Ticketmaster: ticket listed at "$50" on search; at checkout three separate fees (facility charge, convenience charge, order processing) add 40–50% — total only shown on the final payment screen after the user has invested time selecting seats.
+  • Ryanair: travel insurance is pre-added; the opt-out is hidden inside a nationality dropdown as "No Travel Insurance Required" alphabetically between "Latvia" and "Lithuania."
+  • Subscription services: free plan limitations (storage cap, watermark, export limit) listed only in a collapsed "Compare plans" table or in footnotes below the pricing cards.
+  • Shipping cost: shown only after address entry on the final checkout step, not on the product or cart page.
+  Typical HTML: fees or conditions in '<small>', '<span class="fine-print">', or collapsed '<details>' elements; pricing displayed as '<span class="base-price">' while fees are in a separate '<table class="fee-breakdown">' revealed only at checkout.
 
 Issue tag rules:
 
@@ -79,11 +127,27 @@ Identification rules:
 3. Use HTML evidence first, and then for more detailed dark pattern issues, use screenshot evidence as a support.
 4. Screenshot is not full paged, so for the rest of the page, use HTML to identify dark patterns, screenshot is just for infer.
 5. Use HTML to help localize or confirm the suspicious element.
-6. If an exact CSS selector cannot be inferred, provide the best possible selector-like locator.
-7. Only use issue tags from this set: ["color", "font_size", "background_color", "add_advertisement_title", "enhance_advertisement_title"].
-8. If no dark pattern is confidently identified, return an empty result.
+6. Only use issue tags from this set: ["color", "font_size", "background_color", "add_advertisement_title", "enhance_advertisement_title"].
+7. If no dark pattern is confidently identified, return an empty result.
 
-9. For every identified dark pattern, set selector_stability:
+HTML evidence and CSS selector rules (strictly enforced):
+
+8. For every identified dark pattern you MUST first locate the exact element in the provided HTML by text-searching for it.
+   Then copy the element's opening tag (or up to 2 lines including its attributes) verbatim into html_evidence.
+   Example — if you find '<button class="btn-primary add-to-cart" data-product-id="123">Add to Cart</button>'
+   in the HTML, set html_evidence to that exact string. Do NOT paraphrase or reconstruct it.
+   If you cannot find the element verbatim in the provided HTML, do not include that dark pattern.
+
+9. Derive css_selector from the html_evidence you just copied — not from memory or inference.
+   Use the id (#id), data attributes ([data-*="value"]), or the exact class names visible in html_evidence.
+   Never invent a class name that is not present in html_evidence.
+
+10. Only use standard CSS selectors valid for document.querySelector(). Never use jQuery-style pseudo-selectors such as :contains(), :has() with text, :visible, or :eq().
+11. Never generate selectors for elements that only appear after user interaction — including cart drawers, modal popups, tooltips, or any element with display:none or visibility:hidden that requires a click to reveal.
+12. Prefer selectors using id (#id), data attributes ([data-*="value"]), or descriptive class names (.product-price, .add-to-cart). Avoid generic tag selectors (span, div) without a stable class or attribute anchor.
+13. If you are uncertain whether an element exists in the HTML, omit that dark pattern rather than guessing.
+
+14. For every identified dark pattern, set selector_stability:
     - "stable": the CSS selector uses an #id, a [data-*] attribute, a semantic element name, or a descriptive class name that belongs to the site's design system (e.g. .product-title, .price-block, [data-testid="add-to-cart"])
     - "dynamic": the selector relies on hashed or generated class names (e.g. ._3Bx2a, .s-1k9p4m), deeply-nested :nth-child paths with no class anchoring, or text-content-specific matches that would not survive across different instances of this template
 
@@ -131,7 +195,6 @@ ${input.truncatedHtml}
 
 Screenshot (base64-encoded JPEG):
 ${input.screenshotString}`;
-${input.truncatedHtml}`;
 
   step.finish({
     pageKey: input.pageKey,

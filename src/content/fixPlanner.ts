@@ -9,7 +9,21 @@ import type {
 import { logEvent, startStep, truncateText } from "../shared/logger";
 import { applyFixesToPage } from "./patchInjector";
 
-const FIXABLE_TYPES = new Set(["Disguised ad", "False hierarchy"]);
+const FIXABLE_TYPES = new Set([
+  "Disguised ad", "False hierarchy",
+  "Preselection", "Pop-up ad", "Trick wording",
+  "Confirm shaming", "Fake social proof", "Forced Action", "Hidden information"
+]);
+const POPUP_TYPES = new Set(["Pop-up ad"]);
+const TEXT_DIM_TYPES = new Set([
+  "Preselection", "Trick wording", "Confirm shaming",
+  "Fake social proof", "Forced Action", "Hidden information"
+]);
+// Fallback when no issue-specific fix was generated:
+// dim the deceptive element slightly to visually flag it without breaking layout.
+const DIM_FALLBACK_TYPES = new Set([
+  "Disguised ad", "False hierarchy"
+]);
 const FALLBACK_COLOR = "#222222";
 const FALLBACK_FONT_SIZE = "16px";
 const FALLBACK_BACKGROUND_COLOR = "#e7e0d2";
@@ -24,11 +38,127 @@ function isVisible(element: Element): boolean {
 }
 
 function tryQuerySelector(selector: string): Element | null {
+  // First attempt: exact selector
   try {
-    return document.querySelector(selector);
+    const el = document.querySelector(selector);
+    if (el) return el;
   } catch {
-    return null;
+    // Invalid CSS — fall through to alternatives
   }
+
+  // Handle jQuery-style :contains('text') which querySelector doesn't support
+  const containsMatch = selector.match(/:contains\(['"]([^'"]+)['"]\)/);
+  if (containsMatch) {
+    const text = containsMatch[1];
+    const baseSelector = selector.slice(0, selector.indexOf(":contains(")).trim() || "*";
+    try {
+      const candidates = Array.from(document.querySelectorAll(baseSelector));
+      const found = candidates.find((el) => (el.textContent ?? "").trim().includes(text));
+      if (found) return found;
+    } catch {
+      // baseSelector also invalid — search all leaf elements
+    }
+    // Fallback: search all leaf-level elements for the text
+    return Array.from(document.querySelectorAll("*")).find(
+      (el) => el.children.length === 0 && (el.textContent ?? "").trim().includes(text)
+    ) ?? null;
+  }
+
+  // Strip Vue/Angular scoped attributes ([data-v-XXXXXXXX]) and retry
+  const withoutScoped = selector.replace(/\[data-v-[a-f0-9]+\]/gi, "").trim();
+  if (withoutScoped && withoutScoped !== selector) {
+    try {
+      const el = document.querySelector(withoutScoped);
+      if (el) return el;
+    } catch {
+      // still invalid
+    }
+  }
+
+  // Progressive shortening: drop leading ancestor segments one at a time.
+  // ".product-main .button-primary" → ".button-primary"
+  // Splits only on whitespace that is NOT inside brackets/parens to avoid
+  // splitting inside attribute selectors like [attr='a b'].
+  const parts = selector.split(/\s+(?=[.#\[a-zA-Z*])/);
+  for (let drop = 1; drop < parts.length; drop++) {
+    const shortened = parts.slice(drop).join(" ").trim();
+    if (!shortened) continue;
+    try {
+      const el = document.querySelector(shortened);
+      if (el) return el;
+    } catch {
+      // shortened selector still invalid, keep trying
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Last-resort fallback: parse the raw HTML opening tag from html_evidence and
+ * try to locate a matching DOM element by its id, data attributes, or class names.
+ */
+function findByHtmlEvidence(evidence: string): Element | null {
+  if (!evidence) return null;
+
+  // Extract id — highest specificity, always unique
+  const idMatch = evidence.match(/\bid="([^"]+)"/);
+  if (idMatch) {
+    try {
+      const el = document.getElementById(idMatch[1]);
+      if (el) return el;
+    } catch { /* ignore */ }
+  }
+
+  // Extract tag name (default "*")
+  const tagMatch = evidence.match(/^<([a-z][a-z0-9-]*)/i);
+  const tag = tagMatch ? tagMatch[1].toLowerCase() : "*";
+
+  // Extract data-* attributes and try a selector built from them
+  const dataAttrs = Array.from(evidence.matchAll(/\b(data-[a-z][\w-]*)="([^"]*)"/gi));
+  for (const [, attr, val] of dataAttrs) {
+    try {
+      const el = document.querySelector(`${tag}[${attr}="${val}"]`);
+      if (el) return el;
+    } catch { /* ignore */ }
+    try {
+      const el = document.querySelector(`[${attr}="${val}"]`);
+      if (el) return el;
+    } catch { /* ignore */ }
+  }
+
+  // Extract class names and try combinations
+  const classMatch = evidence.match(/\bclass="([^"]+)"/);
+  if (classMatch) {
+    const classes = classMatch[1].trim().split(/\s+/).filter((c) => !looksLikeDynamicClass(c));
+    if (classes.length > 0) {
+      // Try all stable classes together
+      try {
+        const sel = `${tag}.${classes.map((c) => CSS.escape(c)).join(".")}`;
+        const el = document.querySelector(sel);
+        if (el) return el;
+      } catch { /* ignore */ }
+
+      // Try subsets (drop one class at a time from the right)
+      for (let take = classes.length - 1; take >= 1; take--) {
+        try {
+          const sel = `${tag}.${classes.slice(0, take).map((c) => CSS.escape(c)).join(".")}`;
+          const el = document.querySelector(sel);
+          if (el) return el;
+        } catch { /* ignore */ }
+      }
+
+      // Try each class alone (most permissive)
+      for (const cls of classes) {
+        try {
+          const el = document.querySelector(`${tag}.${CSS.escape(cls)}`);
+          if (el) return el;
+        } catch { /* ignore */ }
+      }
+    }
+  }
+
+  return null;
 }
 
 function isAdvertisementLabelText(text: string | null | undefined): boolean {
@@ -41,6 +171,17 @@ function getClickableAncestor(element: Element): Element | null {
   );
 }
 
+function looksLikeDynamicClass(name: string): boolean {
+  if (name.length < 2 || name.length > 60) return true;
+  // Hashed names from CSS-in-JS / webpack: _3Bx2a, s1k9p4m, a3b2c1
+  if (/^[_a-z]{0,2}[0-9a-f]{4,}$/i.test(name)) return true;
+  // CSS-in-JS runtime prefixes: css-xyz, sc-xyz, emotion-xyz
+  if (/^(css|sc|jss|emotion|hash|tw)-/i.test(name)) return true;
+  // Purely numeric
+  if (/^[0-9]+$/.test(name)) return true;
+  return false;
+}
+
 function buildStableSelector(element: Element): string {
   if (element instanceof HTMLElement && element.id) {
     return `#${CSS.escape(element.id)}`;
@@ -51,7 +192,11 @@ function buildStableSelector(element: Element): string {
 
   while (current && current !== document.body && segments.length < 5) {
     const tag = current.tagName.toLowerCase();
-    const classToken = Array.from(current.classList).slice(0, 2).map((name) => `.${CSS.escape(name)}`).join("");
+    const classToken = Array.from(current.classList)
+      .filter((name) => !looksLikeDynamicClass(name))
+      .slice(0, 2)
+      .map((name) => `.${CSS.escape(name)}`)
+      .join("");
     const parent: Element | null = current.parentElement;
 
     if (!parent) {
@@ -351,6 +496,7 @@ function findAdvertisementLabel(target: Element): HTMLElement | null {
 function createAdvertisementLabelFix(
   target: Element,
   pattern: IdentifiedDarkPattern,
+  traceId: string,
   stableSelector?: string
 ): AdvertisementLabelFix | null {
   const existingLabel = findAdvertisementLabel(target);
@@ -435,29 +581,42 @@ function createFixesForPattern(pattern: IdentifiedDarkPattern, traceId: string):
     return [];
   }
 
-  if (pattern.issues.length === 0) {
+  let matchedElement = tryQuerySelector(pattern.css_selector);
+  if (!matchedElement && pattern.html_evidence) {
+    matchedElement = findByHtmlEvidence(pattern.html_evidence);
+    if (matchedElement) {
+      logEvent("content", "fix.pattern.evidence_fallback", {
+        traceId,
+        darkPatternType: pattern.dark_pattern_type,
+        sourceSelector: truncateText(pattern.css_selector, 120),
+        htmlEvidence: truncateText(pattern.html_evidence, 120)
+      }, "info");
+    }
+  }
+  if (!matchedElement) {
     logEvent("content", "fix.pattern.skip", {
       traceId,
       darkPatternType: pattern.dark_pattern_type,
       sourceSelector: truncateText(pattern.css_selector, 120),
-      outcome: "no_issues"
-    }, "debug");
+      htmlEvidence: truncateText(pattern.html_evidence ?? "", 120),
+      outcome: "selector_not_found"
+    }, "warn");
     return [];
   }
-
-  const matchedElement = tryQuerySelector(pattern.css_selector);
-  if (!matchedElement || !isVisible(matchedElement)) {
-    logEvent("content", "fix.pattern.skip", {
+  const elementVisible = isVisible(matchedElement);
+  if (!elementVisible) {
+    // Element is in the DOM but hidden. Still generate CSS fixes so they take
+    // effect if/when the element becomes visible. Skip only DOM-mutation fixes.
+    logEvent("content", "fix.pattern.hidden_element", {
       traceId,
       darkPatternType: pattern.dark_pattern_type,
-      sourceSelector: truncateText(pattern.css_selector, 120),
-      outcome: !matchedElement ? "selector_not_found" : "not_visible"
+      sourceSelector: truncateText(pattern.css_selector, 120)
     }, "debug");
-    return [];
   }
 
   const resolution = resolveFixTarget(matchedElement, pattern.issues);
   const targetElement = resolution.target;
+  const targetSelector = buildStableSelector(targetElement);
   if (resolution.reason) {
     logEvent("content", "fix.pattern.resolve_target", {
       traceId,
@@ -517,27 +676,80 @@ function createFixesForPattern(pattern: IdentifiedDarkPattern, traceId: string):
     }, "info");
   }
 
-  if (pattern.dark_pattern_type === "Disguised ad" && pattern.issues.includes("add_advertisement_title")) {
-    const labelFix = createAdvertisementLabelFix(targetElement, pattern, targetSelector);
-    if (labelFix) {
-      fixes.push(labelFix);
+  // DOM mutation fixes only make sense when the element is actually visible
+  if (elementVisible) {
+    if (pattern.dark_pattern_type === "Disguised ad" && pattern.issues.includes("add_advertisement_title")) {
+      const labelFix = createAdvertisementLabelFix(targetElement, pattern, traceId, targetSelector);
+      if (labelFix) {
+        fixes.push(labelFix);
+      }
     }
-  }
 
-  if (pattern.dark_pattern_type === "Disguised ad" && pattern.issues.includes("enhance_advertisement_title")) {
-    const titleEnhancementFix = createAdvertisementLabelEnhancementFix(targetElement, pattern, traceId);
-    if (titleEnhancementFix) {
-      fixes.push(titleEnhancementFix);
+    if (pattern.dark_pattern_type === "Disguised ad" && pattern.issues.includes("enhance_advertisement_title")) {
+      const titleEnhancementFix = createAdvertisementLabelEnhancementFix(targetElement, pattern, traceId);
+      if (titleEnhancementFix) {
+        fixes.push(titleEnhancementFix);
+      }
     }
   }
 
   if (fixes.length === 0) {
-    logEvent("content", "fix.pattern.skip", {
-      traceId,
-      darkPatternType: pattern.dark_pattern_type,
-      sourceSelector: truncateText(pattern.css_selector, 120),
-      outcome: "no_fixes_generated"
-    }, "debug");
+    if (POPUP_TYPES.has(pattern.dark_pattern_type)) {
+      fixes.push({
+        css_selector: targetSelector,
+        patch_type: "css",
+        css_rules: { display: "none" },
+        source_dark_pattern_type: pattern.dark_pattern_type,
+        applied_issues: []
+      });
+      logEvent("content", "fix.pattern.generate", {
+        traceId,
+        darkPatternType: pattern.dark_pattern_type,
+        sourceSelector: truncateText(pattern.css_selector, 120),
+        resolvedSelector: truncateText(targetSelector, 120),
+        appliedIssues: [],
+        strategy: "universal_hide"
+      }, "info");
+    } else if (TEXT_DIM_TYPES.has(pattern.dark_pattern_type)) {
+      fixes.push({
+        css_selector: targetSelector,
+        patch_type: "css",
+        css_rules: { opacity: "0.5" },
+        source_dark_pattern_type: pattern.dark_pattern_type,
+        applied_issues: []
+      });
+      logEvent("content", "fix.pattern.generate", {
+        traceId,
+        darkPatternType: pattern.dark_pattern_type,
+        sourceSelector: truncateText(pattern.css_selector, 120),
+        resolvedSelector: truncateText(targetSelector, 120),
+        appliedIssues: [],
+        strategy: "universal_dim"
+      }, "info");
+    } else if (DIM_FALLBACK_TYPES.has(pattern.dark_pattern_type)) {
+      fixes.push({
+        css_selector: targetSelector,
+        patch_type: "css",
+        css_rules: { opacity: "0.7" },
+        source_dark_pattern_type: pattern.dark_pattern_type,
+        applied_issues: []
+      });
+      logEvent("content", "fix.pattern.generate", {
+        traceId,
+        darkPatternType: pattern.dark_pattern_type,
+        sourceSelector: truncateText(pattern.css_selector, 120),
+        resolvedSelector: truncateText(targetSelector, 120),
+        appliedIssues: [],
+        strategy: "dim_fallback"
+      }, "info");
+    } else {
+      logEvent("content", "fix.pattern.skip", {
+        traceId,
+        darkPatternType: pattern.dark_pattern_type,
+        sourceSelector: truncateText(pattern.css_selector, 120),
+        outcome: "no_fixes_generated"
+      }, "warn");
+    }
   }
 
   return fixes;

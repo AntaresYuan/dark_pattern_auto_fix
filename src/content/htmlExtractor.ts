@@ -200,17 +200,17 @@ export function extractTruncatedHtml(input: {
     return compressedHtml;
   }
 
-  const fallbackHtml = fullHtml.length < finalHtml.length ? fullHtml : finalHtml;
+  const truncatedHtml = compressedHtml.slice(0, maxLength);
   step.finish({
     mode: "full_html_fallback",
     fullHtmlLength: fullHtml.length,
     finalHtmlLength: finalHtml.length,
     compressedHtmlLength: compressedHtml.length,
+    truncatedLength: truncatedHtml.length,
     pageKey: input.pageKey,
     removedNodeCount: cleanup.removedNodeCount,
     traceId: input.traceId,
-    normalizedTextNodeCount: cleanup.normalizedTextNodeCount,
-    fallbackLength: fallbackHtml.length
+    normalizedTextNodeCount: cleanup.normalizedTextNodeCount
   }, "warn");
-  return fallbackHtml;
+  return truncatedHtml;
 }

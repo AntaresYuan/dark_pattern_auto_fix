@@ -13,14 +13,14 @@ export const AI_CONFIG = {
       // Build script injects GPT_API_KEY from .env for local prototyping.
       apiKey: "__GPT_API_KEY__",
       // Change this model when activeProvider is "gpt".
-      model: "gpt-5",
+      model: "gpt-4o",
       apiBaseUrl: "https://api.openai.com/v1",
     },
     gemini: {
       // Build script injects GEMINI_API_KEY from .env for local prototyping.
       apiKey: "__GEMINI_API_KEY__",
       // Change this model when activeProvider is "gemini".
-      model: "gemini-3-flash-preview",
+      model: "gemini-2.0-flash",
       apiBaseUrl: "https://generativelanguage.googleapis.com/v1beta",
     },
   },

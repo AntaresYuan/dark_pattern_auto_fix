@@ -20,6 +20,8 @@ export type SelectorStability = "stable" | "dynamic";
 
 export interface IdentifiedDarkPattern {
   dark_pattern_type: DarkPatternType;
+  /** Exact HTML snippet copied verbatim from the provided HTML for the target element. */
+  html_evidence: string;
   css_selector: string;
   issues: IssueTag[];
   selector_stability: SelectorStability;
@@ -58,7 +60,7 @@ export interface DetectionResult {
 export interface CssFix {
   css_selector: string;
   patch_type: "css";
-  css_rules: Partial<Record<"color" | "font-size" | "background-color" | "background-image", string>>;
+  css_rules: Partial<Record<"color" | "font-size" | "background-color" | "background-image" | "opacity" | "display", string>>;
   source_dark_pattern_type: DarkPatternType;
   applied_issues: IssueTag[];
 }

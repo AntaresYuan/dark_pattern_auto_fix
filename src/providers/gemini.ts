@@ -51,20 +51,6 @@ export const geminiProvider: DetectionProvider = {
         throw new Error("Configure GEMINI_API_KEY in .env before running the Gemini provider.");
       }
 
-    const endpoint = `${config.apiBaseUrl}/models/${config.model}:generateContent?key=${encodeURIComponent(config.apiKey)}`;
-    const response = await fetch(endpoint, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        contents: [
-          {
-            parts: [
-              {
-                text: input.prompt
-              }
-            ]
       const parseStep = startStep("provider", "gemini.parseScreenshot", {
         dataUrlLength: input.screenshotDataUrl.length,
         pageKey: input.pageKey,

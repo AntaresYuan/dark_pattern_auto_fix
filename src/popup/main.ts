@@ -15,7 +15,10 @@ import { getPageKeyFromUrl, isSupportedPageUrl } from "../shared/pageKey";
 import { buildDarkPatternPrompt } from "../shared/prompt";
 import { clearArchivedPages, listArchivedPageKeys, loadArchive, saveArchive } from "../shared/storage";
 import type { ExtensionMessage, ExtensionMessageResponse, MessageMeta } from "../shared/messages";
-import type { DetectionResult, FixApplicationResult, PageContext } from "../shared/types";
+import type { CssFix, DetectionResult, FixApplicationResult, PageContext, PageFix } from "../shared/types";
+import { deriveUrlShape, extractHtmlSignature } from "../shared/patternMatcher";
+import { clearAllPatternArchives, countPatternArchives, findBestPatternMatch, upsertPatternArchive, type UpsertOutcome } from "../shared/patternStorage";
+import { normalizeError } from "../shared/utils";
 
 type PopupState = "initial" | "fixing" | "finished";
 type TraceEntryStatus = "running" | "done" | "warn" | "error";
@@ -30,7 +33,6 @@ let activeTabId: number | null = null;
 let activeWindowId: number | null = null;
 let activePageKey = "";
 let activeTabUrl = "";
-/** Cached page context from bootstrap's pattern-matching probe — reused in startFixFlow */
 let cachedPageContext: PageContext | null = null;
 let tabUpdateListenerAttached = false;
 let factTimer: number | null = null;
@@ -56,7 +58,12 @@ function updateClearButton(): void {
 }
 
 async function refreshArchivedPageKeys(traceId: string): Promise<void> {
-  archivedPageKeys = await listArchivedPageKeys(traceId);
+  const [l1Keys, l2Count] = await Promise.all([
+    listArchivedPageKeys(traceId),
+    countPatternArchives()
+  ]);
+  // Combine L1 page keys and synthetic L2 entries so the button count is accurate.
+  archivedPageKeys = [...l1Keys, ...Array.from({ length: l2Count }, (_, i) => `__pattern__${i}`)];
   updateClearButton();
 }
 
@@ -66,11 +73,49 @@ function pushTrace(
   status: TraceEntryStatus = "running",
   traceId = popupSessionTraceId
 ): void {
-  const normalizedMessage = normalizeError(error);
-  console.error(`${POPUP_LOG_PREFIX} ${step}`, {
-    ...details,
-    error: normalizedMessage,
+  traceStepIndex += 1;
+  logEvent("popup", "popup.trace", {
+    traceId,
+    stepIndex: traceStepIndex,
+    label,
+    detail,
+    status
   });
+}
+
+function serializeFixesToCss(fixes: PageFix[]): string {
+  return fixes
+    .filter((fix): fix is CssFix => fix.patch_type === "css")
+    .map((fix) => {
+      const declarations = Object.entries(fix.css_rules)
+        .filter(([, value]) => Boolean(value))
+        .map(([property, value]) => `${property}: ${value} !important;`)
+        .join(" ");
+      return declarations ? `${fix.css_selector} { ${declarations} }` : "";
+    })
+    .filter(Boolean)
+    .join("\n");
+}
+
+async function injectCssViaScripting(fixes: PageFix[], traceId: string): Promise<void> {
+  if (!activeTabId) return;
+  const css = serializeFixesToCss(fixes);
+  if (!css) return;
+
+  try {
+    await chrome.scripting.insertCSS({ target: { tabId: activeTabId }, css });
+    logEvent("popup", "popup.scripting.css.injected", {
+      traceId,
+      cssLength: css.length,
+      tabId: activeTabId
+    });
+  } catch (error) {
+    logEvent("popup", "popup.scripting.css.failed", {
+      traceId,
+      tabId: activeTabId,
+      ...safeError(error)
+    }, "warn");
+  }
 }
 
 function createMessageMeta(traceId: string): MessageMeta {
@@ -95,7 +140,6 @@ function logState(state: PopupState, errorMessage: string, traceId: string, fiel
     return;
   }
 
-  currentState = state;
   logEvent("popup", "state.transition", {
     traceId,
     pageKey: activePageKey || undefined,
@@ -136,9 +180,9 @@ function setState(state: PopupState, errorMessage = "", traceId = popupSessionTr
 
   bodyCopy.textContent = "Dark pattern fixing finished";
   factCard.classList.add("hidden");
-  actionButton.textContent = "Close";
+  actionButton.textContent = "Run Again";
   actionButton.disabled = false;
-  actionButton.onclick = () => window.close();
+  actionButton.onclick = () => void startFixFlow();
   updateClearButton();
 }
 
@@ -153,28 +197,21 @@ async function handleClearSavedFixes(): Promise<void> {
   clearButton.textContent = "Clearing...";
 
   try {
-    await chrome.storage.local.clear();
-    recordResetCacheSuccess();
-    logInfo("reset-cache:done");
-    setState(
-      "initial",
-      "Cache cleared. Start to run a fresh detection on this page.",
-    );
-  } catch (error) {
-    logError("reset-cache:failed", error);
-    setState("initial", `Could not clear cache. ${normalizeError(error)}`);
-  } finally {
-    resetButton.disabled = false;
-    const removedPageKeys = await clearArchivedPages(traceId);
+    const [removedPageKeys, removedPatternCount] = await Promise.all([
+      clearArchivedPages(traceId),
+      clearAllPatternArchives()
+    ]);
     archivedPageKeys = [];
     updateClearButton();
-    pushTrace("Clear saved fixes", `Removed saved fixes for ${removedPageKeys.length} pages`, "done", traceId);
+    const totalRemoved = removedPageKeys.length + removedPatternCount;
+    pushTrace("Clear saved fixes", `Removed ${removedPageKeys.length} page archives and ${removedPatternCount} pattern archives`, "done", traceId);
     step.finish({
-      clearedCount: removedPageKeys.length,
-      pageKeys: removedPageKeys
+      clearedCount: totalRemoved,
+      pageKeys: removedPageKeys,
+      patternCount: removedPatternCount
     });
-    const clearedMessage = removedPageKeys.length > 0
-      ? `Cleared saved fixes for ${removedPageKeys.length} pages.`
+    const clearedMessage = totalRemoved > 0
+      ? `Cleared ${totalRemoved} saved fix record(s).`
       : "There were no saved fixes to clear.";
     if (currentState === "finished") {
       bodyCopy.textContent = `${bodyCopy.textContent} ${clearedMessage}`;
@@ -190,7 +227,7 @@ async function handleClearSavedFixes(): Promise<void> {
     step.fail(error);
     updateClearButton();
     if (currentState !== "fixing") {
-      setState("initial", `Failed to clear saved fixes. ${error instanceof Error ? error.message : String(error)}`, traceId);
+      setState("initial", `Failed to clear saved fixes. ${normalizeError(error)}`, traceId);
     }
   }
 }
@@ -211,16 +248,6 @@ async function getActiveTab(traceId: string): Promise<chrome.tabs.Tab> {
   const step = startStep("popup", "popup.getActiveTab", { traceId });
   pushTrace("Read active tab", "Checking the current tab and URL", "running", traceId);
 
-  activeTabId = tab.id;
-  activeWindowId = tab.windowId ?? chrome.windows.WINDOW_ID_CURRENT;
-  activePageKey = getPageKeyFromUrl(tab.url);
-  activeTabUrl = tab.url;
-  logInfo("active-tab:resolved", {
-    tabId: activeTabId,
-    windowId: activeWindowId,
-    pageKey: activePageKey,
-  });
-  return tab;
   try {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     if (!tab?.id || !tab.url || !isSupportedPageUrl(tab.url)) {
@@ -230,6 +257,7 @@ async function getActiveTab(traceId: string): Promise<chrome.tabs.Tab> {
     activeTabId = tab.id;
     activeWindowId = tab.windowId ?? chrome.windows.WINDOW_ID_CURRENT;
     activePageKey = getPageKeyFromUrl(tab.url);
+    activeTabUrl = tab.url;
     step.finish({
       pageKey: activePageKey,
       pageUrl: safeUrl(tab.url),
@@ -421,35 +449,6 @@ async function captureScreenshot(traceId: string): Promise<string> {
   }
 }
 
-async function maybeApplySavedArchive(): Promise<boolean> {
-  logInfo("layer-1:checking", { pageKey: activePageKey });
-  console.info(`${POPUP_LOG_PREFIX} Layer 1 (exact URL cache) — looking up "${activePageKey}"`);
-  const archive = await loadArchive(activePageKey);
-  if (!archive) {
-    recordExactLayer("MISS");
-    console.info(`${POPUP_LOG_PREFIX} Layer 1 → MISS — no exact match stored, proceeding to Layer 2`);
-    logInfo("archive:miss", { pageKey: activePageKey });
-    return false;
-  }
-
-  if (archive.fixes.length === 0) {
-    // Negative cache: we previously ran on this exact URL but produced no actionable fixes.
-    // Treat as a HIT to avoid repeatedly calling the LLM on the same page.
-    recordExactLayer("HIT", 0);
-    console.info(
-      `${POPUP_LOG_PREFIX} Layer 1 → HIT (negative cache) — 0 fix(es) stored for this exact URL, skipping LLM`,
-    );
-    logInfo("archive:hit", { pageKey: activePageKey, fixes: 0, negative: true });
-    setState("initial", "Cached: no fixable patterns were found on this exact page previously.");
-    flushVerification("initial");
-    return true;
-  }
-
-  recordExactLayer("HIT", archive.fixes.length);
-  console.info(`${POPUP_LOG_PREFIX} Layer 1 → HIT — found ${archive.fixes.length} fix(es) for this exact URL, skipping LLM`);
-  logInfo("archive:hit", {
-    pageKey: activePageKey,
-    fixes: archive.fixes.length,
 async function maybeApplySavedArchive(traceId: string): Promise<boolean> {
   const step = startStep("popup", "popup.savedArchive.check", {
     traceId,
@@ -470,14 +469,13 @@ async function maybeApplySavedArchive(traceId: string): Promise<boolean> {
   });
   pushTrace("Check cache", `Found ${archive.fixes.length} saved fixes`, "done", traceId);
 
-  setState("fixing", "", traceId, {
-    flow: "cache-reuse"
-  });
+  setState("fixing", "", traceId, { flow: "cache-reuse" });
 
   const result = await sendMessage<FixApplicationResult>(traceId, {
     type: "APPLY_SAVED_FIXES",
     archive
   });
+  await injectCssViaScripting(result.archive.fixes, traceId);
 
   logEvent("popup", "popup.savedArchive.applied", {
     traceId,
@@ -491,73 +489,67 @@ async function maybeApplySavedArchive(traceId: string): Promise<boolean> {
     flow: "cache-reuse",
     appliedCount: result.appliedCount
   });
-  setState("finished");
-  flushVerification("finished");
   return true;
 }
 
-async function maybeApplyPatternArchive(pageContext: PageContext): Promise<boolean> {
+async function maybeApplyPatternArchive(traceId: string, pageContext: PageContext): Promise<boolean> {
   const urlShape = deriveUrlShape(activePageKey);
   const sig = extractHtmlSignature(pageContext.truncatedHtml);
-  recordPatternLayerAttempt(urlShape);
 
-  console.info(`${POPUP_LOG_PREFIX} Layer 2 (pattern cache) — URL shape: "${urlShape}"`);
-  logInfo("pattern:matching", { urlShape });
+  const step = startStep("popup", "popup.patternArchive.check", {
+    traceId,
+    pageKey: activePageKey || undefined,
+    urlShape
+  });
+  pushTrace("Check pattern cache", `Looking for pattern matches for ${urlShape}`, "running", traceId);
 
   let match;
   try {
     match = await findBestPatternMatch(urlShape, sig);
   } catch (error) {
-    recordPatternLayerMiss();
-    logError("pattern:lookup-failed", error, { urlShape });
+    pushTrace("Check pattern cache", error instanceof Error ? error.message : String(error), "warn", traceId);
+    step.fail(error);
     return false;
   }
 
   if (!match) {
-    recordPatternLayerMiss();
-    console.info(`${POPUP_LOG_PREFIX} Layer 2 → MISS — no pattern matched, will run LLM detection`);
-    logInfo("pattern:miss", { urlShape });
+    step.finish({ cacheHit: false });
+    pushTrace("Check pattern cache", "No pattern match found, running a fresh analysis", "done", traceId);
     return false;
   }
 
   const fixCount = match.archive.fixes.length;
-  recordPatternLayerHit({
-    urlShape,
-    candidateCount: match.candidateCount,
-    fixes: fixCount,
-    scoreBreakdown: match.scoreBreakdown,
-  });
-  logInfo("pattern:hit", {
-    urlShape,
-    score: Number(match.score.toFixed(3)),
-    matchPath: match.scoreBreakdown.matchPath,
-    urlConsistencyScore: match.scoreBreakdown.urlConsistencyScore != null
-      ? Number(match.scoreBreakdown.urlConsistencyScore.toFixed(3))
-      : undefined,
-    fixes: fixCount,
-    hitCount: match.archive.hitCount,
+  step.finish({
+    cacheHit: true,
+    urlShape: match.archive.urlShape,
+    score: match.score,
+    fixCount,
+    candidateCount: match.candidateCount
   });
 
   if (fixCount === 0) {
-    console.info(`${POPUP_LOG_PREFIX} Layer 2 → HIT (negative cache) — 0 fix(es) stored for this pattern, skipping LLM`);
-    setState("initial", "Cached: no fixable patterns were found on similar pages previously.");
-    flushVerification("initial");
+    pushTrace("Check pattern cache", "Pattern matched but no fixes stored (negative cache)", "done", traceId);
+    setState("initial", "Cached: no fixable patterns were found on similar pages previously.", traceId);
     return true;
   }
 
-  console.info(`${POPUP_LOG_PREFIX} Layer 2 → HIT — applying ${fixCount} fix(es), skipping LLM`);
-  setState("fixing");
-  const applied = await sendMessage<FixApplicationResult>({
+  pushTrace("Check pattern cache", `Found ${fixCount} pattern-matched fixes`, "done", traceId);
+  setState("fixing", "", traceId, { flow: "pattern-reuse" });
+
+  const result = await sendMessage<FixApplicationResult>(traceId, {
     type: "APPLY_SAVED_FIXES",
     archive: {
       page_key: activePageKey,
-      fixes: match.archive.fixes,
-    },
+      fixes: match.archive.fixes
+    }
   });
-  logInfo("pattern:applied", { appliedCount: applied.appliedCount });
-  setState("finished");
-  flushVerification("finished");
-  return true;
+  await injectCssViaScripting(result.archive.fixes, traceId);
+
+  pushTrace("Replay pattern fixes", `Applied ${result.appliedCount} pattern-matched fixes`, "done", traceId);
+  setState("finished", "", traceId, {
+    flow: "pattern-reuse",
+    appliedCount: result.appliedCount
+  });
   return true;
 }
 
@@ -569,13 +561,12 @@ async function runDetection(traceId: string, pageContext: PageContext, screensho
   pushTrace("Build model input", `Preparing prompt from ${pageContext.truncatedHtml.length} HTML chars and the screenshot`, "running", traceId);
   const prompt = buildDarkPatternPrompt({
     truncatedHtml: pageContext.truncatedHtml,
-    screenshotString: screenshotDataUrl,
+    screenshotString: truncateScreenshotString(screenshotDataUrl),
     pageUrl: activeTabUrl,
     pageKey: activePageKey || undefined,
-    screenshotString: truncateScreenshotString(screenshotDataUrl),
-    traceId,
-    truncatedHtml: pageContext.truncatedHtml
+    traceId
   });
+  pushTrace("Build model input", `Prompt ready (${prompt.length} chars)`, "done", traceId);
 
   const step = startStep("popup", "popup.detection", {
     traceId,
@@ -586,11 +577,6 @@ async function runDetection(traceId: string, pageContext: PageContext, screensho
     viewport: pageContext.viewport
   });
 
-  const result = await detectDarkPatterns({ prompt });
-  logInfo("detection:response", {
-    patterns: result.identified_dark_patterns.length,
-  });
-  return result;
   try {
     pushTrace("Run model detection", `Sending the page to ${getActiveProviderName()} for dark pattern detection`, "running", traceId);
     const result = await detectDarkPatterns({
@@ -622,53 +608,36 @@ async function startFixFlow(): Promise<void> {
   });
 
   try {
-    setState("fixing");
-
-    // Re-check caches on every run (not only during bootstrap).
-    // This makes repeated "Start" clicks reuse Layer 1/2 instead of re-running the LLM.
-    // Layer 1: exact page-key cache (fast, no content script needed)
-    const exactReused = await maybeApplySavedArchive();
-    if (exactReused) return;
-
-    const pageContextResult = await withTiming(async () => {
-      if (cachedPageContext) {
-        logInfo("flow:page-context-reused-from-cache");
-        recordContextReuse();
-        return cachedPageContext;
-      }
-      return sendMessage<PageContext>({ type: "COLLECT_PAGE_CONTEXT" });
-    });
-    const pageContext = pageContextResult.value;
-    logInfo("flow:page-context-collected", {
-      durationMs: pageContextResult.durationMs,
-      truncatedHtmlLength: pageContext.truncatedHtml.length,
-      viewport: pageContext.viewport,
-    });
-
-    // Layer 2: pattern-level cache (requires page context from content script)
-    const patternReused = await maybeApplyPatternArchive(pageContext);
-    if (patternReused) return;
-
-    const screenshotResult = await withTiming(captureScreenshot);
-    const screenshotDataUrl = screenshotResult.value;
-    logInfo("flow:screenshot-captured", {
-      durationMs: screenshotResult.durationMs,
-    setState("fixing", "", flowTraceId, {
-      flow: "manual"
-    });
+    setState("fixing", "", flowTraceId, { flow: "manual" });
 
     pushTrace("Collect page context", "Requesting visible HTML and viewport information from the page", "running", flowTraceId);
     const pageContext = await sendMessage<PageContext>(flowTraceId, {
       type: "COLLECT_PAGE_CONTEXT"
     });
     pushTrace("Collect page context", `Collected ${pageContext.truncatedHtml.length} HTML chars from the page`, "done", flowTraceId);
+
+    // Re-check caches so repeated "Start" clicks reuse Layer 1/2 instead of re-running the LLM.
+    const exactReused = await maybeApplySavedArchive(flowTraceId);
+    if (exactReused) {
+      flowStep.finish({ reused: true, cacheType: "exact" });
+      return;
+    }
+
+    const patternReused = await maybeApplyPatternArchive(flowTraceId, pageContext);
+    if (patternReused) {
+      flowStep.finish({ reused: true, cacheType: "pattern" });
+      return;
+    }
+
     const screenshotDataUrl = await captureScreenshot(flowTraceId);
     const detectionResult = await runDetection(flowTraceId, pageContext, screenshotDataUrl);
+
     pushTrace("Plan fixes", `Turning ${detectionResult.identified_dark_patterns.length} detected patterns into concrete fixes`, "running", flowTraceId);
     const fixResult = await sendMessage<FixApplicationResult>(flowTraceId, {
       type: "PLAN_AND_APPLY_FIXES",
       patterns: detectionResult.identified_dark_patterns
     });
+    await injectCssViaScripting(fixResult.archive.fixes, flowTraceId);
     pushTrace("Plan fixes", `Prepared ${fixResult.archive.fixes.length} fixes and applied ${fixResult.appliedCount}`, "done", flowTraceId);
 
     const saveStep = startStep("popup", "popup.archive.save", {
@@ -706,29 +675,35 @@ async function startFixFlow(): Promise<void> {
     void upsertPatternArchive(activePageKey, sig, fixResult.archive.fixes, detectionResult).then((outcome: UpsertOutcome) => {
       const urlShape = deriveUrlShape(activePageKey);
       if (outcome.wrote) {
-        recordPatternUpsertSuccess(`Pattern archive ${outcome.action} for ${urlShape} (${outcome.fixCount} fix(es))`);
-        logInfo("flow:pattern-archive-upserted", { urlShape, action: outcome.action, fixCount: outcome.fixCount });
+        logEvent("popup", "popup.patternArchive.upserted", {
+          urlShape,
+          action: outcome.action,
+          fixCount: outcome.fixCount,
+          traceId: flowTraceId
+        });
       } else {
-        logInfo("flow:pattern-archive-skipped", { urlShape, reason: outcome.reason });
+        logEvent("popup", "popup.patternArchive.skipped", {
+          urlShape,
+          reason: outcome.reason,
+          traceId: flowTraceId
+        });
       }
     }).catch((error: unknown) => {
-      logError("flow:pattern-archive-upsert-failed", error);
+      logEvent("popup", "popup.patternArchive.upsertFailed", {
+        traceId: flowTraceId,
+        ...safeError(error)
+      }, "error");
     });
 
-    setState("finished");
-    flushVerification("finished");
-    logInfo("flow:finished");
   } catch (error) {
     const prefix = hasConfiguredDetectionProvider()
       ? "Fixing failed."
       : `Configure ${getActiveProviderName()} in src/config.ts/.env first.`;
-    setState("initial", `${prefix} ${normalizeError(error)}`);
-    flushVerification("initial");
     const message = error instanceof Error ? error.message : String(error);
     flowStep.fail(error, {
       pageKey: activePageKey || undefined
     });
-    pushTrace("Flow failed", error instanceof Error ? error.message : String(error), "error", flowTraceId);
+    pushTrace("Flow failed", message, "error", flowTraceId);
     setState("initial", `${prefix} ${message}`, flowTraceId, {
       flow: "manual",
       error: safeError(error)
@@ -741,7 +716,6 @@ function attachTabUpdateListener(): void {
   tabUpdateListenerAttached = true;
   chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
     if (tabId !== activeTabId || changeInfo.status !== "complete") return;
-    logInfo("tab:navigated", { tabId, url: changeInfo.url });
     cachedPageContext = null;
     void bootstrap();
   });
@@ -757,45 +731,9 @@ async function bootstrap(): Promise<void> {
   });
 
   try {
-    const tabResult = await withTiming(getActiveTab);
-    logInfo("bootstrap:active-tab-ready", { durationMs: tabResult.durationMs });
-    attachTabUpdateListener();
-    beginVerification(activePageKey);
-
-    // Layer 1: exact page-key cache (fast, no content script needed)
-    const exactReused = await maybeApplySavedArchive();
-    if (exactReused) return;
-
-    // Layer 2: pattern-level cache (requires page context from content script)
-    try {
-      const ctxResult = await withTiming(() =>
-        sendMessage<PageContext>({ type: "COLLECT_PAGE_CONTEXT" }),
-      );
-      cachedPageContext = ctxResult.value;
-      logInfo("bootstrap:page-context-cached", {
-        durationMs: ctxResult.durationMs,
-        truncatedHtmlLength: cachedPageContext.truncatedHtml.length,
-      });
-
-      const patternReused = await maybeApplyPatternArchive(cachedPageContext);
-      if (patternReused) return;
-    } catch (error) {
-      // Pattern matching is non-critical — log and fall through to manual start
-      recordPatternLayerSkipped(normalizeError(error));
-      logInfo("bootstrap:pattern-match-skipped", {
-        reason: normalizeError(error),
-      });
-    }
-
-    setState("initial");
-    flushVerification("initial");
-    logInfo("bootstrap:ready-for-start");
-  } catch (error) {
-    logError("bootstrap:failed", error);
-    setState("initial", normalizeError(error));
-    flushVerification("initial");
     await refreshArchivedPageKeys(bootstrapTraceId);
     const tab = await getActiveTab(bootstrapTraceId);
+    attachTabUpdateListener();
     logEvent("popup", "popup.bootstrap.activeTab", {
       traceId: bootstrapTraceId,
       pageKey: activePageKey,
