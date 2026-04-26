@@ -25,6 +25,7 @@ import {
 import type {
   ExtensionMessage,
   ExtensionMessageResponse,
+  HtmlDebugPayload,
 } from "../shared/messages";
 import type {
   DetectionResult,
@@ -40,6 +41,9 @@ const factCard = document.getElementById("fact-card") as HTMLElement;
 const factCopy = document.getElementById("fact-copy") as HTMLParagraphElement;
 const resetButton = document.getElementById(
   "reset-button",
+) as HTMLButtonElement;
+const downloadHtmlButton = document.getElementById(
+  "download-html-button",
 ) as HTMLButtonElement;
 const actionButton = document.getElementById(
   "action-button",
@@ -426,6 +430,31 @@ async function runDetection(
     screenshotString: screenshotDataUrl,
     pageUrl: activeTabUrl,
   });
+
+  const htmlChars = pageContext.truncatedHtml.length;
+  const screenshotChars = screenshotDataUrl.length;
+  const totalPromptChars = prompt.length;
+  const screenshotPct = ((screenshotChars / totalPromptChars) * 100).toFixed(1);
+  const htmlPct = ((htmlChars / totalPromptChars) * 100).toFixed(1);
+  // Rough token estimate: ~4 chars per token
+  const estimatedTotalTokens = Math.round(totalPromptChars / 4);
+  const estimatedHtmlTokens = Math.round(htmlChars / 4);
+  const estimatedScreenshotTokens = Math.round(screenshotChars / 4);
+  console.info(`${POPUP_LOG_PREFIX} detection:input-token-breakdown`, {
+    totalPromptChars,
+    estimatedTotalTokens,
+    html: {
+      chars: htmlChars,
+      estimatedTokens: estimatedHtmlTokens,
+      pct: `${htmlPct}%`,
+    },
+    screenshot: {
+      chars: screenshotChars,
+      estimatedTokens: estimatedScreenshotTokens,
+      pct: `${screenshotPct}%`,
+    },
+  });
+
   logInfo("detection:request", {
     provider: getActiveProviderName(),
     truncatedHtmlLength: pageContext.truncatedHtml.length,
@@ -586,5 +615,32 @@ async function bootstrap(): Promise<void> {
   }
 }
 
+function downloadHtmlFile(filename: string, content: string): void {
+  const blob = new Blob([content], { type: "text/html" });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  anchor.click();
+  URL.revokeObjectURL(url);
+}
+
+async function downloadHtmlDebug(): Promise<void> {
+  downloadHtmlButton.disabled = true;
+  logInfo("download-html:start");
+  try {
+    const payload = await sendMessage<HtmlDebugPayload>({ type: "COLLECT_HTML_DEBUG" });
+    const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+    downloadHtmlFile(`raw_${timestamp}.html`, payload.rawHtml);
+    downloadHtmlFile(`truncated_${timestamp}.html`, payload.truncatedHtml);
+    logInfo("download-html:done");
+  } catch (error) {
+    logError("download-html:failed", error);
+  } finally {
+    downloadHtmlButton.disabled = false;
+  }
+}
+
 void bootstrap();
 resetButton.onclick = () => void resetCache();
+downloadHtmlButton.onclick = () => void downloadHtmlDebug();

@@ -1,4 +1,5 @@
-import { extractTruncatedHtml } from "./htmlExtractor";
+import { extractRawHtml } from "./htmlExtractor";
+import { extractTruncatedHtml } from "./truncated";
 import { planAndApplyFixes } from "./fixPlanner";
 import { applyFixesToPage } from "./patchInjector";
 import { getPageKeyFromUrl } from "../shared/pageKey";
@@ -30,6 +31,9 @@ chrome.runtime.onMessage.addListener((message: ExtensionMessage, _sender, sendRe
         return;
       case "COLLECT_PAGE_CONTEXT":
         sendResponse(collectPageContext());
+        return;
+      case "COLLECT_HTML_DEBUG":
+        sendResponse({ rawHtml: extractRawHtml(), truncatedHtml: extractTruncatedHtml() });
         return;
       case "PLAN_AND_APPLY_FIXES": {
         const pageKey = getPageKeyFromUrl(window.location.href);
