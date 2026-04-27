@@ -345,7 +345,8 @@ function findAdvertisementLabel(target: Element): HTMLElement | null {
 
 function createAdvertisementLabelFix(
   target: Element,
-  pattern: IdentifiedDarkPattern
+  pattern: IdentifiedDarkPattern,
+  stableSelector?: string
 ): AdvertisementLabelFix | null {
   const existingLabel = findAdvertisementLabel(target);
   if (existingLabel) {
@@ -353,7 +354,7 @@ function createAdvertisementLabelFix(
   }
 
   return {
-    css_selector: buildStableSelector(target),
+    css_selector: stableSelector ?? buildStableSelector(target),
     patch_type: "advertisement_label",
     label_text: ADVERTISEMENT_LABEL_TEXT,
     source_dark_pattern_type: pattern.dark_pattern_type,
@@ -397,6 +398,15 @@ function createFixesForPattern(pattern: IdentifiedDarkPattern): PageFix[] {
   }
 
   const targetElement = resolveFixTarget(matchedElement, pattern.issues);
+
+  // Use the LLM's stable selector when resolveFixTarget didn't navigate to an ancestor.
+  // If it did navigate up, the LLM selector points to the wrong element, so fall back to
+  // buildStableSelector which generates a selector from the resolved ancestor.
+  const targetSelector =
+    pattern.selector_stability === "stable" && targetElement === matchedElement
+      ? pattern.css_selector
+      : buildStableSelector(targetElement);
+
   const fixes: PageFix[] = [];
 
   const cssRules: CssFix["css_rules"] = {};
@@ -420,7 +430,7 @@ function createFixesForPattern(pattern: IdentifiedDarkPattern): PageFix[] {
 
   if (appliedIssues.length > 0) {
     fixes.push({
-      css_selector: buildStableSelector(targetElement),
+      css_selector: targetSelector,
       patch_type: "css",
       css_rules: cssRules,
       source_dark_pattern_type: pattern.dark_pattern_type,
@@ -429,7 +439,7 @@ function createFixesForPattern(pattern: IdentifiedDarkPattern): PageFix[] {
   }
 
   if (pattern.dark_pattern_type === "Disguised ad" && pattern.issues.includes("add_advertisement_title")) {
-    const labelFix = createAdvertisementLabelFix(targetElement, pattern);
+    const labelFix = createAdvertisementLabelFix(targetElement, pattern, targetSelector);
     if (labelFix) {
       fixes.push(labelFix);
     }

@@ -2,7 +2,6 @@ import type { DetectionResult } from "../shared/types";
 
 export interface DetectionProviderInput {
   prompt: string;
-  screenshotDataUrl: string;
 }
 
 export interface DetectionProvider {

@@ -8,7 +8,8 @@ import { getPageKeyFromUrl, isSupportedPageUrl } from "../shared/pageKey";
 import { buildDarkPatternPrompt } from "../shared/prompt";
 import { loadArchive, saveArchive } from "../shared/storage";
 import { deriveUrlShape, extractHtmlSignature } from "../shared/patternMatcher";
-import { findBestPatternMatch, upsertPatternArchive } from "../shared/patternStorage";
+import { findBestPatternMatch, upsertPatternArchive, type UpsertOutcome } from "../shared/patternStorage";
+import { normalizeError } from "../shared/utils";
 import {
   beginVerification,
   flushVerification,
@@ -24,6 +25,7 @@ import {
 import type {
   ExtensionMessage,
   ExtensionMessageResponse,
+  HtmlDebugPayload,
 } from "../shared/messages";
 import type {
   DetectionResult,
@@ -40,6 +42,9 @@ const factCopy = document.getElementById("fact-copy") as HTMLParagraphElement;
 const resetButton = document.getElementById(
   "reset-button",
 ) as HTMLButtonElement;
+const downloadHtmlButton = document.getElementById(
+  "download-html-button",
+) as HTMLButtonElement;
 const actionButton = document.getElementById(
   "action-button",
 ) as HTMLButtonElement;
@@ -47,8 +52,10 @@ const actionButton = document.getElementById(
 let activeTabId: number | null = null;
 let activeWindowId: number | null = null;
 let activePageKey = "";
+let activeTabUrl = "";
 /** Cached page context from bootstrap's pattern-matching probe — reused in startFixFlow */
 let cachedPageContext: PageContext | null = null;
+let tabUpdateListenerAttached = false;
 let factTimer: number | null = null;
 let currentFactIndex = 0;
 const POPUP_LOG_PREFIX = "[DarkPatternFixer:popup]";
@@ -70,8 +77,7 @@ function logError(
   error: unknown,
   details?: Record<string, unknown>,
 ): void {
-  const normalizedMessage =
-    error instanceof Error ? error.message : String(error);
+  const normalizedMessage = normalizeError(error);
   console.error(`${POPUP_LOG_PREFIX} ${step}`, {
     ...details,
     error: normalizedMessage,
@@ -133,8 +139,7 @@ async function resetCache(): Promise<void> {
     );
   } catch (error) {
     logError("reset-cache:failed", error);
-    const message = error instanceof Error ? error.message : String(error);
-    setState("initial", `Could not clear cache. ${message}`);
+    setState("initial", `Could not clear cache. ${normalizeError(error)}`);
   } finally {
     resetButton.disabled = false;
   }
@@ -162,6 +167,7 @@ async function getActiveTab(): Promise<chrome.tabs.Tab> {
   activeTabId = tab.id;
   activeWindowId = tab.windowId ?? chrome.windows.WINDOW_ID_CURRENT;
   activePageKey = getPageKeyFromUrl(tab.url);
+  activeTabUrl = tab.url;
   logInfo("active-tab:resolved", {
     tabId: activeTabId,
     windowId: activeWindowId,
@@ -309,14 +315,31 @@ async function captureScreenshot(): Promise<string> {
 }
 
 async function maybeApplySavedArchive(): Promise<boolean> {
+  logInfo("layer-1:checking", { pageKey: activePageKey });
+  console.info(`${POPUP_LOG_PREFIX} Layer 1 (exact URL cache) — looking up "${activePageKey}"`);
   const archive = await loadArchive(activePageKey);
-  if (!archive || archive.fixes.length === 0) {
+  if (!archive) {
     recordExactLayer("MISS");
+    console.info(`${POPUP_LOG_PREFIX} Layer 1 → MISS — no exact match stored, proceeding to Layer 2`);
     logInfo("archive:miss", { pageKey: activePageKey });
     return false;
   }
 
+  if (archive.fixes.length === 0) {
+    // Negative cache: we previously ran on this exact URL but produced no actionable fixes.
+    // Treat as a HIT to avoid repeatedly calling the LLM on the same page.
+    recordExactLayer("HIT", 0);
+    console.info(
+      `${POPUP_LOG_PREFIX} Layer 1 → HIT (negative cache) — 0 fix(es) stored for this exact URL, skipping LLM`,
+    );
+    logInfo("archive:hit", { pageKey: activePageKey, fixes: 0, negative: true });
+    setState("initial", "Cached: no fixable patterns were found on this exact page previously.");
+    flushVerification("initial");
+    return true;
+  }
+
   recordExactLayer("HIT", archive.fixes.length);
+  console.info(`${POPUP_LOG_PREFIX} Layer 1 → HIT — found ${archive.fixes.length} fix(es) for this exact URL, skipping LLM`);
   logInfo("archive:hit", {
     pageKey: activePageKey,
     fixes: archive.fixes.length,
@@ -339,6 +362,7 @@ async function maybeApplyPatternArchive(pageContext: PageContext): Promise<boole
   const sig = extractHtmlSignature(pageContext.truncatedHtml);
   recordPatternLayerAttempt(urlShape);
 
+  console.info(`${POPUP_LOG_PREFIX} Layer 2 (pattern cache) — URL shape: "${urlShape}"`);
   logInfo("pattern:matching", { urlShape });
 
   let match;
@@ -352,14 +376,16 @@ async function maybeApplyPatternArchive(pageContext: PageContext): Promise<boole
 
   if (!match) {
     recordPatternLayerMiss();
+    console.info(`${POPUP_LOG_PREFIX} Layer 2 → MISS — no pattern matched, will run LLM detection`);
     logInfo("pattern:miss", { urlShape });
     return false;
   }
 
+  const fixCount = match.archive.fixes.length;
   recordPatternLayerHit({
     urlShape,
     candidateCount: match.candidateCount,
-    fixes: match.archive.fixes.length,
+    fixes: fixCount,
     scoreBreakdown: match.scoreBreakdown,
   });
   logInfo("pattern:hit", {
@@ -369,10 +395,18 @@ async function maybeApplyPatternArchive(pageContext: PageContext): Promise<boole
     urlConsistencyScore: match.scoreBreakdown.urlConsistencyScore != null
       ? Number(match.scoreBreakdown.urlConsistencyScore.toFixed(3))
       : undefined,
-    fixes: match.archive.fixes.length,
+    fixes: fixCount,
     hitCount: match.archive.hitCount,
   });
 
+  if (fixCount === 0) {
+    console.info(`${POPUP_LOG_PREFIX} Layer 2 → HIT (negative cache) — 0 fix(es) stored for this pattern, skipping LLM`);
+    setState("initial", "Cached: no fixable patterns were found on similar pages previously.");
+    flushVerification("initial");
+    return true;
+  }
+
+  console.info(`${POPUP_LOG_PREFIX} Layer 2 → HIT — applying ${fixCount} fix(es), skipping LLM`);
   setState("fixing");
   const applied = await sendMessage<FixApplicationResult>({
     type: "APPLY_SAVED_FIXES",
@@ -387,30 +421,47 @@ async function maybeApplyPatternArchive(pageContext: PageContext): Promise<boole
   return true;
 }
 
-function truncateScreenshotString(dataUrl: string): string {
-  return dataUrl.length > 60000
-    ? `${dataUrl.slice(0, 60000)}...[truncated]`
-    : dataUrl;
-}
-
 async function runDetection(
   pageContext: PageContext,
   screenshotDataUrl: string,
 ): Promise<DetectionResult> {
   const prompt = buildDarkPatternPrompt({
-    screenshotString: truncateScreenshotString(screenshotDataUrl),
     truncatedHtml: pageContext.truncatedHtml,
+    screenshotString: screenshotDataUrl,
+    pageUrl: activeTabUrl,
   });
+
+  const htmlChars = pageContext.truncatedHtml.length;
+  const screenshotChars = screenshotDataUrl.length;
+  const totalPromptChars = prompt.length;
+  const screenshotPct = ((screenshotChars / totalPromptChars) * 100).toFixed(1);
+  const htmlPct = ((htmlChars / totalPromptChars) * 100).toFixed(1);
+  // Rough token estimate: ~4 chars per token
+  const estimatedTotalTokens = Math.round(totalPromptChars / 4);
+  const estimatedHtmlTokens = Math.round(htmlChars / 4);
+  const estimatedScreenshotTokens = Math.round(screenshotChars / 4);
+  console.info(`${POPUP_LOG_PREFIX} detection:input-token-breakdown`, {
+    totalPromptChars,
+    estimatedTotalTokens,
+    html: {
+      chars: htmlChars,
+      estimatedTokens: estimatedHtmlTokens,
+      pct: `${htmlPct}%`,
+    },
+    screenshot: {
+      chars: screenshotChars,
+      estimatedTokens: estimatedScreenshotTokens,
+      pct: `${screenshotPct}%`,
+    },
+  });
+
   logInfo("detection:request", {
     provider: getActiveProviderName(),
     truncatedHtmlLength: pageContext.truncatedHtml.length,
     promptLength: prompt.length,
   });
 
-  const result = await detectDarkPatterns({
-    prompt,
-    screenshotDataUrl,
-  });
+  const result = await detectDarkPatterns({ prompt });
   logInfo("detection:response", {
     patterns: result.identified_dark_patterns.length,
   });
@@ -421,6 +472,12 @@ async function startFixFlow(): Promise<void> {
   logInfo("flow:start");
   try {
     setState("fixing");
+
+    // Re-check caches on every run (not only during bootstrap).
+    // This makes repeated "Start" clicks reuse Layer 1/2 instead of re-running the LLM.
+    // Layer 1: exact page-key cache (fast, no content script needed)
+    const exactReused = await maybeApplySavedArchive();
+    if (exactReused) return;
 
     const pageContextResult = await withTiming(async () => {
       if (cachedPageContext) {
@@ -436,6 +493,10 @@ async function startFixFlow(): Promise<void> {
       truncatedHtmlLength: pageContext.truncatedHtml.length,
       viewport: pageContext.viewport,
     });
+
+    // Layer 2: pattern-level cache (requires page context from content script)
+    const patternReused = await maybeApplyPatternArchive(pageContext);
+    if (patternReused) return;
 
     const screenshotResult = await withTiming(captureScreenshot);
     const screenshotDataUrl = screenshotResult.value;
@@ -475,10 +536,14 @@ async function startFixFlow(): Promise<void> {
 
     // Persist pattern archive (fire-and-forget — must not block or break main flow)
     const sig = extractHtmlSignature(pageContext.truncatedHtml);
-    void upsertPatternArchive(activePageKey, sig, fixResult.archive.fixes, detectionResult).then(() => {
+    void upsertPatternArchive(activePageKey, sig, fixResult.archive.fixes, detectionResult).then((outcome: UpsertOutcome) => {
       const urlShape = deriveUrlShape(activePageKey);
-      recordPatternUpsertSuccess(`Pattern archive stored for ${urlShape}`);
-      logInfo("flow:pattern-archive-upserted", { urlShape });
+      if (outcome.wrote) {
+        recordPatternUpsertSuccess(`Pattern archive ${outcome.action} for ${urlShape} (${outcome.fixCount} fix(es))`);
+        logInfo("flow:pattern-archive-upserted", { urlShape, action: outcome.action, fixCount: outcome.fixCount });
+      } else {
+        logInfo("flow:pattern-archive-skipped", { urlShape, reason: outcome.reason });
+      }
     }).catch((error: unknown) => {
       logError("flow:pattern-archive-upsert-failed", error);
     });
@@ -491,10 +556,20 @@ async function startFixFlow(): Promise<void> {
     const prefix = hasConfiguredDetectionProvider()
       ? "Fixing failed."
       : `Configure ${getActiveProviderName()} in src/config.ts/.env first.`;
-    const message = error instanceof Error ? error.message : String(error);
-    setState("initial", `${prefix} ${message}`);
+    setState("initial", `${prefix} ${normalizeError(error)}`);
     flushVerification("initial");
   }
+}
+
+function attachTabUpdateListener(): void {
+  if (tabUpdateListenerAttached) return;
+  tabUpdateListenerAttached = true;
+  chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
+    if (tabId !== activeTabId || changeInfo.status !== "complete") return;
+    logInfo("tab:navigated", { tabId, url: changeInfo.url });
+    cachedPageContext = null;
+    void bootstrap();
+  });
 }
 
 async function bootstrap(): Promise<void> {
@@ -502,6 +577,7 @@ async function bootstrap(): Promise<void> {
   try {
     const tabResult = await withTiming(getActiveTab);
     logInfo("bootstrap:active-tab-ready", { durationMs: tabResult.durationMs });
+    attachTabUpdateListener();
     beginVerification(activePageKey);
 
     // Layer 1: exact page-key cache (fast, no content script needed)
@@ -523,9 +599,9 @@ async function bootstrap(): Promise<void> {
       if (patternReused) return;
     } catch (error) {
       // Pattern matching is non-critical — log and fall through to manual start
-      recordPatternLayerSkipped(error instanceof Error ? error.message : String(error));
+      recordPatternLayerSkipped(normalizeError(error));
       logInfo("bootstrap:pattern-match-skipped", {
-        reason: error instanceof Error ? error.message : String(error),
+        reason: normalizeError(error),
       });
     }
 
@@ -534,11 +610,43 @@ async function bootstrap(): Promise<void> {
     logInfo("bootstrap:ready-for-start");
   } catch (error) {
     logError("bootstrap:failed", error);
-    const message = error instanceof Error ? error.message : String(error);
-    setState("initial", message);
+    setState("initial", normalizeError(error));
     flushVerification("initial");
+  }
+}
+
+function downloadHtmlFile(filename: string, content: string): void {
+  const blob = new Blob([content], { type: "text/html" });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  anchor.click();
+  URL.revokeObjectURL(url);
+}
+
+async function downloadHtmlDebug(): Promise<void> {
+  downloadHtmlButton.disabled = true;
+  logInfo("download-html:start");
+  try {
+    const payload = await sendMessage<HtmlDebugPayload>({ type: "COLLECT_HTML_DEBUG" });
+    const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+    console.log(
+      `[html-debug] original: ${payload.rawHtml.length} chars` +
+      ` | truncated_new: ${payload.truncatedHtml.length} chars (${(payload.truncatedHtml.length / payload.rawHtml.length * 100).toFixed(1)}% of original)` +
+      ` | truncated_old: ${payload.truncatedHtmlOld.length} chars (${(payload.truncatedHtmlOld.length / payload.rawHtml.length * 100).toFixed(1)}% of original)`
+    );
+    downloadHtmlFile(`raw_${timestamp}.html`, payload.rawHtml);
+    downloadHtmlFile(`truncated_new_${timestamp}.html`, payload.truncatedHtml);
+    downloadHtmlFile(`truncated_old_${timestamp}.html`, payload.truncatedHtmlOld);
+    logInfo("download-html:done");
+  } catch (error) {
+    logError("download-html:failed", error);
+  } finally {
+    downloadHtmlButton.disabled = false;
   }
 }
 
 void bootstrap();
 resetButton.onclick = () => void resetCache();
+downloadHtmlButton.onclick = () => void downloadHtmlDebug();

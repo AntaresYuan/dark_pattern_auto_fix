@@ -1,4 +1,4 @@
-import { PATTERN_SIMILARITY_THRESHOLD } from "./patternMatcher";
+import { LLM_FEATURE_THRESHOLD, PATTERN_SIMILARITY_THRESHOLD } from "./patternMatcher";
 import type { SignatureScoreBreakdown } from "./types";
 
 type CaseStatus = "PASS" | "NOT_RUN";
@@ -34,7 +34,7 @@ interface VerificationState {
 const VERIFICATION_LOG_PREFIX = "[DarkPatternFixer:verify]";
 const DEFAULT_REASON = "No observable signal for this run.";
 // 0 = off, 1 = on (web-matching verification logs only)
-const WEB_MATCH_DEBUG = 0;
+const WEB_MATCH_DEBUG = 1;
 
 let active: VerificationState | null = null;
 
@@ -167,40 +167,77 @@ export function flushVerification(finalState: "finished" | "initial" | "unknown"
     return;
   }
 
-  console.group(`${VERIFICATION_LOG_PREFIX} trace=${active.traceId}`);
-  console.info(`${VERIFICATION_LOG_PREFIX} overview`, {
-    pageKey: active.pageKey,
-    durationMs,
-    finalState: active.finalState,
-    layer1: active.layer1Result,
-    layer2: active.layer2Result,
-    urlShape: active.urlShape || "(none)",
-    candidateCount: active.candidateCount,
-    fixesOnHit: active.fixesOnHit,
-  });
+  const layer1Label = active.layer1Result === "HIT"
+    ? `✓ HIT — reused ${active.fixesOnHit} fix(es) from exact URL cache`
+    : active.layer1Result === "MISS"
+      ? "✗ MISS — no exact URL match stored"
+      : "NOT RUN";
 
-  console.table({
-    scoring: {
-      threshold: active.threshold.toFixed(3),
-      matchPath: score?.matchPath ?? "n/a",
-      combinedScore: score ? score.combinedScore.toFixed(3) : "n/a",
-      llmFeatureScore: score?.llmFeatureScore != null ? score.llmFeatureScore.toFixed(3) : "n/a",
-      requiredCoverage: score?.requiredCoverage != null ? score.requiredCoverage.toFixed(3) : "n/a",
-      negativePenalty: score?.negativePenalty != null ? score.negativePenalty.toFixed(3) : "n/a",
-      urlConsistencyScore: score?.urlConsistencyScore != null ? score.urlConsistencyScore.toFixed(3) : "n/a",
-      tagScore: score ? score.tagScore.toFixed(3) : "n/a",
-      classScore: score ? score.classScore.toFixed(3) : "n/a",
-      attrScore: score ? score.attrScore.toFixed(3) : "n/a",
-    },
-  });
+  const layer2Label = active.layer2Result === "HIT"
+    ? `✓ HIT — reused ${active.fixesOnHit} fix(es) from pattern cache`
+    : active.layer2Result === "MISS"
+      ? `✗ MISS — ${active.candidateCount} candidate(s) checked, none above threshold`
+      : active.layer2Result === "SKIPPED"
+        ? "SKIPPED — content script unavailable"
+        : "NOT RUN";
 
-  console.table(
-    Object.entries(active.cases).map(([name, entry]) => ({
-      case: name,
-      status: entry.status,
-      reason: entry.reason,
-    })),
+  const outcomeLabel = active.finalState === "finished"
+    ? "Fixes applied — popup closed to 'finished'"
+    : active.finalState === "initial"
+      ? "No cache hit — popup ready for manual LLM detection"
+      : "Unknown final state";
+
+  console.group(`${VERIFICATION_LOG_PREFIX} Pipeline summary  [trace: ${active.traceId}]  (${durationMs}ms)`);
+  console.info(
+    `${VERIFICATION_LOG_PREFIX} Page: ${active.pageKey}\n` +
+    `  Layer 1 (exact URL cache):    ${layer1Label}\n` +
+    `  Layer 2 (pattern cache):      ${layer2Label}\n` +
+    `  Outcome:                      ${outcomeLabel}`,
   );
+
+  if (score && active.layer2Result === "HIT") {
+    const path = score.matchPath ?? "unknown";
+    const lines: string[] = [`${VERIFICATION_LOG_PREFIX} Winning match score breakdown (path: ${path})`];
+
+    if (path === "llm_primary") {
+      lines.push(
+        `  LLM component  = 0.55 × ${score.llmFeatureScore?.toFixed(3) ?? "n/a"} (llmFeatureScore)`,
+        `    └─ required attr coverage : ${score.requiredCoverage?.toFixed(3) ?? "n/a"}`,
+        `    └─ negative penalty       : −${score.negativePenalty?.toFixed(3) ?? "n/a"}`,
+        `  Sig component  = 0.25 × ${score.combinedScore != null ? ((score.combinedScore - 0.55 * (score.llmFeatureScore ?? 0) - 0.20 * (score.urlConsistencyScore ?? 0)) / 0.25).toFixed(3) : "n/a"} (sigScore)`,
+        `    └─ tags: ${score.tagScore.toFixed(3)}  classes: ${score.classScore.toFixed(3)}  attrs: ${score.attrScore.toFixed(3)}`,
+        `  URL component  = 0.20 × ${score.urlConsistencyScore?.toFixed(3) ?? "n/a"} (urlConsistency)`,
+        `  ─────────────────────────────────────────`,
+        `  Final score    = ${score.combinedScore.toFixed(3)}  (threshold ${LLM_FEATURE_THRESHOLD.toFixed(3)}) → ✓ PASSED`,
+      );
+    } else {
+      lines.push(
+        `  Sig component  = 0.70 × sigScore`,
+        `    └─ tags: ${score.tagScore.toFixed(3)}  classes: ${score.classScore.toFixed(3)}  attrs: ${score.attrScore.toFixed(3)}`,
+        `  URL component  = 0.30 × ${score.urlConsistencyScore?.toFixed(3) ?? "n/a"} (urlConsistency)`,
+        `  ─────────────────────────────────────────`,
+        `  Final score    = ${score.combinedScore.toFixed(3)}  (threshold ${PATTERN_SIMILARITY_THRESHOLD.toFixed(3)}) → ✓ PASSED`,
+      );
+    }
+    console.info(lines.join("\n"));
+  }
+
+  const passedCases = Object.entries(active.cases).filter(([, v]) => v.status === "PASS");
+  const notRunCases = Object.entries(active.cases).filter(([, v]) => v.status === "NOT_RUN");
+
+  if (passedCases.length > 0) {
+    console.info(
+      `${VERIFICATION_LOG_PREFIX} Validation checks passed (${passedCases.length}):\n` +
+      passedCases.map(([name, v]) => `  ✓ ${name}: ${v.reason}`).join("\n"),
+    );
+  }
+  if (notRunCases.length > 0) {
+    console.info(
+      `${VERIFICATION_LOG_PREFIX} Not observed this run (${notRunCases.length}):\n` +
+      notRunCases.map(([name]) => `  – ${name}`).join("\n"),
+    );
+  }
+
   console.groupEnd();
 
   active = null;

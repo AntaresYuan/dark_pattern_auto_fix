@@ -1,7 +1,10 @@
-import { extractTruncatedHtml } from "./htmlExtractor";
+import { extractRawHtml } from "./htmlExtractor";
+import { extractTruncatedHtml } from "./truncated_new";
+import { extractTruncatedHtml as extractTruncatedHtmlOld } from "./truncated";
 import { planAndApplyFixes } from "./fixPlanner";
 import { applyFixesToPage } from "./patchInjector";
 import { getPageKeyFromUrl } from "../shared/pageKey";
+import { normalizeError } from "../shared/utils";
 import type { ExtensionMessage } from "../shared/messages";
 import type { FixApplicationResult, PageContext, PageFixArchive } from "../shared/types";
 
@@ -30,6 +33,18 @@ chrome.runtime.onMessage.addListener((message: ExtensionMessage, _sender, sendRe
       case "COLLECT_PAGE_CONTEXT":
         sendResponse(collectPageContext());
         return;
+      case "COLLECT_HTML_DEBUG": {
+        const rawHtml = extractRawHtml();
+        const truncatedHtml = extractTruncatedHtml();
+        const truncatedHtmlOld = extractTruncatedHtmlOld();
+        console.log(
+          `[html-debug] original: ${rawHtml.length} chars` +
+          ` | truncated_new: ${truncatedHtml.length} chars (${(truncatedHtml.length / rawHtml.length * 100).toFixed(1)}% of original)` +
+          ` | truncated_old: ${truncatedHtmlOld.length} chars (${(truncatedHtmlOld.length / rawHtml.length * 100).toFixed(1)}% of original)`
+        );
+        sendResponse({ rawHtml, truncatedHtml, truncatedHtmlOld });
+        return;
+      }
       case "PLAN_AND_APPLY_FIXES": {
         const pageKey = getPageKeyFromUrl(window.location.href);
         sendResponse(planAndApplyFixes(pageKey, message.patterns));
@@ -48,7 +63,7 @@ chrome.runtime.onMessage.addListener((message: ExtensionMessage, _sender, sendRe
         fixes: []
       },
       appliedCount: 0,
-      error: error instanceof Error ? error.message : String(error)
+      error: normalizeError(error)
     });
   });
 

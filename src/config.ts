@@ -11,7 +11,7 @@ export const AI_CONFIG = {
       // Build script injects GPT_API_KEY from .env for local prototyping.
       apiKey: "__GPT_API_KEY__",
       // Change this model when activeProvider is "gpt".
-      model: "gpt-5-mini",
+      model: "gpt-5",
       apiBaseUrl: "https://api.openai.com/v1",
     },
     gemini: {
