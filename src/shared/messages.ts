@@ -10,6 +10,7 @@ export type ExtensionMessage =
 export interface HtmlDebugPayload {
   rawHtml: string;
   truncatedHtml: string;
+  truncatedHtmlOld: string;
 }
 
 export type ExtensionMessageResponse = PageContext | FixApplicationResult | HtmlDebugPayload | { ok: true };
