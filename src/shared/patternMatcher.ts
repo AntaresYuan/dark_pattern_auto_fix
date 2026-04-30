@@ -12,7 +12,7 @@ export const PATTERN_SIMILARITY_THRESHOLD = 0.6;
  * and URL consistency is scored jointly (not hard-gated).
  * Final score = 0.55 × llmFeatureScore + 0.25 × sigScore + 0.20 × urlConsistencyScore.
  */
-export const LLM_FEATURE_THRESHOLD = 0.50;
+export const LLM_FEATURE_THRESHOLD = 0.72;
 
 const MAX_TAG_TOKENS = 50;
 const MAX_CLASS_TOKENS = 200;
@@ -233,12 +233,18 @@ export function scoreLlmFeatures(
   const reqFound = features.required_attributes.filter((a) => pageAttrSet.has(a)).length;
   const requiredCoverage = reqTotal === 0 ? 1 : reqFound / reqTotal;
 
-  // optional overlap — Jaccard against page attrs
-  const optionalScore = jaccardSimilarity(features.optional_attributes, sig.attrTokens ?? []);
+  // optional coverage — fraction of optional attrs found in page (not Jaccard: page token set
+  // is too large, causing Jaccard to be near-zero even when all optional attrs are present)
+  const optTotal = features.optional_attributes.length;
+  const optFound = features.optional_attributes.filter((a) => pageAttrSet.has(a)).length;
+  const optionalScore = optTotal === 0 ? 1 : optFound / optTotal;
 
-  // fingerprint overlap — distinctive class names against page class tokens
+  // fingerprint coverage — fraction of fingerprint class tokens found in page class tokens
   const pageClassTokens = Array.isArray(sig.classTokens) ? sig.classTokens : [];
-  const fingerprintScore = jaccardSimilarity(features.fingerprint_tokens, pageClassTokens);
+  const pageClassSet = new Set(pageClassTokens);
+  const fpTotal = features.fingerprint_tokens.length;
+  const fpFound = features.fingerprint_tokens.filter((c) => pageClassSet.has(c)).length;
+  const fingerprintScore = fpTotal === 0 ? 1 : fpFound / fpTotal;
 
   // url path match — fraction of url_path_tokens found as segments in urlShape
   const urlParts = new Set(urlShape.split("/"));

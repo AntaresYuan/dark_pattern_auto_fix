@@ -128,7 +128,7 @@ export async function findBestPatternMatch(
 
     if (archive.llmMatchFeatures) {
       const llmDetail = scoreLlmFeatures(archive.llmMatchFeatures, sig, urlShape);
-      score = 0.55 * llmDetail.score + 0.25 * sigBreakdown.combinedScore + 0.20 * urlScore;
+      score = 0.35 * llmDetail.score + 0.45 * sigBreakdown.combinedScore + 0.20 * urlScore;
       breakdown = {
         ...sigBreakdown,
         combinedScore: score,
@@ -143,7 +143,7 @@ export async function findBestPatternMatch(
         `  LLM score  = 0.45×${fmt(llmDetail.requiredCoverage)} (required attrs) + 0.20×${fmt(llmDetail.optionalScore)} (optional) + 0.25×${fmt(llmDetail.fingerprintScore)} (fingerprint classes) + 0.10×${fmt(llmDetail.urlMatchRate)} (url path) − 0.50×${fmt(llmDetail.negativeHitRate)} (negative penalty) = ${fmt(llmDetail.score)}\n` +
         `  Sig score  = 0.20×${fmt(sigBreakdown.tagScore)} (tags) + 0.40×${fmt(sigBreakdown.classScore)} (classes) + 0.40×${fmt(sigBreakdown.attrScore)} (attrs) = ${fmt(sigBreakdown.combinedScore)}\n` +
         `  URL match  = ${fmt(urlScore)}\n` +
-        `  Final      = 0.55×${fmt(llmDetail.score)} + 0.25×${fmt(sigBreakdown.combinedScore)} + 0.20×${fmt(urlScore)} = ${fmt(score)}  (threshold ${fmt(LLM_FEATURE_THRESHOLD)}) → ${score >= LLM_FEATURE_THRESHOLD ? "✓ ABOVE THRESHOLD" : "✗ BELOW THRESHOLD"}`,
+        `  Final      = 0.35×${fmt(llmDetail.score)} + 0.45×${fmt(sigBreakdown.combinedScore)} + 0.20×${fmt(urlScore)} = ${fmt(score)}  (threshold ${fmt(LLM_FEATURE_THRESHOLD)}) → ${score >= LLM_FEATURE_THRESHOLD ? "✓ ABOVE THRESHOLD" : "✗ BELOW THRESHOLD"}`,
       );
     } else {
       score = 0.70 * sigBreakdown.combinedScore + 0.30 * urlScore;
@@ -208,11 +208,26 @@ export async function upsertPatternArchive(
   fixes: PageFix[],
   detectionResult: DetectionResult,
 ): Promise<UpsertOutcome> {
-  const llmMatchFeatures = detectionResult.template_match_features;
+  const rawFeatures = detectionResult.template_match_features;
   const patternCount = detectionResult.identified_dark_patterns.length;
 
-  // Prefer the LLM-derived url_shape when available; fall back to rule-based derivation.
-  const urlShape = llmMatchFeatures.url_shape?.trim() || deriveUrlShape(pageKey);
+  // Normalize LLM features against the actual extracted signature so we never
+  // store hallucinated tokens (tokens the LLM invented from world knowledge but
+  // that don't appear in the truncated HTML the extractor sees).
+  const pageAttrSet = new Set(sig.attrTokens ?? []);
+  const pageClassSet = new Set(sig.classTokens ?? []);
+  const llmMatchFeatures: typeof rawFeatures = {
+    ...rawFeatures,
+    required_attributes: rawFeatures.required_attributes.filter((a) => pageAttrSet.has(a)),
+    optional_attributes: rawFeatures.optional_attributes.filter((a) => pageAttrSet.has(a)),
+    fingerprint_tokens: rawFeatures.fingerprint_tokens.filter((c) => pageClassSet.has(c)),
+  };
+
+  // Always use rule-based derivation for the canonical urlShape key so it matches
+  // what findBestPatternMatch uses during lookup. The LLM-supplied url_shape may
+  // omit "www." or use a different hostname format, causing a host-mismatch and
+  // zero candidates on the next run.
+  const urlShape = deriveUrlShape(pageKey);
   const archives = await loadAllPatternArchives();
   const host = getHostFromUrlShape(urlShape);
   const now = Date.now();

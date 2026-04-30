@@ -1,13 +1,12 @@
 export function buildDarkPatternPrompt(input: {
   truncatedHtml: string;
-  screenshotString: string;
   pageUrl: string;
 }): string {
   return `You are a website dark pattern evaluator.
 
 Your task is to identify the top 3 most obvious dark patterns on the current webpage.
 
-You are given a base64-encoded JPEG screenshot and truncated HTML of the page.
+You are given a JPEG screenshot and truncated HTML of the page.
 Use the HTML as your primary evidence. Use the screenshot for visual confirmation and to resolve ambiguities the HTML alone cannot clarify.
 
 Only identify dark patterns from the taxonomy below.
@@ -106,7 +105,7 @@ Template matching features (for local-only reuse on future visits):
 
     - url_shape: The canonical shape of this URL template — hostname + path with variable segments replaced.
       Use {id} for numeric IDs, ASINs, UUIDs, or any opaque identifier. Use {slug} for long mixed-alphanumeric slugs.
-      Good: "amazon.com/dp/{id}", "shop.com/product/{slug}", "example.com/search".
+      Good: "www.amazon.com/dp/{id}", "shop.example.com/product/{slug}", "example.com/search".
       Bad: "amazon.com/dp/B08N5WRWNW" (raw ID), "example.com/posts/my-article-title" (content-specific slug left as-is).
       Set to null if the URL structure is ambiguous or not clearly templated.
 
@@ -115,8 +114,5 @@ Now analyze the following webpage.
 Current page URL: ${input.pageUrl}
 
 Truncated HTML:
-${input.truncatedHtml}
-
-Screenshot (base64-encoded JPEG):
-${input.screenshotString}`;
+${input.truncatedHtml}`;
 }

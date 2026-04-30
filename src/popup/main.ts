@@ -59,10 +59,6 @@ let tabUpdateListenerAttached = false;
 let factTimer: number | null = null;
 let currentFactIndex = 0;
 const POPUP_LOG_PREFIX = "[DarkPatternFixer:popup]";
-const SCREENSHOT_OUTPUT_QUALITY = 0.7;
-const SCREENSHOT_TARGET_PIXEL_COUNT = 945000;
-const SCREENSHOT_MIN_WIDTH = 640;
-const SCREENSHOT_MIN_HEIGHT = 360;
 
 function logInfo(step: string, details?: Record<string, unknown>): void {
   if (details) {
@@ -234,84 +230,55 @@ async function sendMessage<T extends ExtensionMessageResponse>(
   return response;
 }
 
-function loadImageFromDataUrl(dataUrl: string): Promise<HTMLImageElement> {
+function resizeDataUrl(dataUrl: string, scale: number): Promise<string> {
   return new Promise((resolve, reject) => {
-    const image = new Image();
-    image.onload = () => resolve(image);
-    image.onerror = () => reject(new Error("Could not decode screenshot data URL."));
-    image.src = dataUrl;
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.round(img.width * scale);
+      canvas.height = Math.round(img.height * scale);
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return reject(new Error("Failed to get canvas context"));
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      resolve(canvas.toDataURL("image/jpeg", 0.9));
+    };
+    img.onerror = () => reject(new Error("Failed to load image for resize"));
+    img.src = dataUrl;
   });
-}
-
-async function downscaleScreenshotDataUrl(
-  dataUrl: string,
-  quality: number,
-): Promise<{
-  dataUrl: string;
-  width: number;
-  height: number;
-  scaleFactor: number;
-  sourceWidth: number;
-  sourceHeight: number;
-}> {
-  const image = await loadImageFromDataUrl(dataUrl);
-  const sourceWidth = image.naturalWidth;
-  const sourceHeight = image.naturalHeight;
-  const sourcePixelCount = sourceWidth * sourceHeight;
-  const areaScale =
-    sourcePixelCount > SCREENSHOT_TARGET_PIXEL_COUNT
-      ? Math.sqrt(SCREENSHOT_TARGET_PIXEL_COUNT / sourcePixelCount)
-      : 1;
-  const minScaleByWidth = SCREENSHOT_MIN_WIDTH / sourceWidth;
-  const minScaleByHeight = SCREENSHOT_MIN_HEIGHT / sourceHeight;
-  const minRequiredScale = Math.max(minScaleByWidth, minScaleByHeight);
-  const scaleFactor = Math.min(1, Math.max(areaScale, minRequiredScale));
-  const width = Math.max(1, Math.round(sourceWidth * scaleFactor));
-  const height = Math.max(1, Math.round(sourceHeight * scaleFactor));
-
-  const canvas = document.createElement("canvas");
-  canvas.width = width;
-  canvas.height = height;
-
-  const context = canvas.getContext("2d");
-  if (!context) {
-    throw new Error("Could not initialize canvas 2D context for screenshot downscale.");
-  }
-
-  context.drawImage(image, 0, 0, width, height);
-  return {
-    dataUrl: canvas.toDataURL("image/jpeg", quality),
-    width,
-    height,
-    scaleFactor,
-    sourceWidth,
-    sourceHeight,
-  };
 }
 
 async function captureScreenshot(): Promise<string> {
-  if (activeWindowId === null) {
-    throw new Error("No active window is available.");
+  if (activeTabId === null) {
+    throw new Error("No active tab is available.");
   }
 
-  const rawScreenshotDataUrl = await chrome.tabs.captureVisibleTab(activeWindowId, {
-    format: "png",
+  const tabId = activeTabId;
+  const [{ result: dims }] = await chrome.scripting.executeScript({
+    target: { tabId },
+    func: () => ({
+      scrollWidth: document.documentElement.scrollWidth,
+      scrollHeight: document.documentElement.scrollHeight,
+      viewportWidth: window.innerWidth,
+      viewportHeight: window.innerHeight,
+      devicePixelRatio: window.devicePixelRatio,
+    }),
   });
-  const downscaled = await downscaleScreenshotDataUrl(
-    rawScreenshotDataUrl,
-    SCREENSHOT_OUTPUT_QUALITY,
-  );
-  const screenshotDataUrl = downscaled.dataUrl;
+
+  const response = await chrome.runtime.sendMessage({
+    type: "CAPTURE_FULL_PAGE",
+    tabId,
+    dims,
+  }) as { data?: string; error?: string };
+  if (response.error) throw new Error(response.error);
+
+  const raw = `data:image/jpeg;base64,${response.data}`;
+  const resized = await resizeDataUrl(raw, Math.sqrt(1 / 8));
   logInfo("screenshot:captured", {
-    sourceWidth: downscaled.sourceWidth,
-    sourceHeight: downscaled.sourceHeight,
-    width: downscaled.width,
-    height: downscaled.height,
-    downscaleFactor: Number(downscaled.scaleFactor.toFixed(4)),
-    outputQuality: SCREENSHOT_OUTPUT_QUALITY,
-    length: screenshotDataUrl.length,
+    rawLength: raw.length,
+    resizedLength: resized.length,
+    scaleFactor: Number(Math.sqrt(1 / 8).toFixed(4)),
   });
-  return screenshotDataUrl;
+  return resized;
 }
 
 async function maybeApplySavedArchive(): Promise<boolean> {
@@ -427,13 +394,12 @@ async function runDetection(
 ): Promise<DetectionResult> {
   const prompt = buildDarkPatternPrompt({
     truncatedHtml: pageContext.truncatedHtml,
-    screenshotString: screenshotDataUrl,
     pageUrl: activeTabUrl,
   });
 
   const htmlChars = pageContext.truncatedHtml.length;
   const screenshotChars = screenshotDataUrl.length;
-  const totalPromptChars = prompt.length;
+  const totalPromptChars = prompt.length + screenshotChars;
   const screenshotPct = ((screenshotChars / totalPromptChars) * 100).toFixed(1);
   const htmlPct = ((htmlChars / totalPromptChars) * 100).toFixed(1);
   // Rough token estimate: ~4 chars per token
@@ -455,13 +421,7 @@ async function runDetection(
     },
   });
 
-  logInfo("detection:request", {
-    provider: getActiveProviderName(),
-    truncatedHtmlLength: pageContext.truncatedHtml.length,
-    promptLength: prompt.length,
-  });
-
-  const result = await detectDarkPatterns({ prompt });
+  const result = await detectDarkPatterns({ prompt, screenshotDataUrl });
   logInfo("detection:response", {
     patterns: result.identified_dark_patterns.length,
   });

@@ -2,8 +2,8 @@ export type ProviderName = "gpt" | "gemini";
 
 export const AI_CONFIG = {
   // Change only this line to switch providers: "gpt" or "gemini".
-  activeProvider: "gpt" as ProviderName,
-  //activeProvider: "gemini" as ProviderName,
+  //activeProvider: "gpt" as ProviderName,
+  activeProvider: "gemini" as ProviderName,
   providers: {
     gpt: {
       // Prefer a proxy endpoint for production so your API key does not ship inside the extension.
@@ -18,7 +18,7 @@ export const AI_CONFIG = {
       // Build script injects GEMINI_API_KEY from .env for local prototyping.
       apiKey: "__GEMINI_API_KEY__",
       // Change this model when activeProvider is "gemini".
-      model: "gemini-3-flash-preview",
+      model: "gemini-2.5-pro",
       apiBaseUrl: "https://generativelanguage.googleapis.com/v1beta",
     },
   },
