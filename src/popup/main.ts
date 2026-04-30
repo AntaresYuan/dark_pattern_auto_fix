@@ -19,6 +19,28 @@ import type { CssFix, DetectionResult, FixApplicationResult, PageContext, PageFi
 import { deriveUrlShape, extractHtmlSignature } from "../shared/patternMatcher";
 import { clearAllPatternArchives, countPatternArchives, findBestPatternMatch, upsertPatternArchive, type UpsertOutcome } from "../shared/patternStorage";
 import { normalizeError } from "../shared/utils";
+import {
+  beginVerification,
+  flushVerification,
+  recordContextReuse,
+  recordExactLayer,
+  recordPatternLayerAttempt,
+  recordPatternLayerHit,
+  recordPatternLayerMiss,
+  recordPatternLayerSkipped,
+  recordPatternUpsertSuccess,
+  recordResetCacheSuccess,
+} from "../shared/verificationTelemetry";
+import type {
+  ExtensionMessage,
+  ExtensionMessageResponse,
+  HtmlDebugPayload,
+} from "../shared/messages";
+import type {
+  DetectionResult,
+  FixApplicationResult,
+  PageContext,
+} from "../shared/types";
 
 type PopupState = "initial" | "fixing" | "finished";
 type TraceEntryStatus = "running" | "done" | "warn" | "error";
@@ -26,8 +48,15 @@ type TraceEntryStatus = "running" | "done" | "warn" | "error";
 const bodyCopy = document.getElementById("body-copy") as HTMLParagraphElement;
 const factCard = document.getElementById("fact-card") as HTMLElement;
 const factCopy = document.getElementById("fact-copy") as HTMLParagraphElement;
-const actionButton = document.getElementById("action-button") as HTMLButtonElement;
-const clearButton = document.getElementById("clear-button") as HTMLButtonElement;
+const resetButton = document.getElementById(
+  "reset-button",
+) as HTMLButtonElement;
+const downloadHtmlButton = document.getElementById(
+  "download-html-button",
+) as HTMLButtonElement;
+const actionButton = document.getElementById(
+  "action-button",
+) as HTMLButtonElement;
 
 let activeTabId: number | null = null;
 let activeWindowId: number | null = null;
@@ -566,11 +595,34 @@ async function runDetection(traceId: string, pageContext: PageContext, screensho
     pageKey: activePageKey || undefined,
     traceId
   });
-  pushTrace("Build model input", `Prompt ready (${prompt.length} chars)`, "done", traceId);
 
-  const step = startStep("popup", "popup.detection", {
-    traceId,
-    pageKey: activePageKey || undefined,
+  const htmlChars = pageContext.truncatedHtml.length;
+  const screenshotChars = screenshotDataUrl.length;
+  const totalPromptChars = prompt.length;
+  const screenshotPct = ((screenshotChars / totalPromptChars) * 100).toFixed(1);
+  const htmlPct = ((htmlChars / totalPromptChars) * 100).toFixed(1);
+  // Rough token estimate: ~4 chars per token
+  const estimatedTotalTokens = Math.round(totalPromptChars / 4);
+  const estimatedHtmlTokens = Math.round(htmlChars / 4);
+  const estimatedScreenshotTokens = Math.round(screenshotChars / 4);
+  console.info(`${POPUP_LOG_PREFIX} detection:input-token-breakdown`, {
+    totalPromptChars,
+    estimatedTotalTokens,
+    html: {
+      chars: htmlChars,
+      estimatedTokens: estimatedHtmlTokens,
+      pct: `${htmlPct}%`,
+    },
+    screenshot: {
+      chars: screenshotChars,
+      estimatedTokens: estimatedScreenshotTokens,
+      pct: `${screenshotPct}%`,
+    },
+  });
+
+  logInfo("detection:request", {
+    provider: getActiveProviderName(),
+    truncatedHtmlLength: pageContext.truncatedHtml.length,
     promptLength: prompt.length,
     screenshotLength: screenshotDataUrl.length,
     htmlLength: pageContext.truncatedHtml.length,
@@ -762,10 +814,38 @@ async function bootstrap(): Promise<void> {
   }
 }
 
-logEvent("popup", "popup.session.start", {
-  traceId: popupSessionTraceId,
-  provider: getActiveProviderName(),
-  providerConfigured: hasConfiguredDetectionProvider()
-});
+function downloadHtmlFile(filename: string, content: string): void {
+  const blob = new Blob([content], { type: "text/html" });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  anchor.click();
+  URL.revokeObjectURL(url);
+}
+
+async function downloadHtmlDebug(): Promise<void> {
+  downloadHtmlButton.disabled = true;
+  logInfo("download-html:start");
+  try {
+    const payload = await sendMessage<HtmlDebugPayload>({ type: "COLLECT_HTML_DEBUG" });
+    const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+    console.log(
+      `[html-debug] original: ${payload.rawHtml.length} chars` +
+      ` | truncated_new: ${payload.truncatedHtml.length} chars (${(payload.truncatedHtml.length / payload.rawHtml.length * 100).toFixed(1)}% of original)` +
+      ` | truncated_old: ${payload.truncatedHtmlOld.length} chars (${(payload.truncatedHtmlOld.length / payload.rawHtml.length * 100).toFixed(1)}% of original)`
+    );
+    downloadHtmlFile(`raw_${timestamp}.html`, payload.rawHtml);
+    downloadHtmlFile(`truncated_new_${timestamp}.html`, payload.truncatedHtml);
+    downloadHtmlFile(`truncated_old_${timestamp}.html`, payload.truncatedHtmlOld);
+    logInfo("download-html:done");
+  } catch (error) {
+    logError("download-html:failed", error);
+  } finally {
+    downloadHtmlButton.disabled = false;
+  }
+}
 
 void bootstrap();
+resetButton.onclick = () => void resetCache();
+downloadHtmlButton.onclick = () => void downloadHtmlDebug();
