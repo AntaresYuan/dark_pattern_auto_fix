@@ -1,5 +1,29 @@
-chrome.runtime.onInstalled.addListener(() => {
+import { createTraceId, logEvent } from "../shared/logger";
+
+const backgroundTraceId = createTraceId("background");
+
+logEvent("background", "background.session.start", {
+  traceId: backgroundTraceId,
+  version: chrome.runtime.getManifest().version
+});
+
+chrome.runtime.onInstalled.addListener((details) => {
   console.log("Dark Pattern Fixer installed.");
+  logEvent("background", "background.runtime.installed", {
+    traceId: backgroundTraceId,
+    reason: details.reason,
+    previousVersion: details.previousVersion ?? null,
+    version: chrome.runtime.getManifest().version
+  });
+  void chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
+});
+
+chrome.runtime.onStartup.addListener(() => {
+  logEvent("background", "background.runtime.startup", {
+    traceId: backgroundTraceId,
+    version: chrome.runtime.getManifest().version
+  });
+  void chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
 });
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
@@ -15,6 +39,9 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     await chrome.debugger.attach({ tabId }, "1.3");
     try {
       const captureHeight = Math.min(dims.scrollHeight, 16000);
+      // Only override width to keep consistent rendering; do NOT change height
+      // since changing viewport height causes pages with vh/% units to reflow,
+      // resulting in repeated viewport content filling the extended height.
       await chrome.debugger.sendCommand({ tabId }, "Emulation.setDeviceMetricsOverride", {
         width: dims.viewportWidth,
         height: dims.viewportHeight,

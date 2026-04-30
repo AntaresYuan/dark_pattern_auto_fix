@@ -1,11 +1,17 @@
 import type { FixApplicationResult, IdentifiedDarkPattern, PageContext, PageFixArchive } from "./types";
 
-export type ExtensionMessage =
+export interface MessageMeta {
+  pageKey?: string;
+  traceId: string;
+}
+
+export type ExtensionMessage = { meta?: MessageMeta } & (
   | { type: "PING" }
   | { type: "COLLECT_PAGE_CONTEXT" }
   | { type: "COLLECT_HTML_DEBUG" }
   | { type: "PLAN_AND_APPLY_FIXES"; patterns: IdentifiedDarkPattern[] }
-  | { type: "APPLY_SAVED_FIXES"; archive: PageFixArchive };
+  | { type: "APPLY_SAVED_FIXES"; archive: PageFixArchive }
+);
 
 export interface HtmlDebugPayload {
   rawHtml: string;

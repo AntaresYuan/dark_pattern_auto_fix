@@ -3,6 +3,8 @@ import type { DetectionResult } from "../shared/types";
 export interface DetectionProviderInput {
   prompt: string;
   screenshotDataUrl?: string;
+  pageKey?: string;
+  traceId?: string;
 }
 
 export interface DetectionProvider {

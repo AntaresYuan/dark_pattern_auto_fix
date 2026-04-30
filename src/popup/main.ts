@@ -45,6 +45,12 @@ const resetButton = document.getElementById(
 const downloadHtmlButton = document.getElementById(
   "download-html-button",
 ) as HTMLButtonElement;
+const downloadScreenshotButton = document.getElementById(
+  "download-screenshot-button",
+) as HTMLButtonElement;
+const downloadLlmInputButton = document.getElementById(
+  "download-llm-input-button",
+) as HTMLButtonElement;
 const actionButton = document.getElementById(
   "action-button",
 ) as HTMLButtonElement;
@@ -55,6 +61,8 @@ let activePageKey = "";
 let activeTabUrl = "";
 /** Cached page context from bootstrap's pattern-matching probe — reused in startFixFlow */
 let cachedPageContext: PageContext | null = null;
+let lastRawScreenshotDataUrl: string | null = null;
+let lastScreenshotDataUrl: string | null = null;
 let tabUpdateListenerAttached = false;
 let factTimer: number | null = null;
 let currentFactIndex = 0;
@@ -247,7 +255,7 @@ function resizeDataUrl(dataUrl: string, scale: number): Promise<string> {
   });
 }
 
-async function captureScreenshot(): Promise<string> {
+async function captureScreenshot(): Promise<{ raw: string; resized: string }> {
   if (activeTabId === null) {
     throw new Error("No active tab is available.");
   }
@@ -278,7 +286,7 @@ async function captureScreenshot(): Promise<string> {
     resizedLength: resized.length,
     scaleFactor: Number(Math.sqrt(1 / 8).toFixed(4)),
   });
-  return resized;
+  return { raw, resized };
 }
 
 async function maybeApplySavedArchive(): Promise<boolean> {
@@ -459,7 +467,11 @@ async function startFixFlow(): Promise<void> {
     if (patternReused) return;
 
     const screenshotResult = await withTiming(captureScreenshot);
-    const screenshotDataUrl = screenshotResult.value;
+    const { raw: rawScreenshot, resized: screenshotDataUrl } = screenshotResult.value;
+    lastRawScreenshotDataUrl = rawScreenshot;
+    lastScreenshotDataUrl = screenshotDataUrl;
+    downloadScreenshotButton.disabled = false;
+    downloadLlmInputButton.disabled = false;
     logInfo("flow:screenshot-captured", {
       durationMs: screenshotResult.durationMs,
     });
@@ -524,9 +536,19 @@ async function startFixFlow(): Promise<void> {
 function attachTabUpdateListener(): void {
   if (tabUpdateListenerAttached) return;
   tabUpdateListenerAttached = true;
+
+  // Full page navigations
   chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
     if (tabId !== activeTabId || changeInfo.status !== "complete") return;
     logInfo("tab:navigated", { tabId, url: changeInfo.url });
+    cachedPageContext = null;
+    void bootstrap();
+  });
+
+  // SPA navigations (pushState / replaceState)
+  chrome.webNavigation.onHistoryStateUpdated.addListener((details) => {
+    if (details.tabId !== activeTabId || details.frameId !== 0) return;
+    logInfo("tab:spa-navigated", { tabId: details.tabId, url: details.url });
     cachedPageContext = null;
     void bootstrap();
   });
@@ -607,6 +629,22 @@ async function downloadHtmlDebug(): Promise<void> {
   }
 }
 
+function downloadImageFile(filename: string, dataUrl: string): void {
+  const anchor = document.createElement("a");
+  anchor.href = dataUrl;
+  anchor.download = filename;
+  anchor.click();
+}
+
+function downloadScreenshot(dataUrl: string | null, label: string): void {
+  if (!dataUrl) return;
+  const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+  downloadImageFile(`${label}_${timestamp}.jpg`, dataUrl);
+  logInfo(`download-${label}:done`);
+}
+
 void bootstrap();
 resetButton.onclick = () => void resetCache();
 downloadHtmlButton.onclick = () => void downloadHtmlDebug();
+downloadScreenshotButton.onclick = () => downloadScreenshot(lastRawScreenshotDataUrl, "raw_screenshot");
+downloadLlmInputButton.onclick = () => downloadScreenshot(lastScreenshotDataUrl, "llm_input");

@@ -21,6 +21,10 @@ export const DARK_PATTERN_SCHEMA = {
               "Hidden information"
             ]
           },
+          html_evidence: {
+            type: "string",
+            description: "The exact opening tag (or 1-2 lines) of the target element, copied verbatim from the provided HTML. Must include its actual class names and attributes."
+          },
           css_selector: {
             type: "string"
           },
@@ -42,7 +46,7 @@ export const DARK_PATTERN_SCHEMA = {
             enum: ["stable", "dynamic"]
           }
         },
-        required: ["dark_pattern_type", "css_selector", "issues", "selector_stability"],
+        required: ["dark_pattern_type", "html_evidence", "css_selector", "issues", "selector_stability"],
         additionalProperties: false
       }
     },
