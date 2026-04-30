@@ -46,6 +46,12 @@ const POPUP_LOG_PREFIX = "[DarkPatternFixer:popup]";
 const downloadHtmlButton = document.getElementById(
   "download-html-button",
 ) as HTMLButtonElement;
+const downloadScreenshotButton = document.getElementById(
+  "download-screenshot-button",
+) as HTMLButtonElement;
+const downloadLlmInputButton = document.getElementById(
+  "download-llm-input-button",
+) as HTMLButtonElement;
 const actionButton = document.getElementById(
   "action-button",
 ) as HTMLButtonElement;
@@ -55,6 +61,8 @@ let activeWindowId: number | null = null;
 let activePageKey = "";
 let activeTabUrl = "";
 let cachedPageContext: PageContext | null = null;
+let lastScreenshotDataUrl: string | null = null;
+let lastRawScreenshotDataUrl: string | null = null;
 let tabUpdateListenerAttached = false;
 let factTimer: number | null = null;
 let currentFactIndex = 0;
@@ -444,28 +452,55 @@ async function sendMessage<T extends ExtensionMessageResponse>(traceId: string, 
   return sendRawMessage<T>(traceId, message);
 }
 
-async function captureScreenshot(traceId: string): Promise<string> {
-  if (activeWindowId === null) {
-    throw new Error("No active window is available.");
+function resizeDataUrl(dataUrl: string, scale: number): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.round(img.width * scale);
+      canvas.height = Math.round(img.height * scale);
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return reject(new Error("Failed to get canvas context"));
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      resolve(canvas.toDataURL("image/jpeg", 0.9));
+    };
+    img.onerror = () => reject(new Error("Failed to load image for resize"));
+    img.src = dataUrl;
+  });
+}
+
+async function captureScreenshot(traceId: string): Promise<{ raw: string; resized: string }> {
+  if (activeTabId === null) {
+    throw new Error("No active tab is available.");
   }
 
+  const tabId = activeTabId;
   const step = startStep("popup", "popup.captureScreenshot", {
     traceId,
-    windowId: activeWindowId
+    tabId
   });
-  pushTrace("Capture screenshot", "Capturing the current visible tab", "running", traceId);
+  pushTrace("Capture screenshot", "Capturing full-page screenshot", "running", traceId);
 
   try {
-    const screenshot = await chrome.tabs.captureVisibleTab(activeWindowId, {
-      format: "jpeg",
-      quality: 70
+    const [{ result: dims }] = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => ({
+        scrollWidth: document.documentElement.scrollWidth,
+        scrollHeight: document.documentElement.scrollHeight,
+        viewportWidth: window.innerWidth,
+        viewportHeight: window.innerHeight,
+        devicePixelRatio: window.devicePixelRatio,
+      })
     });
+    const response = await chrome.runtime.sendMessage({ type: "CAPTURE_FULL_PAGE", tabId, dims }) as { data?: string; error?: string };
+    if (response.error) throw new Error(response.error);
 
-    step.finish({
-      ...summarizeDataUrl(screenshot)
-    });
-    pushTrace("Capture screenshot", `Captured ${Math.round(screenshot.length / 1024)} KB of image data`, "done", traceId);
-    return screenshot;
+    const raw = `data:image/jpeg;base64,${response.data}`;
+    const resized = await resizeDataUrl(raw, Math.sqrt(1 / 8));
+
+    step.finish({ ...summarizeDataUrl(resized) });
+    pushTrace("Capture screenshot", `Captured full page: ${Math.round(resized.length / 1024)} KB (resized from ${Math.round(raw.length / 1024)} KB)`, "done", traceId);
+    return { raw, resized };
   } catch (error) {
     pushTrace("Capture screenshot", error instanceof Error ? error.message : String(error), "error", traceId);
     step.fail(error);
@@ -577,10 +612,6 @@ async function maybeApplyPatternArchive(traceId: string, pageContext: PageContex
   return true;
 }
 
-function truncateScreenshotString(dataUrl: string): string {
-  return dataUrl.length > 60000 ? `${dataUrl.slice(0, 60000)}...[truncated]` : dataUrl;
-}
-
 async function runDetection(traceId: string, pageContext: PageContext, screenshotDataUrl: string): Promise<DetectionResult> {
   const step = startStep("popup", "popup.runDetection", {
     traceId,
@@ -590,7 +621,7 @@ async function runDetection(traceId: string, pageContext: PageContext, screensho
   pushTrace("Build model input", `Preparing prompt from ${pageContext.truncatedHtml.length} HTML chars and the screenshot`, "running", traceId);
   const prompt = buildDarkPatternPrompt({
     truncatedHtml: pageContext.truncatedHtml,
-    screenshotString: truncateScreenshotString(screenshotDataUrl),
+    screenshotString: screenshotDataUrl,
     pageUrl: activeTabUrl,
     pageKey: activePageKey || undefined,
     traceId
@@ -682,8 +713,12 @@ async function startFixFlow(): Promise<void> {
       return;
     }
 
-    const screenshotDataUrl = await captureScreenshot(flowTraceId);
-    const detectionResult = await runDetection(flowTraceId, pageContext, screenshotDataUrl);
+    const { raw, resized } = await captureScreenshot(flowTraceId);
+    lastRawScreenshotDataUrl = raw;
+    lastScreenshotDataUrl = resized;
+    downloadScreenshotButton.disabled = false;
+    downloadLlmInputButton.disabled = false;
+    const detectionResult = await runDetection(flowTraceId, pageContext, resized);
 
     pushTrace("Plan fixes", `Turning ${detectionResult.identified_dark_patterns.length} detected patterns into concrete fixes`, "running", flowTraceId);
     const fixResult = await sendMessage<FixApplicationResult>(flowTraceId, {
@@ -859,5 +894,18 @@ async function downloadHtmlDebug(): Promise<void> {
   }
 }
 
+function downloadDataUrl(dataUrl: string, filename: string): void {
+  const a = document.createElement("a");
+  a.href = dataUrl;
+  a.download = filename;
+  a.click();
+}
+
 void bootstrap();
 downloadHtmlButton.onclick = () => void downloadHtmlDebug();
+downloadScreenshotButton.onclick = () => {
+  if (lastRawScreenshotDataUrl) downloadDataUrl(lastRawScreenshotDataUrl, "screenshot-raw.jpg");
+};
+downloadLlmInputButton.onclick = () => {
+  if (lastScreenshotDataUrl) downloadDataUrl(lastScreenshotDataUrl, "screenshot-llm-input.jpg");
+};

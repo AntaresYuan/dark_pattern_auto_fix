@@ -125,7 +125,7 @@ Identification rules:
 1. Identify at most 3 dark patterns.
 2. Rank them from most obvious to least obvious.
 3. Use HTML evidence first, and then for more detailed dark pattern issues, use screenshot evidence as a support.
-4. Screenshot is not full paged, so for the rest of the page, use HTML to identify dark patterns, screenshot is just for infer.
+4. Screenshot covers the full page. Use it alongside the HTML to identify dark patterns throughout.
 5. Use HTML to help localize or confirm the suspicious element.
 6. Only use issue tags from this set: ["color", "font_size", "background_color", "add_advertisement_title", "enhance_advertisement_title"].
 7. If no dark pattern is confidently identified, return an empty result.
