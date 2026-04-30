@@ -14,7 +14,7 @@ import {
 import { getPageKeyFromUrl, isSupportedPageUrl } from "../shared/pageKey";
 import { buildDarkPatternPrompt } from "../shared/prompt";
 import { clearArchivedPages, listArchivedPageKeys, loadArchive, saveArchive } from "../shared/storage";
-import type { ExtensionMessage, ExtensionMessageResponse, MessageMeta } from "../shared/messages";
+import type { ExtensionMessage, ExtensionMessageResponse, HtmlDebugPayload, MessageMeta } from "../shared/messages";
 import type { CssFix, DetectionResult, FixApplicationResult, PageContext, PageFix } from "../shared/types";
 import { deriveUrlShape, extractHtmlSignature } from "../shared/patternMatcher";
 import { clearAllPatternArchives, countPatternArchives, findBestPatternMatch, upsertPatternArchive, type UpsertOutcome } from "../shared/patternStorage";
@@ -31,16 +31,6 @@ import {
   recordPatternUpsertSuccess,
   recordResetCacheSuccess,
 } from "../shared/verificationTelemetry";
-import type {
-  ExtensionMessage,
-  ExtensionMessageResponse,
-  HtmlDebugPayload,
-} from "../shared/messages";
-import type {
-  DetectionResult,
-  FixApplicationResult,
-  PageContext,
-} from "../shared/types";
 
 type PopupState = "initial" | "fixing" | "finished";
 type TraceEntryStatus = "running" | "done" | "warn" | "error";
@@ -48,9 +38,11 @@ type TraceEntryStatus = "running" | "done" | "warn" | "error";
 const bodyCopy = document.getElementById("body-copy") as HTMLParagraphElement;
 const factCard = document.getElementById("fact-card") as HTMLElement;
 const factCopy = document.getElementById("fact-copy") as HTMLParagraphElement;
-const resetButton = document.getElementById(
+const clearButton = document.getElementById(
   "reset-button",
 ) as HTMLButtonElement;
+
+const POPUP_LOG_PREFIX = "[DarkPatternFixer:popup]";
 const downloadHtmlButton = document.getElementById(
   "download-html-button",
 ) as HTMLButtonElement;
@@ -308,7 +300,10 @@ function isMissingReceiverError(error: unknown): boolean {
   }
 
   return error.message.includes("Receiving end does not exist")
-    || error.message.includes("Could not establish connection");
+    || error.message.includes("Could not establish connection")
+    || error.message.includes("The tab was closed")
+    || error.message.includes("No tab with id")
+    || error.message.includes("Extension context invalidated");
 }
 
 function summarizeOutgoingMessage(message: ExtensionMessage): Record<string, unknown> {
@@ -587,6 +582,11 @@ function truncateScreenshotString(dataUrl: string): string {
 }
 
 async function runDetection(traceId: string, pageContext: PageContext, screenshotDataUrl: string): Promise<DetectionResult> {
+  const step = startStep("popup", "popup.runDetection", {
+    traceId,
+    htmlLength: pageContext.truncatedHtml.length,
+    screenshotLength: screenshotDataUrl.length
+  });
   pushTrace("Build model input", `Preparing prompt from ${pageContext.truncatedHtml.length} HTML chars and the screenshot`, "running", traceId);
   const prompt = buildDarkPatternPrompt({
     truncatedHtml: pageContext.truncatedHtml,
@@ -620,7 +620,8 @@ async function runDetection(traceId: string, pageContext: PageContext, screensho
     },
   });
 
-  logInfo("detection:request", {
+  logEvent("popup", "detection:request", {
+    traceId,
     provider: getActiveProviderName(),
     truncatedHtmlLength: pageContext.truncatedHtml.length,
     promptLength: prompt.length,
@@ -766,9 +767,20 @@ async function startFixFlow(): Promise<void> {
 function attachTabUpdateListener(): void {
   if (tabUpdateListenerAttached) return;
   tabUpdateListenerAttached = true;
-  chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
+
+  chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
     if (tabId !== activeTabId || changeInfo.status !== "complete") return;
+    if (currentState === "fixing") return;
+    if (tab.url && tab.url === activeTabUrl) return;
     cachedPageContext = null;
+    void bootstrap();
+  });
+
+  chrome.tabs.onActivated.addListener(({ tabId }) => {
+    if (tabId === activeTabId) return;
+    if (currentState === "fixing") return;
+    cachedPageContext = null;
+    activeTabId = tabId;
     void bootstrap();
   });
 }
@@ -826,9 +838,10 @@ function downloadHtmlFile(filename: string, content: string): void {
 
 async function downloadHtmlDebug(): Promise<void> {
   downloadHtmlButton.disabled = true;
-  logInfo("download-html:start");
+  const traceId = createTraceId("download");
+  logEvent("popup", "download-html:start", { traceId });
   try {
-    const payload = await sendMessage<HtmlDebugPayload>({ type: "COLLECT_HTML_DEBUG" });
+    const payload = await sendMessage<HtmlDebugPayload>(traceId, { type: "COLLECT_HTML_DEBUG" });
     const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
     console.log(
       `[html-debug] original: ${payload.rawHtml.length} chars` +
@@ -838,14 +851,13 @@ async function downloadHtmlDebug(): Promise<void> {
     downloadHtmlFile(`raw_${timestamp}.html`, payload.rawHtml);
     downloadHtmlFile(`truncated_new_${timestamp}.html`, payload.truncatedHtml);
     downloadHtmlFile(`truncated_old_${timestamp}.html`, payload.truncatedHtmlOld);
-    logInfo("download-html:done");
+    logEvent("popup", "download-html:done", { traceId });
   } catch (error) {
-    logError("download-html:failed", error);
+    logEvent("popup", "download-html:failed", { traceId, ...safeError(error) }, "error");
   } finally {
     downloadHtmlButton.disabled = false;
   }
 }
 
 void bootstrap();
-resetButton.onclick = () => void resetCache();
 downloadHtmlButton.onclick = () => void downloadHtmlDebug();

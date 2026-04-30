@@ -1,12 +1,10 @@
-import { extractRawHtml } from "./htmlExtractor";
-import { extractTruncatedHtml } from "./truncated_new";
-import { extractTruncatedHtml as extractTruncatedHtmlOld } from "./truncated";
+import { extractTruncatedHtml } from "./htmlExtractor";
 import { planAndApplyFixes } from "./fixPlanner";
 import { applyFixesToPage } from "./patchInjector";
 import { getPageKeyFromUrl } from "../shared/pageKey";
 import { normalizeError } from "../shared/utils";
 import type { ExtensionMessage } from "../shared/messages";
-import { createTraceId, startStep } from "../shared/logger";
+import { createTraceId, logEvent, startStep } from "../shared/logger";
 import type { FixApplicationResult, PageContext, PageFixArchive } from "../shared/types";
 
 function collectPageContext(traceId: string, pageKey: string): PageContext {
@@ -15,10 +13,7 @@ function collectPageContext(traceId: string, pageKey: string): PageContext {
     pageKey
   });
 
-  const truncatedHtml = extractTruncatedHtml({
-    pageKey,
-    traceId
-  });
+  const truncatedHtml = extractTruncatedHtml({ pageKey, traceId });
   const context: PageContext = {
     truncatedHtml,
     viewport: {
@@ -57,6 +52,22 @@ function applySavedFixes(traceId: string, archive: PageFixArchive): FixApplicati
   return { archive, appliedCount };
 }
 
+const contentStartTraceId = createTraceId("content-init");
+
+try {
+  logEvent("content", "content.script.start", {
+    traceId: contentStartTraceId,
+    url: window.location.href,
+    readyState: document.readyState
+  });
+} catch {
+  console.log("[DarkPatternFixer][content] content.script.start (logEvent unavailable)");
+}
+
+if (typeof chrome === "undefined" || !chrome.runtime) {
+  console.warn("[DarkPatternFixer][content] chrome.runtime unavailable — message listener not registered");
+} else {
+
 chrome.runtime.onMessage.addListener((message: ExtensionMessage, _sender, sendResponse) => {
   const pageKey = getPageKeyFromUrl(window.location.href);
   const traceId = message.meta?.traceId ?? createTraceId("content");
@@ -73,23 +84,11 @@ chrome.runtime.onMessage.addListener((message: ExtensionMessage, _sender, sendRe
         step.finish({ traceId, pageKey, messageType: message.type, response: "ok" });
         return;
       case "COLLECT_PAGE_CONTEXT":
-        sendResponse(collectPageContext());
+        sendResponse(collectPageContext(traceId, pageKey));
         return;
       case "COLLECT_HTML_DEBUG": {
-        const rawHtml = extractRawHtml();
-        const truncatedHtml = extractTruncatedHtml();
-        const truncatedHtmlOld = extractTruncatedHtmlOld();
-        console.log(
-          `[html-debug] original: ${rawHtml.length} chars` +
-          ` | truncated_new: ${truncatedHtml.length} chars (${(truncatedHtml.length / rawHtml.length * 100).toFixed(1)}% of original)` +
-          ` | truncated_old: ${truncatedHtmlOld.length} chars (${(truncatedHtmlOld.length / rawHtml.length * 100).toFixed(1)}% of original)`
-        );
-        sendResponse({ rawHtml, truncatedHtml, truncatedHtmlOld });
-        return;
-      }
-      case "PLAN_AND_APPLY_FIXES": {
-        const pageKey = getPageKeyFromUrl(window.location.href);
-        sendResponse(planAndApplyFixes(pageKey, message.patterns));
+        const truncatedHtml = extractTruncatedHtml({ traceId });
+        sendResponse({ truncatedHtml });
         return;
       }
       case "PLAN_AND_APPLY_FIXES": {
@@ -137,3 +136,5 @@ chrome.runtime.onMessage.addListener((message: ExtensionMessage, _sender, sendRe
 
   return true;
 });
+
+} // end chrome.runtime guard
