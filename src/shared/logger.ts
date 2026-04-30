@@ -80,52 +80,37 @@ function getHumanSummary(scope: LogScope, event: string, fields: LogFields): str
       return `Built detection prompt${formatPage(fields)} (${formatCount(fields.promptLength)} chars)`;
     case "provider.detectDarkPatterns.start":
       return `Running ${formatProvider(fields)} detection${formatPage(fields)}`;
-    case "provider.detectDarkPatterns.finish":
-      return `${formatProvider(fields)} detection finished${formatPage(fields)}: ${formatCount(fields.patternCount)} patterns`;
+    case "provider.detectDarkPatterns.finish": {
+      const count = formatCount(fields.patternCount);
+      const base = `${formatProvider(fields)} detection finished${formatPage(fields)}: ${count} pattern(s)`;
+      if (!Array.isArray(fields.patterns) || fields.patterns.length === 0) {
+        return base;
+      }
+      const list = (fields.patterns as Array<Record<string, unknown>>)
+        .map((p) => `\n  · [${String(p.type ?? "unknown")}]  ${String(p.selector ?? "")}`)
+        .join("");
+      return base + list;
+    }
     case "provider.detectDarkPatterns.error":
       return `${formatProvider(fields)} detection failed${formatPage(fields)}: ${String(fields.errorMessage ?? "unknown error")}`;
-    case "provider.openai.detect.finish":
-      return `OpenAI request finished${formatPage(fields)}: ${formatCount(fields.patternCount)} patterns`;
     case "provider.openai.detect.error":
       return `OpenAI request failed${formatPage(fields)}: ${String(fields.errorMessage ?? "unknown error")}`;
-    case "provider.gemini.detect.finish":
-      return `Gemini request finished${formatPage(fields)}: ${formatCount(fields.patternCount)} patterns`;
     case "provider.gemini.detect.error":
       return `Gemini request failed${formatPage(fields)}: ${String(fields.errorMessage ?? "unknown error")}`;
-    case "content.fix.plan.start":
-      return `Planning fixes${formatPage(fields)} for ${formatCount(fields.patternCount)} patterns`;
-    case "content.fix.plan.finish":
-      return `Finished planning${formatPage(fields)}: ${formatCount(fields.fixCount)} fixes, ${formatCount(fields.appliedCount)} applied`;
-    case "content.fix.pattern.generate":
-      return `${String(fields.darkPatternType)}: generated fix for ${String(fields.sourceSelector ?? "target")}`;
+    case "content.fix.pattern.generate": {
+      const cssRules = fields.cssRules != null && typeof fields.cssRules === "object"
+        ? fields.cssRules as Record<string, string>
+        : {};
+      const cssStr = Object.entries(cssRules).map(([k, v]) => `${k}: ${v}`).join("; ");
+      const selector = String(fields.resolvedSelector ?? fields.sourceSelector ?? "target");
+      return `[${String(fields.darkPatternType)}]  →  ${selector}  { ${cssStr} }`;
+    }
     case "content.fix.pattern.skip":
-      return `${String(fields.darkPatternType)}: skipped (${String(fields.outcome ?? "no reason")})`;
+      return `[${String(fields.darkPatternType)}] skipped (${String(fields.outcome ?? "no reason")})`;
     case "content.fix.pattern.ad_label.create":
-      return `Created advertisement label fix for ${String(fields.sourceSelector ?? "target")}`;
+      return `[Disguised ad]  →  ${String(fields.targetSelector ?? fields.sourceSelector ?? "target")}  { insert: "AD" label }`;
     case "content.fix.pattern.ad_label.enhance":
-      return `Enhanced advertisement label for ${String(fields.sourceSelector ?? "target")}`;
-    case "content.patch.apply.start":
-      return `Applying ${formatCount(fields.totalFixes)} fixes${formatPage(fields)}`;
-    case "content.patch.apply.finish":
-      return `Applied fixes${formatPage(fields)}: ${formatCount(fields.appliedCount)} total (${formatCount(fields.appliedCssCount)} CSS, ${formatCount(fields.appliedAdLabelCount)} labels)`;
-    case "content.patch.apply.label":
-      return `Advertisement label ${String(fields.outcome ?? "processed")} for ${String(fields.selector ?? "target")}`;
-    case "content.context.collect.finish":
-      return `Collected page context${formatPage(fields)} (${formatCount(fields.truncatedHtmlLength)} HTML chars)`;
-    case "content.html.extract.finish":
-      return `Extracted HTML${formatPage(fields)} with mode ${String(fields.mode)} (${formatCount(fields.finalHtmlLength ?? fields.fallbackLength ?? fields.compressedHtmlLength)} chars)`;
-    case "storage.archive.load.finish":
-      return fields.hit
-        ? `Loaded saved archive${formatPage(fields)} with ${formatCount(fields.fixCount)} fixes`
-        : `No saved archive${formatPage(fields)}`;
-    case "storage.archive.save.finish":
-      return `Saved archive${formatPage(fields)} with ${formatCount(fields.fixCount)} fixes`;
-    case "background.background.runtime.installed":
-      return `Extension installed/updated to ${String(fields.version ?? "unknown version")}`;
-    case "background.background.runtime.startup":
-      return `Background service worker started`;
-    case "background.background.session.start":
-      return `Background session started`;
+      return `[Disguised ad]  →  ${String(fields.targetSelector ?? fields.sourceSelector ?? "target")}  { color: #000000 }`;
     default:
       return `${scope}.${event}`;
   }
@@ -138,17 +123,35 @@ function getEffectiveLevel(event: string, level: LogLevel, fields: LogFields): L
 
   const importantStarts = new Set([
     "popup.fixFlow.start",
-    "provider.detectDarkPatterns.start",
-    "content.fix.plan.start",
-    "content.patch.apply.start"
+    "provider.detectDarkPatterns.start"
   ]);
   const quietEvents = new Set([
+    // provider internals
+    "provider.openai.detect.finish",
+    "provider.gemini.detect.finish",
+    "provider.gemini.parseScreenshot.start",
+    "provider.gemini.parseScreenshot.finish",
+    "provider.config.check",
+    // fix planning internals
+    "content.fix.plan.finish",
+    "content.patch.apply.finish",
+    "content.patch.apply.css",
+    "content.patch.apply.label",
+    // page context / html extraction
     "content.message.handle.start",
     "content.message.handle.finish",
     "content.context.collect.start",
     "content.context.collect.finish",
     "content.html.extract.start",
     "content.html.extract.finish",
+    // prompt
+    "prompt.build.finish",
+    // storage
+    "storage.archive.load.finish",
+    "storage.archive.save.finish",
+    // popup internals
+    "popup.bootstrap.finish",
+    "popup.state.transition",
     "popup.message.start",
     "popup.message.finish",
     "popup.getActiveTab.start",
@@ -159,9 +162,10 @@ function getEffectiveLevel(event: string, level: LogLevel, fields: LogFields): L
     "popup.contentScript.inject.finish",
     "popup.captureScreenshot.start",
     "popup.captureScreenshot.finish",
-    "provider.config.check",
-    "provider.gemini.parseScreenshot.start",
-    "provider.gemini.parseScreenshot.finish"
+    // background lifecycle
+    "background.background.runtime.installed",
+    "background.background.runtime.startup",
+    "background.background.session.start"
   ]);
 
   if (quietEvents.has(event)) {
@@ -270,7 +274,7 @@ export function summarizeArchive(archive: PageFixArchive): LogFields {
 export function summarizeDetectionResult(result: DetectionResult): LogFields {
   return {
     patternCount: result.identified_dark_patterns.length,
-    patterns: result.identified_dark_patterns.slice(0, 5).map((pattern) => ({
+    patterns: result.identified_dark_patterns.map((pattern) => ({
       type: pattern.dark_pattern_type,
       selector: truncateText(pattern.css_selector, 120),
       issues: pattern.issues

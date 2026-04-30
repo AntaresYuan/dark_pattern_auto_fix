@@ -158,6 +158,33 @@ function findByHtmlEvidence(evidence: string): Element | null {
     }
   }
 
+  // Text content fallback: LLM sometimes hallucinates class names that don't exist
+  // in the DOM but copies the real text content correctly. Strip HTML tags from the
+  // evidence to get the visible text, then find the most specific element whose
+  // textContent contains it (shortest textContent = deepest/most specific match).
+  const inlineText = evidence.replace(/<[^>]+>/g, "").trim();
+  if (inlineText.length >= 8) {
+    const lower = inlineText.toLowerCase();
+
+    // Tag-scoped search first (LLM got the tag right)
+    const scopedMatches = Array.from(document.querySelectorAll(tag !== "*" ? tag : "*")).filter(
+      (el) => (el.textContent ?? "").toLowerCase().includes(lower)
+    );
+    if (scopedMatches.length > 0) {
+      scopedMatches.sort((a, b) => (a.textContent?.length ?? 0) - (b.textContent?.length ?? 0));
+      return scopedMatches[0];
+    }
+
+    // Full-DOM search: LLM got the tag wrong, find most specific match across all elements
+    const allMatches = Array.from(document.querySelectorAll("*")).filter(
+      (el) => (el.textContent ?? "").toLowerCase().includes(lower)
+    );
+    if (allMatches.length > 0) {
+      allMatches.sort((a, b) => (a.textContent?.length ?? 0) - (b.textContent?.length ?? 0));
+      return allMatches[0];
+    }
+  }
+
   return null;
 }
 
@@ -672,7 +699,8 @@ function createFixesForPattern(pattern: IdentifiedDarkPattern, traceId: string):
       sourceSelector: truncateText(pattern.css_selector, 120),
       resolvedSelector: truncateText(buildStableSelector(targetElement), 120),
       appliedIssues,
-      inferredStyles: appliedIssueSummaries
+      inferredStyles: appliedIssueSummaries,
+      cssRules
     }, "info");
   }
 
@@ -708,6 +736,7 @@ function createFixesForPattern(pattern: IdentifiedDarkPattern, traceId: string):
         sourceSelector: truncateText(pattern.css_selector, 120),
         resolvedSelector: truncateText(targetSelector, 120),
         appliedIssues: [],
+        cssRules: { display: "none" },
         strategy: "universal_hide"
       }, "info");
     } else if (TEXT_DIM_TYPES.has(pattern.dark_pattern_type)) {
@@ -724,6 +753,7 @@ function createFixesForPattern(pattern: IdentifiedDarkPattern, traceId: string):
         sourceSelector: truncateText(pattern.css_selector, 120),
         resolvedSelector: truncateText(targetSelector, 120),
         appliedIssues: [],
+        cssRules: { opacity: "0.5" },
         strategy: "universal_dim"
       }, "info");
     } else if (DIM_FALLBACK_TYPES.has(pattern.dark_pattern_type)) {
@@ -740,6 +770,7 @@ function createFixesForPattern(pattern: IdentifiedDarkPattern, traceId: string):
         sourceSelector: truncateText(pattern.css_selector, 120),
         resolvedSelector: truncateText(targetSelector, 120),
         appliedIssues: [],
+        cssRules: { opacity: "0.7" },
         strategy: "dim_fallback"
       }, "info");
     } else {
