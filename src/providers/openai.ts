@@ -1,5 +1,5 @@
 import { AI_CONFIG } from "../config";
-import { safeUrl, startStep } from "../shared/logger";
+import { safeUrl, startStep, summarizeDataUrl } from "../shared/logger";
 import { DARK_PATTERN_SCHEMA } from "../shared/schema";
 import type { DetectionResult } from "../shared/types";
 import type { DetectionProvider, DetectionProviderInput } from "./types";
@@ -22,6 +22,7 @@ export const openAIProvider: DetectionProvider = {
       model: config.model,
       pageKey: input.pageKey,
       promptLength: input.prompt.length,
+      screenshot: input.screenshotDataUrl ? summarizeDataUrl(input.screenshotDataUrl) : null,
       traceId: input.traceId
     });
 
@@ -38,6 +39,12 @@ export const openAIProvider: DetectionProvider = {
         headers.Authorization = `Bearer ${config.apiKey}`;
       }
 
+      type ContentPart = { type: "text"; text: string } | { type: "image_url"; image_url: { url: string; detail: "high" } };
+      const content: ContentPart[] = [{ type: "text", text: input.prompt }];
+      if (input.screenshotDataUrl) {
+        content.push({ type: "image_url", image_url: { url: input.screenshotDataUrl, detail: "high" } });
+      }
+
       const response = await fetch(endpoint, {
         method: "POST",
         headers,
@@ -46,7 +53,7 @@ export const openAIProvider: DetectionProvider = {
           messages: [
             {
               role: "user",
-              content: input.prompt
+              content
             }
           ],
           response_format: {
@@ -65,13 +72,13 @@ export const openAIProvider: DetectionProvider = {
       }
 
       const payload = (await response.json()) as ChatCompletionsResponse;
-      const content = payload.choices?.[0]?.message?.content;
+      const responseText = payload.choices?.[0]?.message?.content;
 
-      if (!content) {
+      if (!responseText) {
         throw new Error("OpenAI returned an empty response.");
       }
 
-      const result = JSON.parse(content) as DetectionResult;
+      const result = JSON.parse(responseText) as DetectionResult;
       step.finish({
         patternCount: result.identified_dark_patterns.length,
         patterns: result.identified_dark_patterns.map((p) => ({
