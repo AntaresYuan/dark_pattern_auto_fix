@@ -266,11 +266,6 @@ function cloneAndCleanVisibleBody(doc: Document): HTMLElement {
 
     const attributeNames = attrElement.getAttributeNames();
     for (const name of attributeNames) {
-      if (name.startsWith("data-")) {
-        attrElement.removeAttribute(name);
-        continue;
-      }
-
       if (name.startsWith("on")) {
         attrElement.removeAttribute(name);
       }
