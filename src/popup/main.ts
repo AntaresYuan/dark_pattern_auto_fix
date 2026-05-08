@@ -135,6 +135,7 @@ async function resetCache(): Promise<void> {
   logInfo("reset-cache:start");
   try {
     await chrome.storage.local.clear();
+    beginVerification(activePageKey);
     recordResetCacheSuccess();
     logInfo("reset-cache:done");
     setState(

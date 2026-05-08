@@ -128,26 +128,24 @@ Identification rules:
 6. Only use issue tags from this set: ["color", "font_size", "background_color", "add_advertisement_title", "enhance_advertisement_title"].
 7. If no dark pattern is confidently identified, return an empty result.
 
-HTML evidence and CSS selector rules (strictly enforced):
+HTML evidence rules (strictly enforced):
+
+Note on the provided HTML: before being sent to you, the page HTML has been pre-processed.
+The following attributes have been stripped: href, target, rel (on <a>/<area>), src/srcset/sizes (on <img>),
+action/target (on <form>), and all on* event handlers. These are absent from the HTML you see.
+The following attributes are fully preserved: id, class, data-*, role, aria-*, type, name, and all others.
 
 8. For every identified dark pattern you MUST first locate the exact element in the provided HTML by text-searching for it.
    Then copy the element's opening tag (or up to 2 lines including its attributes) verbatim into html_evidence.
    Example — if you find '<button class="btn-primary add-to-cart" data-product-id="123">Add to Cart</button>'
    in the HTML, set html_evidence to that exact string. Do NOT paraphrase or reconstruct it.
+   html_evidence must contain at least one of: an id attribute, a data-* attribute, a descriptive class name,
+   or a tag+type/name combination that can uniquely identify the element.
+   If the element has none of these (only hashed class names like ._3Bx2a and no id or data-*), do not include that dark pattern.
    If you cannot find the element verbatim in the provided HTML, do not include that dark pattern.
 
-9. Derive css_selector from the html_evidence you just copied — not from memory or inference.
-   Use the id (#id), data attributes ([data-*="value"]), or the exact class names visible in html_evidence.
-   Never invent a class name that is not present in html_evidence.
-
-10. Only use standard CSS selectors valid for document.querySelector(). Never use jQuery-style pseudo-selectors such as :contains(), :has() with text, :visible, or :eq().
-11. Never generate selectors for elements that only appear after user interaction — including cart drawers, modal popups, tooltips, or any element with display:none or visibility:hidden that requires a click to reveal.
-12. Prefer selectors using id (#id), data attributes ([data-*="value"]), or descriptive class names (.product-price, .add-to-cart). Avoid generic tag selectors (span, div) without a stable class or attribute anchor.
-13. If you are uncertain whether an element exists in the HTML, omit that dark pattern rather than guessing.
-
-14. For every identified dark pattern, set selector_stability:
-    - "stable": the CSS selector uses an #id, a [data-*] attribute, a semantic element name, or a descriptive class name that belongs to the site's design system (e.g. .product-title, .price-block, [data-testid="add-to-cart"])
-    - "dynamic": the selector relies on hashed or generated class names (e.g. ._3Bx2a, .s-1k9p4m), deeply-nested :nth-child paths with no class anchoring, or text-content-specific matches that would not survive across different instances of this template
+9. Never generate selectors for elements that only appear after user interaction — including cart drawers, modal popups, tooltips, or any element with display:none or visibility:hidden that requires a click to reveal.
+10. If you are uncertain whether an element exists in the HTML, omit that dark pattern rather than guessing.
 
 Template matching features (for local-only reuse on future visits):
 

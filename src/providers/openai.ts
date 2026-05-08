@@ -1,5 +1,5 @@
 import { AI_CONFIG } from "../config";
-import { safeUrl, startStep, summarizeDataUrl } from "../shared/logger";
+import { safeUrl, startStep, summarizeDataUrl, truncateText } from "../shared/logger";
 import { DARK_PATTERN_SCHEMA } from "../shared/schema";
 import type { DetectionResult } from "../shared/types";
 import type { DetectionProvider, DetectionProviderInput } from "./types";
@@ -83,7 +83,7 @@ export const openAIProvider: DetectionProvider = {
         patternCount: result.identified_dark_patterns.length,
         patterns: result.identified_dark_patterns.map((p) => ({
           type: p.dark_pattern_type,
-          selector: p.css_selector
+          htmlEvidence: truncateText(p.html_evidence, 120)
         }))
       });
       return result;

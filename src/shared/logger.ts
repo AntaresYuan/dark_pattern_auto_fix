@@ -276,7 +276,7 @@ export function summarizeDetectionResult(result: DetectionResult): LogFields {
     patternCount: result.identified_dark_patterns.length,
     patterns: result.identified_dark_patterns.map((pattern) => ({
       type: pattern.dark_pattern_type,
-      selector: truncateText(pattern.css_selector, 120),
+      htmlEvidence: truncateText(pattern.html_evidence, 120),
       issues: pattern.issues
     }))
   };

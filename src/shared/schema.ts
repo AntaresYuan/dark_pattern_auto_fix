@@ -25,9 +25,6 @@ export const DARK_PATTERN_SCHEMA = {
             type: "string",
             description: "The exact opening tag (or 1-2 lines) of the target element, copied verbatim from the provided HTML. Must include its actual class names and attributes."
           },
-          css_selector: {
-            type: "string"
-          },
           issues: {
             type: "array",
             items: {
@@ -40,13 +37,9 @@ export const DARK_PATTERN_SCHEMA = {
                 "enhance_advertisement_title"
               ]
             }
-          },
-          selector_stability: {
-            type: "string",
-            enum: ["stable", "dynamic"]
           }
         },
-        required: ["dark_pattern_type", "html_evidence", "css_selector", "issues", "selector_stability"],
+        required: ["dark_pattern_type", "html_evidence", "issues"],
         additionalProperties: false
       }
     },

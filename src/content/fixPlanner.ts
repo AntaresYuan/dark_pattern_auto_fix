@@ -37,155 +37,115 @@ function isVisible(element: Element): boolean {
   return rect.width > 0 && rect.height > 0 && style.visibility !== "hidden" && style.display !== "none";
 }
 
-function tryQuerySelector(selector: string): Element | null {
-  // First attempt: exact selector
-  try {
-    const el = document.querySelector(selector);
-    if (el) return el;
-  } catch {
-    // Invalid CSS — fall through to alternatives
-  }
-
-  // Handle jQuery-style :contains('text') which querySelector doesn't support
-  const containsMatch = selector.match(/:contains\(['"]([^'"]+)['"]\)/);
-  if (containsMatch) {
-    const text = containsMatch[1];
-    const baseSelector = selector.slice(0, selector.indexOf(":contains(")).trim() || "*";
-    try {
-      const candidates = Array.from(document.querySelectorAll(baseSelector));
-      const found = candidates.find((el) => (el.textContent ?? "").trim().includes(text));
-      if (found) return found;
-    } catch {
-      // baseSelector also invalid — search all leaf elements
-    }
-    // Fallback: search all leaf-level elements for the text
-    return Array.from(document.querySelectorAll("*")).find(
-      (el) => el.children.length === 0 && (el.textContent ?? "").trim().includes(text)
-    ) ?? null;
-  }
-
-  // Strip Vue/Angular scoped attributes ([data-v-XXXXXXXX]) and retry
-  const withoutScoped = selector.replace(/\[data-v-[a-f0-9]+\]/gi, "").trim();
-  if (withoutScoped && withoutScoped !== selector) {
-    try {
-      const el = document.querySelector(withoutScoped);
-      if (el) return el;
-    } catch {
-      // still invalid
-    }
-  }
-
-  // Progressive shortening: drop leading ancestor segments one at a time.
-  // ".product-main .button-primary" → ".button-primary"
-  // Splits only on whitespace that is NOT inside brackets/parens to avoid
-  // splitting inside attribute selectors like [attr='a b'].
-  const parts = selector.split(/\s+(?=[.#\[a-zA-Z*])/);
-  for (let drop = 1; drop < parts.length; drop++) {
-    const shortened = parts.slice(drop).join(" ").trim();
-    if (!shortened) continue;
-    try {
-      const el = document.querySelector(shortened);
-      if (el) return el;
-    } catch {
-      // shortened selector still invalid, keep trying
-    }
-  }
-
-  return null;
+function escapeAttrValue(val: string): string {
+  return val.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
 }
 
 /**
- * Last-resort fallback: parse the raw HTML opening tag from html_evidence and
- * try to locate a matching DOM element by its id, data attributes, or class names.
+ * Derives a querySelector-compatible selector from a verbatim HTML opening tag.
+ * Priority: #id → [data-*] → stable class names → tag+type/name/role.
+ * Returns null if no stable anchor is found, which causes the pattern to be skipped.
  */
-function findByHtmlEvidence(evidence: string): Element | null {
+function deriveSelector(evidence: string): string | null {
   if (!evidence) return null;
 
-  // Extract id — highest specificity, always unique
-  const idMatch = evidence.match(/\bid="([^"]+)"/);
-  if (idMatch) {
-    try {
-      const el = document.getElementById(idMatch[1]);
-      if (el) return el;
-    } catch { /* ignore */ }
-  }
-
-  // Extract tag name (default "*")
   const tagMatch = evidence.match(/^<([a-z][a-z0-9-]*)/i);
-  const tag = tagMatch ? tagMatch[1].toLowerCase() : "*";
+  const tag = tagMatch ? tagMatch[1].toLowerCase() : "";
 
-  // Extract data-* attributes and try a selector built from them
-  const dataAttrs = Array.from(evidence.matchAll(/\b(data-[a-z][\w-]*)="([^"]*)"/gi));
-  for (const [, attr, val] of dataAttrs) {
-    try {
-      const el = document.querySelector(`${tag}[${attr}="${val}"]`);
-      if (el) return el;
-    } catch { /* ignore */ }
-    try {
-      const el = document.querySelector(`[${attr}="${val}"]`);
-      if (el) return el;
-    } catch { /* ignore */ }
-  }
+  // id is always globally unique — skip everything else
+  const idMatch = evidence.match(/\bid="([^"]+)"/);
+  if (idMatch) return `#${CSS.escape(idMatch[1])}`;
 
-  // Extract class names and try combinations
+  // Stable class tokens → .class1.class2
   const classMatch = evidence.match(/\bclass="([^"]+)"/);
-  if (classMatch) {
-    const classes = classMatch[1].trim().split(/\s+/).filter((c) => !looksLikeDynamicClass(c));
-    if (classes.length > 0) {
-      // Try all stable classes together
-      try {
-        const sel = `${tag}.${classes.map((c) => CSS.escape(c)).join(".")}`;
-        const el = document.querySelector(sel);
-        if (el) return el;
-      } catch { /* ignore */ }
+  const classStr = classMatch
+    ? classMatch[1].trim().split(/\s+/)
+        .filter((c) => !looksLikeDynamicClass(c))
+        .map((c) => `.${CSS.escape(c)}`)
+        .join("")
+    : "";
 
-      // Try subsets (drop one class at a time from the right)
-      for (let take = classes.length - 1; take >= 1; take--) {
-        try {
-          const sel = `${tag}.${classes.slice(0, take).map((c) => CSS.escape(c)).join(".")}`;
-          const el = document.querySelector(sel);
-          if (el) return el;
-        } catch { /* ignore */ }
-      }
+  // Every other attribute → [attr="val"], skipping id, class, style, and Vue scoped data-v-*
+  const attrStr = Array.from(evidence.matchAll(/\b([\w-]+)="([^"]*)"/g))
+    .filter(([, name]) =>
+      name !== "id" &&
+      name !== "class" &&
+      name !== "style" &&
+      !/^data-v-[a-f0-9]+$/i.test(name)
+    )
+    .map(([, attr, val]) => `[${attr}="${escapeAttrValue(val)}"]`)
+    .join("");
 
-      // Try each class alone (most permissive)
-      for (const cls of classes) {
-        try {
-          const el = document.querySelector(`${tag}.${CSS.escape(cls)}`);
-          if (el) return el;
-        } catch { /* ignore */ }
-      }
+  if (!classStr && !attrStr) return null;
+  return `${tag}${classStr}${attrStr}`;
+}
+
+/**
+ * Parses all name="value" pairs from an HTML opening tag string into a Map.
+ * Used to score DOM candidates against html_evidence when a selector is ambiguous.
+ */
+function parseEvidenceAttributes(evidence: string): Map<string, string> {
+  const attrs = new Map<string, string>();
+  for (const [, name, val] of evidence.matchAll(/\b([\w-]+)="([^"]*)"/g)) {
+    attrs.set(name, val);
+  }
+  return attrs;
+}
+
+/**
+ * Scores a DOM element against the parsed html_evidence attributes.
+ * Each exact-match attribute contributes 1 point; class token sub-matches contribute 0.5.
+ */
+function scoreElementAgainstEvidence(element: Element, evidenceAttrs: Map<string, string>): number {
+  let score = 0;
+  for (const [name, val] of evidenceAttrs) {
+    const actual = element.getAttribute(name);
+    if (actual === null) continue;
+    if (actual === val) {
+      score += 1;
+    } else if (name === "class") {
+      // Partial class-token overlap still counts for something
+      const evidenceTokens = new Set(val.split(/\s+/).filter(Boolean));
+      const actualTokens = actual.split(/\s+/).filter(Boolean);
+      const overlap = actualTokens.filter((t) => evidenceTokens.has(t)).length;
+      score += overlap * 0.5;
+    }
+  }
+  return score;
+}
+
+/**
+ * When a selector matches multiple elements, score each against html_evidence attributes
+ * and return the best match. Falls back to the first element when all scores are equal.
+ */
+function pickBestMatch(
+  candidates: NodeListOf<Element>,
+  evidence: string,
+  traceId: string,
+  derivedSelector: string
+): Element {
+  if (candidates.length === 1) return candidates[0];
+
+  const evidenceAttrs = parseEvidenceAttributes(evidence);
+  let bestScore = -1;
+  let bestElement = candidates[0];
+
+  for (const el of Array.from(candidates)) {
+    const score = scoreElementAgainstEvidence(el, evidenceAttrs);
+    if (score > bestScore) {
+      bestScore = score;
+      bestElement = el;
     }
   }
 
-  // Text content fallback: LLM sometimes hallucinates class names that don't exist
-  // in the DOM but copies the real text content correctly. Strip HTML tags from the
-  // evidence to get the visible text, then find the most specific element whose
-  // textContent contains it (shortest textContent = deepest/most specific match).
-  const inlineText = evidence.replace(/<[^>]+>/g, "").trim();
-  if (inlineText.length >= 8) {
-    const lower = inlineText.toLowerCase();
+  logEvent("content", "fix.pattern.multi_match", {
+    traceId,
+    derivedSelector: truncateText(derivedSelector, 120),
+    candidateCount: candidates.length,
+    bestScore
+  }, "warn");
 
-    // Tag-scoped search first (LLM got the tag right)
-    const scopedMatches = Array.from(document.querySelectorAll(tag !== "*" ? tag : "*")).filter(
-      (el) => (el.textContent ?? "").toLowerCase().includes(lower)
-    );
-    if (scopedMatches.length > 0) {
-      scopedMatches.sort((a, b) => (a.textContent?.length ?? 0) - (b.textContent?.length ?? 0));
-      return scopedMatches[0];
-    }
-
-    // Full-DOM search: LLM got the tag wrong, find most specific match across all elements
-    const allMatches = Array.from(document.querySelectorAll("*")).filter(
-      (el) => (el.textContent ?? "").toLowerCase().includes(lower)
-    );
-    if (allMatches.length > 0) {
-      allMatches.sort((a, b) => (a.textContent?.length ?? 0) - (b.textContent?.length ?? 0));
-      return allMatches[0];
-    }
-  }
-
-  return null;
+  return bestElement;
 }
 
 function isAdvertisementLabelText(text: string | null | undefined): boolean {
@@ -530,7 +490,7 @@ function createAdvertisementLabelFix(
   if (existingLabel) {
     logEvent("content", "fix.pattern.ad_label.skip", {
       traceId,
-      sourceSelector: truncateText(pattern.css_selector, 120),
+      htmlEvidence: truncateText(pattern.html_evidence, 120),
       targetSelector: truncateText(buildStableSelector(target), 120),
       outcome: "existing_label_present"
     }, "debug");
@@ -539,7 +499,7 @@ function createAdvertisementLabelFix(
 
   logEvent("content", "fix.pattern.ad_label.create", {
     traceId,
-    sourceSelector: truncateText(pattern.css_selector, 120),
+    htmlEvidence: truncateText(pattern.html_evidence, 120),
     targetSelector: truncateText(buildStableSelector(target), 120),
     outcome: "fix_created"
   }, "info");
@@ -561,7 +521,7 @@ function createAdvertisementLabelEnhancementFix(
   if (!existingLabel) {
     logEvent("content", "fix.pattern.ad_label.skip", {
       traceId,
-      sourceSelector: truncateText(pattern.css_selector, 120),
+      htmlEvidence: truncateText(pattern.html_evidence, 120),
       targetSelector: truncateText(buildStableSelector(target), 120),
       outcome: "label_missing_for_enhancement"
     }, "debug");
@@ -572,7 +532,7 @@ function createAdvertisementLabelEnhancementFix(
   if (computeBlackness(existingColor) >= MIN_AD_LABEL_BLACKNESS) {
     logEvent("content", "fix.pattern.ad_label.skip", {
       traceId,
-      sourceSelector: truncateText(pattern.css_selector, 120),
+      htmlEvidence: truncateText(pattern.html_evidence, 120),
       targetSelector: truncateText(buildStableSelector(existingLabel), 120),
       outcome: "label_already_dark_enough"
     }, "debug");
@@ -581,7 +541,7 @@ function createAdvertisementLabelEnhancementFix(
 
   logEvent("content", "fix.pattern.ad_label.enhance", {
     traceId,
-    sourceSelector: truncateText(pattern.css_selector, 120),
+    htmlEvidence: truncateText(pattern.html_evidence, 120),
     targetSelector: truncateText(buildStableSelector(existingLabel), 120),
     outcome: "fix_created"
   }, "info");
@@ -597,48 +557,57 @@ function createAdvertisementLabelEnhancementFix(
 }
 
 function createFixesForPattern(pattern: IdentifiedDarkPattern, traceId: string): PageFix[] {
+  const evidence = truncateText(pattern.html_evidence, 120);
+
   if (!FIXABLE_TYPES.has(pattern.dark_pattern_type)) {
     logEvent("content", "fix.pattern.skip", {
       traceId,
       darkPatternType: pattern.dark_pattern_type,
-      sourceSelector: truncateText(pattern.css_selector, 120),
+      htmlEvidence: evidence,
       issues: pattern.issues,
       outcome: "unfixable_type"
     }, "debug");
     return [];
   }
 
-  let matchedElement = tryQuerySelector(pattern.css_selector);
-  if (!matchedElement && pattern.html_evidence) {
-    matchedElement = findByHtmlEvidence(pattern.html_evidence);
-    if (matchedElement) {
-      logEvent("content", "fix.pattern.evidence_fallback", {
-        traceId,
-        darkPatternType: pattern.dark_pattern_type,
-        sourceSelector: truncateText(pattern.css_selector, 120),
-        htmlEvidence: truncateText(pattern.html_evidence, 120)
-      }, "info");
-    }
+  const derivedSelector = deriveSelector(pattern.html_evidence);
+  if (!derivedSelector) {
+    logEvent("content", "fix.pattern.skip", {
+      traceId,
+      darkPatternType: pattern.dark_pattern_type,
+      htmlEvidence: evidence,
+      outcome: "no_stable_anchor"
+    }, "warn");
+    return [];
   }
+
+  let matchedElement: Element | null = null;
+  try {
+    const candidates = document.querySelectorAll(derivedSelector);
+    if (candidates.length > 0) {
+      matchedElement = pickBestMatch(candidates, pattern.html_evidence, traceId, derivedSelector);
+    }
+  } catch {
+    // derivedSelector should always be valid, but guard just in case
+  }
+
   if (!matchedElement) {
     logEvent("content", "fix.pattern.skip", {
       traceId,
       darkPatternType: pattern.dark_pattern_type,
-      sourceSelector: truncateText(pattern.css_selector, 120),
-      htmlEvidence: truncateText(pattern.html_evidence ?? "", 120),
-      outcome: "selector_not_found"
+      derivedSelector: truncateText(derivedSelector, 120),
+      htmlEvidence: evidence,
+      outcome: "element_not_found"
     }, "warn");
     return [];
   }
 
   const elementVisible = isVisible(matchedElement);
   if (!elementVisible) {
-    // Element is in the DOM but hidden. Still generate CSS fixes so they take
-    // effect if/when the element becomes visible. Skip only DOM-mutation fixes.
     logEvent("content", "fix.pattern.hidden_element", {
       traceId,
       darkPatternType: pattern.dark_pattern_type,
-      sourceSelector: truncateText(pattern.css_selector, 120)
+      derivedSelector: truncateText(derivedSelector, 120)
     }, "debug");
   }
 
@@ -649,8 +618,8 @@ function createFixesForPattern(pattern: IdentifiedDarkPattern, traceId: string):
     logEvent("content", "fix.pattern.resolve_target", {
       traceId,
       darkPatternType: pattern.dark_pattern_type,
-      sourceSelector: truncateText(pattern.css_selector, 120),
-      resolvedSelector: truncateText(buildStableSelector(targetElement), 120),
+      derivedSelector: truncateText(derivedSelector, 120),
+      resolvedSelector: truncateText(targetSelector, 120),
       reason: resolution.reason
     }, "debug");
   }
@@ -698,15 +667,14 @@ function createFixesForPattern(pattern: IdentifiedDarkPattern, traceId: string):
     logEvent("content", "fix.pattern.generate", {
       traceId,
       darkPatternType: pattern.dark_pattern_type,
-      sourceSelector: truncateText(pattern.css_selector, 120),
-      resolvedSelector: truncateText(buildStableSelector(targetElement), 120),
+      derivedSelector: truncateText(derivedSelector, 120),
+      resolvedSelector: truncateText(targetSelector, 120),
       appliedIssues,
       inferredStyles: appliedIssueSummaries,
       cssRules
     }, "info");
   }
 
-  // DOM mutation fixes only make sense when the element is actually visible
   if (elementVisible) {
     if (pattern.dark_pattern_type === "Disguised ad" && pattern.issues.includes("add_advertisement_title")) {
       const labelFix = createAdvertisementLabelFix(targetElement, pattern, traceId, targetSelector);
@@ -735,7 +703,7 @@ function createFixesForPattern(pattern: IdentifiedDarkPattern, traceId: string):
       logEvent("content", "fix.pattern.generate", {
         traceId,
         darkPatternType: pattern.dark_pattern_type,
-        sourceSelector: truncateText(pattern.css_selector, 120),
+        derivedSelector: truncateText(derivedSelector, 120),
         resolvedSelector: truncateText(targetSelector, 120),
         appliedIssues: [],
         cssRules: { display: "none" },
@@ -752,7 +720,7 @@ function createFixesForPattern(pattern: IdentifiedDarkPattern, traceId: string):
       logEvent("content", "fix.pattern.generate", {
         traceId,
         darkPatternType: pattern.dark_pattern_type,
-        sourceSelector: truncateText(pattern.css_selector, 120),
+        derivedSelector: truncateText(derivedSelector, 120),
         resolvedSelector: truncateText(targetSelector, 120),
         appliedIssues: [],
         cssRules: { opacity: "0.5" },
@@ -769,7 +737,7 @@ function createFixesForPattern(pattern: IdentifiedDarkPattern, traceId: string):
       logEvent("content", "fix.pattern.generate", {
         traceId,
         darkPatternType: pattern.dark_pattern_type,
-        sourceSelector: truncateText(pattern.css_selector, 120),
+        derivedSelector: truncateText(derivedSelector, 120),
         resolvedSelector: truncateText(targetSelector, 120),
         appliedIssues: [],
         cssRules: { opacity: "0.7" },
@@ -779,7 +747,7 @@ function createFixesForPattern(pattern: IdentifiedDarkPattern, traceId: string):
       logEvent("content", "fix.pattern.skip", {
         traceId,
         darkPatternType: pattern.dark_pattern_type,
-        sourceSelector: truncateText(pattern.css_selector, 120),
+        derivedSelector: truncateText(derivedSelector, 120),
         outcome: "no_fixes_generated"
       }, "warn");
     }

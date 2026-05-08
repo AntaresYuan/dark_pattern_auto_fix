@@ -1,5 +1,5 @@
 import { extractRawHtml } from "./htmlExtractor";
-import { extractTruncatedHtml } from "./truncated_new";
+import { extractCleanedHtml } from "./truncated_new";
 import { extractTruncatedHtml as extractTruncatedHtmlOld } from "./truncated";
 import { planAndApplyFixes } from "./fixPlanner";
 import { applyFixesToPage } from "./patchInjector";
@@ -11,7 +11,7 @@ import type { FixApplicationResult, PageContext, PageFixArchive } from "../share
 
 function collectPageContext(traceId: string, pageKey: string): PageContext {
   const step = startStep("content", "context.collect", { traceId, pageKey });
-  const truncatedHtml = extractTruncatedHtml();
+  const truncatedHtml = extractCleanedHtml();
   const context: PageContext = {
     truncatedHtml,
     viewport: {
@@ -62,7 +62,7 @@ chrome.runtime.onMessage.addListener((message: ExtensionMessage, _sender, sendRe
         return;
       case "COLLECT_HTML_DEBUG": {
         const rawHtml = extractRawHtml();
-        const truncatedHtml = extractTruncatedHtml();
+        const truncatedHtml = extractCleanedHtml();
         const truncatedHtmlOld = extractTruncatedHtmlOld();
         console.log(
           `[html-debug] original: ${rawHtml.length} chars` +

@@ -1,5 +1,3 @@
-const DEFAULT_MAX_HTML_LENGTH = 100000;
-
 function getDoctypeString(doc: Document): string {
   if (!doc.doctype) {
     return "<!DOCTYPE html>";
@@ -294,30 +292,11 @@ function buildOptimizedHead(doc: Document): string {
   return fragments.join("");
 }
 
-export function extractTruncatedHtml(
-  maxLength = DEFAULT_MAX_HTML_LENGTH,
-): string {
+export function extractCleanedHtml(): string {
   const doctype = getDoctypeString(document);
-  const fullHtml = `${doctype}${document.documentElement.outerHTML}`;
   const body = cloneAndCleanVisibleBody(document);
   const headContent = buildOptimizedHead(document);
-
-  const finalHtml = `${doctype}
-<html>
-<head>${headContent}</head>
-<body>${body.innerHTML}</body>
-</html>`;
-
-  if (finalHtml.length <= maxLength) {
-    return finalHtml;
-  }
-
-  const compressedHtml = finalHtml.replace(/\s+/g, " ").trim();
-  if (compressedHtml.length <= maxLength) {
-    return compressedHtml;
-  }
-
-  return fullHtml.length < finalHtml.length ? fullHtml : finalHtml;
+  return `${doctype}\n<html>\n<head>${headContent}</head>\n<body>${body.innerHTML}</body>\n</html>`;
 }
 
 export { getDoctypeString };

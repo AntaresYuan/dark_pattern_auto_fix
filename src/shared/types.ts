@@ -16,15 +16,11 @@ export type IssueTag =
   | "add_advertisement_title"
   | "enhance_advertisement_title";
 
-export type SelectorStability = "stable" | "dynamic";
-
 export interface IdentifiedDarkPattern {
   dark_pattern_type: DarkPatternType;
-  /** Exact HTML snippet copied verbatim from the provided HTML for the target element. */
+  /** Exact opening tag copied verbatim from the provided HTML for the target element. */
   html_evidence: string;
-  css_selector: string;
   issues: IssueTag[];
-  selector_stability: SelectorStability;
 }
 
 /**
