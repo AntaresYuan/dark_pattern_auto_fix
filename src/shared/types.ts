@@ -18,7 +18,43 @@ export type IssueTag =
 
 export type SelectorStability = "stable" | "dynamic";
 
+export type PageType =
+  | "product_detail"
+  | "product_listing"
+  | "checkout"
+  | "cart"
+  | "homepage"
+  | "article"
+  | "sign_up"
+  | "sign_in"
+  | "account_settings"
+  | "subscription_management"
+  | "cookie_consent_overlay"
+  | "other";
+
+/**
+ * LLM's up-front read of the page context. The model fills this BEFORE
+ * evaluating any candidate dark pattern, so every harm_test_reasoning
+ * below can reference user_primary_intent.
+ */
+export interface PageEvaluation {
+  page_type: PageType;
+  user_primary_intent: string;
+}
+
 export interface IdentifiedDarkPattern {
+  /**
+   * Step 1 of the model's reasoning: 2-6 neutral, descriptive observations
+   * about the suspicious element. Required to come BEFORE dark_pattern_type
+   * in the schema so the model commits to evidence before committing to a label.
+   */
+  observed_signals: string[];
+  /**
+   * Step 2: explicit walkthrough of the harm test for the dark_pattern_type
+   * being claimed, grounded in PageEvaluation.user_primary_intent. If the
+   * model cannot articulate concrete user harm, the item should not appear.
+   */
+  harm_test_reasoning: string;
   dark_pattern_type: DarkPatternType;
   /** Exact HTML snippet copied verbatim from the provided HTML for the target element. */
   html_evidence: string;
@@ -53,6 +89,7 @@ export interface TemplateMatchFeatures {
 }
 
 export interface DetectionResult {
+  page_evaluation: PageEvaluation;
   identified_dark_patterns: IdentifiedDarkPattern[];
   template_match_features: TemplateMatchFeatures;
 }
