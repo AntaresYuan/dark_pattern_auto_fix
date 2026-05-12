@@ -90,6 +90,12 @@ npm run build
 5. Click `Load unpacked`.
 6. Select the `dist` folder.
 
+## Run Benchmark
+```bash
+cd benchmark
+python3 -m http.server 8000
+```
+
 ## Notes
 
 - The screenshot capture is intentionally best-effort in v1 and uses the visible tab capture path.
