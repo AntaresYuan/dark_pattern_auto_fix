@@ -45,5 +45,18 @@ Queue: milestone `benchmark-pipeline` (issues #8–#16). Stop after #16.
   - `opera.com` / `ui.com` / `comcast.net` borderline drops; left in infra. Defensible either way.
   - Headroom: only 34 unread rows in the 300-row snapshot. If Tranco rankings shift such that 5+ keeps re-classify as deny, re-fetch with `--count 500` or larger.
   - Script doesn't BOM-strip the CSV or dedupe rows. Current Tranco CSV is clean. Worth hardening if Tranco ever ships malformed data.
+  - **Stale doc drift in PR #18 body**: my "bottom 10" table listed `hp.com` (rank 268), but the dzen.ru fix that landed in the same PR (commit `22b291f`) bumped loop termination from 268 to 266, so `hp.com` is NOT in the final sites.json. The merged code is correct; only the PR description drifted. Noted for honesty; not editing the merged PR.
+
+---
+
+## #10 — classify 100 sites into 10-category taxonomy
+
+- **Branch**: `feat/benchmark-classify-sites` (deleted post-merge)
+- **PR**: [#19](https://github.com/AntaresYuan/dark_pattern_auto_fix/pull/19) — squash-merged as `6747584`
+- **What was done**: classifier script at `benchmark/scripts/classify-sites.cjs` with hand-coded `DOMAIN_TO_CATEGORY` map. Updated `benchmark/sites.json` (every site has `category` + `category_rationale`; top-level `taxonomy` block added). Wrote `benchmark/CATEGORIES.md` (taxonomy table + per-cat counts).
+- **Histogram**: E-com 13, News 10, Social 14, Travel 1, Finance 3, SaaS 28, Streaming 8, Dating/Gaming 2, Education 3, Utility 18. All ≥1, max 28 (<50).
+- **Reviewer verdict**: **OK to merge after 1 fix**. Caught the dead `hp.com` map entry (left over from sites.json v1, before the dzen.ru fix bumped it out). Fixed in `cb21173` + added a guard so dead map entries now error instead of silently skipping.
+- **Friction**: cross-PR doc drift — sites.json's contents changed in PR #18's last commit (dzen.ru fix), and I didn't re-verify the classification map against the post-fix sites.json before opening this PR. Reviewer caught it. Logged.
+- **Follow-ups**: none.
 
 ---
