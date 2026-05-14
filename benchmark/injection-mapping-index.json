@@ -1,0 +1,1729 @@
+{
+  "source_file": "/Users/antaresyuan/Downloads/injection-mapping.js",
+  "total_lines": 19229,
+  "entries_count": 126,
+  "dp_type_suffix_map": {
+    "_disguised": "Disguised ad",
+    "_false_hierarchy": "False hierarchy",
+    "_preselect": "Preselection",
+    "_pop_up": "Pop-up ad",
+    "_double_neg_notif": "Trick wording",
+    "_double_negative": "Trick wording",
+    "_doube_negative": "Trick wording",
+    "_confirm_notif": "Confirm shaming",
+    "_confirm_shaming": "Confirm shaming",
+    "_comfirm_shaming": "Confirm shaming",
+    "_social": "Fake social proof",
+    "_fake_social_proof": "Fake social proof",
+    "_fake_social": "Fake social proof",
+    "_forced_action": "Forced Action",
+    "_hidden_information": "Hidden information"
+  },
+  "site_code_map": {
+    "amz": "Amazon",
+    "tgt": "Target",
+    "cos": "Costco",
+    "etp": "Expedia",
+    "att": "AT&T",
+    "ube": "Uber Eats",
+    "eco": "Economist",
+    "wgs": "Walgreens",
+    "ude": "Udemy",
+    "wfr": "Wayfair",
+    "bki": "Booking.com",
+    "ghd": "Greyhound",
+    "dmn": "Domino's",
+    "stm": "Steam",
+    "eby": "eBay",
+    "swt": "Southwest",
+    "met": "The MET Store",
+    "tkm": "Ticketmaster",
+    "sbk": "Starbucks",
+    "ult": "Ulta",
+    "ups": "UPS",
+    "nik": "Nike",
+    "pst": "PlayStation",
+    "nyt": "NYT",
+    "any": "Generic/any-site",
+    "macys": "Macy's",
+    "ikea": "IKEA",
+    "apple": "Apple",
+    "stp": "Staples",
+    "mds": "MoMA Design Store",
+    "sth": "StubHub",
+    "xbx": "Xbox",
+    "brg": "Banana Republic",
+    "ong": "Old Navy",
+    "jpp": "JCPenney",
+    "hrz": "Hertz",
+    "uss": "USPS",
+    "ddt": "Dunkin'",
+    "hlt": "Hollister",
+    "cpl": "Chipotle",
+    "fde": "FedEx",
+    "lum": "Lululemon",
+    "del": "Dell",
+    "nds": "Nordstrom",
+    "bmd": "Bloomingdale's",
+    "kfc": "KFC",
+    "pzh": "Pizza Hut",
+    "ylp": "Yelp",
+    "acd": "Air Canada",
+    "mct": "MicroCenter",
+    "fdg": "Fandango",
+    "ptb": "Pottery Barn",
+    "srs": "Sears",
+    "uniqle": "Uniqlo",
+    "chickfila": "Chick-fil-A",
+    "lego": "LEGO"
+  },
+  "entries": [
+    {
+      "key": "amz_disguised",
+      "site_code": "amz",
+      "site_name": "Amazon",
+      "dp_type_raw": "disguised",
+      "dp_type_canonical": "Disguised ad",
+      "discriminator": null,
+      "line_start": 935,
+      "line_end": 1007
+    },
+    {
+      "key": "amz_false_hierarchy",
+      "site_code": "amz",
+      "site_name": "Amazon",
+      "dp_type_raw": "false_hierarchy",
+      "dp_type_canonical": "False hierarchy",
+      "discriminator": null,
+      "line_start": 1008,
+      "line_end": 1166
+    },
+    {
+      "key": "amz_preselect",
+      "site_code": "amz",
+      "site_name": "Amazon",
+      "dp_type_raw": "preselect",
+      "dp_type_canonical": "Preselection",
+      "discriminator": null,
+      "line_start": 1167,
+      "line_end": 1193
+    },
+    {
+      "key": "amz_pop_up",
+      "site_code": "amz",
+      "site_name": "Amazon",
+      "dp_type_raw": "pop_up",
+      "dp_type_canonical": "Pop-up ad",
+      "discriminator": null,
+      "line_start": 1194,
+      "line_end": 1360
+    },
+    {
+      "key": "amz_double_neg_notif",
+      "site_code": "amz",
+      "site_name": "Amazon",
+      "dp_type_raw": "double_neg_notif",
+      "dp_type_canonical": "Trick wording",
+      "discriminator": null,
+      "line_start": 1361,
+      "line_end": 1529
+    },
+    {
+      "key": "amz_confirm_notif",
+      "site_code": "amz",
+      "site_name": "Amazon",
+      "dp_type_raw": "confirm_notif",
+      "dp_type_canonical": "Confirm shaming",
+      "discriminator": null,
+      "line_start": 1530,
+      "line_end": 1700
+    },
+    {
+      "key": "amz_social",
+      "site_code": "amz",
+      "site_name": "Amazon",
+      "dp_type_raw": "social",
+      "dp_type_canonical": "Fake social proof",
+      "discriminator": null,
+      "line_start": 1701,
+      "line_end": 1884
+    },
+    {
+      "key": "tgt_disguised",
+      "site_code": "tgt",
+      "site_name": "Target",
+      "dp_type_raw": "disguised",
+      "dp_type_canonical": "Disguised ad",
+      "discriminator": null,
+      "line_start": 1885,
+      "line_end": 1943
+    },
+    {
+      "key": "tgt_false_hierarchy",
+      "site_code": "tgt",
+      "site_name": "Target",
+      "dp_type_raw": "false_hierarchy",
+      "dp_type_canonical": "False hierarchy",
+      "discriminator": null,
+      "line_start": 1944,
+      "line_end": 2178
+    },
+    {
+      "key": "tgt_preselect",
+      "site_code": "tgt",
+      "site_name": "Target",
+      "dp_type_raw": "preselect",
+      "dp_type_canonical": "Preselection",
+      "discriminator": null,
+      "line_start": 2179,
+      "line_end": 2354
+    },
+    {
+      "key": "tgt_pop_up",
+      "site_code": "tgt",
+      "site_name": "Target",
+      "dp_type_raw": "pop_up",
+      "dp_type_canonical": "Pop-up ad",
+      "discriminator": null,
+      "line_start": 2355,
+      "line_end": 2449
+    },
+    {
+      "key": "tgt_double_neg_notif",
+      "site_code": "tgt",
+      "site_name": "Target",
+      "dp_type_raw": "double_neg_notif",
+      "dp_type_canonical": "Trick wording",
+      "discriminator": null,
+      "line_start": 2450,
+      "line_end": 2585
+    },
+    {
+      "key": "tgt_confirm_shaming",
+      "site_code": "tgt",
+      "site_name": "Target",
+      "dp_type_raw": "confirm_shaming",
+      "dp_type_canonical": "Confirm shaming",
+      "discriminator": null,
+      "line_start": 2586,
+      "line_end": 2713
+    },
+    {
+      "key": "tgt_social",
+      "site_code": "tgt",
+      "site_name": "Target",
+      "dp_type_raw": "social",
+      "dp_type_canonical": "Fake social proof",
+      "discriminator": null,
+      "line_start": 2714,
+      "line_end": 2796
+    },
+    {
+      "key": "cos_disguised",
+      "site_code": "cos",
+      "site_name": "Costco",
+      "dp_type_raw": "disguised",
+      "dp_type_canonical": "Disguised ad",
+      "discriminator": null,
+      "line_start": 2797,
+      "line_end": 2868
+    },
+    {
+      "key": "cos_false_hierarchy",
+      "site_code": "cos",
+      "site_name": "Costco",
+      "dp_type_raw": "false_hierarchy",
+      "dp_type_canonical": "False hierarchy",
+      "discriminator": null,
+      "line_start": 2869,
+      "line_end": 3060
+    },
+    {
+      "key": "cos_preselect",
+      "site_code": "cos",
+      "site_name": "Costco",
+      "dp_type_raw": "preselect",
+      "dp_type_canonical": "Preselection",
+      "discriminator": null,
+      "line_start": 3061,
+      "line_end": 3234
+    },
+    {
+      "key": "cos_pop_up",
+      "site_code": "cos",
+      "site_name": "Costco",
+      "dp_type_raw": "pop_up",
+      "dp_type_canonical": "Pop-up ad",
+      "discriminator": null,
+      "line_start": 3235,
+      "line_end": 3330
+    },
+    {
+      "key": "cos_double_neg_notif",
+      "site_code": "cos",
+      "site_name": "Costco",
+      "dp_type_raw": "double_neg_notif",
+      "dp_type_canonical": "Trick wording",
+      "discriminator": null,
+      "line_start": 3331,
+      "line_end": 3482
+    },
+    {
+      "key": "cos_confirm_shaming",
+      "site_code": "cos",
+      "site_name": "Costco",
+      "dp_type_raw": "confirm_shaming",
+      "dp_type_canonical": "Confirm shaming",
+      "discriminator": null,
+      "line_start": 3483,
+      "line_end": 3618
+    },
+    {
+      "key": "cos_social",
+      "site_code": "cos",
+      "site_name": "Costco",
+      "dp_type_raw": "social",
+      "dp_type_canonical": "Fake social proof",
+      "discriminator": null,
+      "line_start": 3619,
+      "line_end": 4787
+    },
+    {
+      "key": "etp_pop_up",
+      "site_code": "etp",
+      "site_name": "Expedia",
+      "dp_type_raw": "pop_up",
+      "dp_type_canonical": "Pop-up ad",
+      "discriminator": null,
+      "line_start": 4788,
+      "line_end": 5009
+    },
+    {
+      "key": "etp_double_neg_notif",
+      "site_code": "etp",
+      "site_name": "Expedia",
+      "dp_type_raw": "double_neg_notif",
+      "dp_type_canonical": "Trick wording",
+      "discriminator": null,
+      "line_start": 5010,
+      "line_end": 5139
+    },
+    {
+      "key": "etp_confirm_shaming",
+      "site_code": "etp",
+      "site_name": "Expedia",
+      "dp_type_raw": "confirm_shaming",
+      "dp_type_canonical": "Confirm shaming",
+      "discriminator": null,
+      "line_start": 5140,
+      "line_end": 5264
+    },
+    {
+      "key": "etp_social",
+      "site_code": "etp",
+      "site_name": "Expedia",
+      "dp_type_raw": "social",
+      "dp_type_canonical": "Fake social proof",
+      "discriminator": null,
+      "line_start": 5265,
+      "line_end": 5665
+    },
+    {
+      "key": "att_disguised",
+      "site_code": "att",
+      "site_name": "AT&T",
+      "dp_type_raw": "disguised",
+      "dp_type_canonical": "Disguised ad",
+      "discriminator": null,
+      "line_start": 5666,
+      "line_end": 5744
+    },
+    {
+      "key": "att_false_hierarchy",
+      "site_code": "att",
+      "site_name": "AT&T",
+      "dp_type_raw": "false_hierarchy",
+      "dp_type_canonical": "False hierarchy",
+      "discriminator": null,
+      "line_start": 5745,
+      "line_end": 5941
+    },
+    {
+      "key": "att_preselect",
+      "site_code": "att",
+      "site_name": "AT&T",
+      "dp_type_raw": "preselect",
+      "dp_type_canonical": "Preselection",
+      "discriminator": null,
+      "line_start": 5942,
+      "line_end": 6114
+    },
+    {
+      "key": "att_pop_up",
+      "site_code": "att",
+      "site_name": "AT&T",
+      "dp_type_raw": "pop_up",
+      "dp_type_canonical": "Pop-up ad",
+      "discriminator": null,
+      "line_start": 6115,
+      "line_end": 6296
+    },
+    {
+      "key": "att_doube_negative",
+      "site_code": "att",
+      "site_name": "AT&T",
+      "dp_type_raw": "doube_negative",
+      "dp_type_canonical": "Trick wording",
+      "discriminator": null,
+      "line_start": 6297,
+      "line_end": 6412
+    },
+    {
+      "key": "att_confirm_shaming",
+      "site_code": "att",
+      "site_name": "AT&T",
+      "dp_type_raw": "confirm_shaming",
+      "dp_type_canonical": "Confirm shaming",
+      "discriminator": null,
+      "line_start": 6413,
+      "line_end": 6520
+    },
+    {
+      "key": "att_social",
+      "site_code": "att",
+      "site_name": "AT&T",
+      "dp_type_raw": "social",
+      "dp_type_canonical": "Fake social proof",
+      "discriminator": null,
+      "line_start": 6521,
+      "line_end": 6967
+    },
+    {
+      "key": "ube_disguised",
+      "site_code": "ube",
+      "site_name": "Uber Eats",
+      "dp_type_raw": "disguised",
+      "dp_type_canonical": "Disguised ad",
+      "discriminator": null,
+      "line_start": 6968,
+      "line_end": 7060
+    },
+    {
+      "key": "ube_false_hierarchy",
+      "site_code": "ube",
+      "site_name": "Uber Eats",
+      "dp_type_raw": "false_hierarchy",
+      "dp_type_canonical": "False hierarchy",
+      "discriminator": null,
+      "line_start": 7061,
+      "line_end": 7378
+    },
+    {
+      "key": "ube_pop_up",
+      "site_code": "ube",
+      "site_name": "Uber Eats",
+      "dp_type_raw": "pop_up",
+      "dp_type_canonical": "Pop-up ad",
+      "discriminator": null,
+      "line_start": 7379,
+      "line_end": 7504
+    },
+    {
+      "key": "eco_preselect",
+      "site_code": "eco",
+      "site_name": "Economist",
+      "dp_type_raw": "preselect",
+      "dp_type_canonical": "Preselection",
+      "discriminator": null,
+      "line_start": 7505,
+      "line_end": 7548
+    },
+    {
+      "key": "eco_double_negative",
+      "site_code": "eco",
+      "site_name": "Economist",
+      "dp_type_raw": "double_negative",
+      "dp_type_canonical": "Trick wording",
+      "discriminator": null,
+      "line_start": 7549,
+      "line_end": 7702
+    },
+    {
+      "key": "eco_confirm_shaming",
+      "site_code": "eco",
+      "site_name": "Economist",
+      "dp_type_raw": "confirm_shaming",
+      "dp_type_canonical": "Confirm shaming",
+      "discriminator": null,
+      "line_start": 7703,
+      "line_end": 7830
+    },
+    {
+      "key": "wgs_social",
+      "site_code": "wgs",
+      "site_name": "Walgreens",
+      "dp_type_raw": "social",
+      "dp_type_canonical": "Fake social proof",
+      "discriminator": null,
+      "line_start": 7831,
+      "line_end": 7988
+    },
+    {
+      "key": "wgs_forced_action",
+      "site_code": "wgs",
+      "site_name": "Walgreens",
+      "dp_type_raw": "forced_action",
+      "dp_type_canonical": "Forced Action",
+      "discriminator": null,
+      "line_start": 7989,
+      "line_end": 8126
+    },
+    {
+      "key": "wgs_hidden_information",
+      "site_code": "wgs",
+      "site_name": "Walgreens",
+      "dp_type_raw": "hidden_information",
+      "dp_type_canonical": "Hidden information",
+      "discriminator": null,
+      "line_start": 8127,
+      "line_end": 8303
+    },
+    {
+      "key": "ude_disguised",
+      "site_code": "ude",
+      "site_name": "Udemy",
+      "dp_type_raw": "disguised",
+      "dp_type_canonical": "Disguised ad",
+      "discriminator": null,
+      "line_start": 8304,
+      "line_end": 8363
+    },
+    {
+      "key": "ude_pop_up",
+      "site_code": "ude",
+      "site_name": "Udemy",
+      "dp_type_raw": "pop_up",
+      "dp_type_canonical": "Pop-up ad",
+      "discriminator": null,
+      "line_start": 8364,
+      "line_end": 8503
+    },
+    {
+      "key": "wfr_disguised",
+      "site_code": "wfr",
+      "site_name": "Wayfair",
+      "dp_type_raw": "disguised",
+      "dp_type_canonical": "Disguised ad",
+      "discriminator": null,
+      "line_start": 8504,
+      "line_end": 8575
+    },
+    {
+      "key": "wfr_false_hierarchy",
+      "site_code": "wfr",
+      "site_name": "Wayfair",
+      "dp_type_raw": "false_hierarchy",
+      "dp_type_canonical": "False hierarchy",
+      "discriminator": null,
+      "line_start": 8576,
+      "line_end": 8679
+    },
+    {
+      "key": "wfr_preselect",
+      "site_code": "wfr",
+      "site_name": "Wayfair",
+      "dp_type_raw": "preselect",
+      "dp_type_canonical": "Preselection",
+      "discriminator": null,
+      "line_start": 8680,
+      "line_end": 8714
+    },
+    {
+      "key": "bki_pop_up",
+      "site_code": "bki",
+      "site_name": "Booking.com",
+      "dp_type_raw": "pop_up",
+      "dp_type_canonical": "Pop-up ad",
+      "discriminator": null,
+      "line_start": 8715,
+      "line_end": 8901
+    },
+    {
+      "key": "bki_double_negative",
+      "site_code": "bki",
+      "site_name": "Booking.com",
+      "dp_type_raw": "double_negative",
+      "dp_type_canonical": "Trick wording",
+      "discriminator": null,
+      "line_start": 8902,
+      "line_end": 9017
+    },
+    {
+      "key": "bki_confirm_shaming",
+      "site_code": "bki",
+      "site_name": "Booking.com",
+      "dp_type_raw": "confirm_shaming",
+      "dp_type_canonical": "Confirm shaming",
+      "discriminator": null,
+      "line_start": 9018,
+      "line_end": 9133
+    },
+    {
+      "key": "ghd_social",
+      "site_code": "ghd",
+      "site_name": "Greyhound",
+      "dp_type_raw": "social",
+      "dp_type_canonical": "Fake social proof",
+      "discriminator": null,
+      "line_start": 9134,
+      "line_end": 9207
+    },
+    {
+      "key": "ghd_forced_action",
+      "site_code": "ghd",
+      "site_name": "Greyhound",
+      "dp_type_raw": "forced_action",
+      "dp_type_canonical": "Forced Action",
+      "discriminator": null,
+      "line_start": 9208,
+      "line_end": 9307
+    },
+    {
+      "key": "ghd_hidden_information",
+      "site_code": "ghd",
+      "site_name": "Greyhound",
+      "dp_type_raw": "hidden_information",
+      "dp_type_canonical": "Hidden information",
+      "discriminator": null,
+      "line_start": 9308,
+      "line_end": 9448
+    },
+    {
+      "key": "dmn_disguised",
+      "site_code": "dmn",
+      "site_name": "Domino's",
+      "dp_type_raw": "disguised",
+      "dp_type_canonical": "Disguised ad",
+      "discriminator": null,
+      "line_start": 9449,
+      "line_end": 9514
+    },
+    {
+      "key": "dmn_false_hierarchy",
+      "site_code": "dmn",
+      "site_name": "Domino's",
+      "dp_type_raw": "false_hierarchy",
+      "dp_type_canonical": "False hierarchy",
+      "discriminator": null,
+      "line_start": 9515,
+      "line_end": 9609
+    },
+    {
+      "key": "dmn_preselect",
+      "site_code": "dmn",
+      "site_name": "Domino's",
+      "dp_type_raw": "preselect",
+      "dp_type_canonical": "Preselection",
+      "discriminator": null,
+      "line_start": 9610,
+      "line_end": 9718
+    },
+    {
+      "key": "stm_pop_up",
+      "site_code": "stm",
+      "site_name": "Steam",
+      "dp_type_raw": "pop_up",
+      "dp_type_canonical": "Pop-up ad",
+      "discriminator": null,
+      "line_start": 9719,
+      "line_end": 9895
+    },
+    {
+      "key": "stm_double_negative",
+      "site_code": "stm",
+      "site_name": "Steam",
+      "dp_type_raw": "double_negative",
+      "dp_type_canonical": "Trick wording",
+      "discriminator": null,
+      "line_start": 9896,
+      "line_end": 10019
+    },
+    {
+      "key": "stm_confirm_shaming",
+      "site_code": "stm",
+      "site_name": "Steam",
+      "dp_type_raw": "confirm_shaming",
+      "dp_type_canonical": "Confirm shaming",
+      "discriminator": null,
+      "line_start": 10020,
+      "line_end": 10121
+    },
+    {
+      "key": "eby_social",
+      "site_code": "eby",
+      "site_name": "eBay",
+      "dp_type_raw": "social",
+      "dp_type_canonical": "Fake social proof",
+      "discriminator": null,
+      "line_start": 10122,
+      "line_end": 10220
+    },
+    {
+      "key": "eby_forced_action",
+      "site_code": "eby",
+      "site_name": "eBay",
+      "dp_type_raw": "forced_action",
+      "dp_type_canonical": "Forced Action",
+      "discriminator": null,
+      "line_start": 10221,
+      "line_end": 10357
+    },
+    {
+      "key": "eby_hidden_information",
+      "site_code": "eby",
+      "site_name": "eBay",
+      "dp_type_raw": "hidden_information",
+      "dp_type_canonical": "Hidden information",
+      "discriminator": null,
+      "line_start": 10358,
+      "line_end": 10466
+    },
+    {
+      "key": "swt_disguised",
+      "site_code": "swt",
+      "site_name": "Southwest",
+      "dp_type_raw": "disguised",
+      "dp_type_canonical": "Disguised ad",
+      "discriminator": null,
+      "line_start": 10467,
+      "line_end": 10527
+    },
+    {
+      "key": "swt_false_hierarchy",
+      "site_code": "swt",
+      "site_name": "Southwest",
+      "dp_type_raw": "false_hierarchy",
+      "dp_type_canonical": "False hierarchy",
+      "discriminator": null,
+      "line_start": 10528,
+      "line_end": 10667
+    },
+    {
+      "key": "swt_preselect",
+      "site_code": "swt",
+      "site_name": "Southwest",
+      "dp_type_raw": "preselect",
+      "dp_type_canonical": "Preselection",
+      "discriminator": null,
+      "line_start": 10668,
+      "line_end": 10908
+    },
+    {
+      "key": "met_pop_up",
+      "site_code": "met",
+      "site_name": "The MET Store",
+      "dp_type_raw": "pop_up",
+      "dp_type_canonical": "Pop-up ad",
+      "discriminator": null,
+      "line_start": 10909,
+      "line_end": 11085
+    },
+    {
+      "key": "met_double_negative",
+      "site_code": "met",
+      "site_name": "The MET Store",
+      "dp_type_raw": "double_negative",
+      "dp_type_canonical": "Trick wording",
+      "discriminator": null,
+      "line_start": 11086,
+      "line_end": 11190
+    },
+    {
+      "key": "met_confirm_shaming",
+      "site_code": "met",
+      "site_name": "The MET Store",
+      "dp_type_raw": "confirm_shaming",
+      "dp_type_canonical": "Confirm shaming",
+      "discriminator": null,
+      "line_start": 11191,
+      "line_end": 11367
+    },
+    {
+      "key": "tkm_social",
+      "site_code": "tkm",
+      "site_name": "Ticketmaster",
+      "dp_type_raw": "social",
+      "dp_type_canonical": "Fake social proof",
+      "discriminator": null,
+      "line_start": 11368,
+      "line_end": 11498
+    },
+    {
+      "key": "tkm_forced_action",
+      "site_code": "tkm",
+      "site_name": "Ticketmaster",
+      "dp_type_raw": "forced_action",
+      "dp_type_canonical": "Forced Action",
+      "discriminator": null,
+      "line_start": 11499,
+      "line_end": 11611
+    },
+    {
+      "key": "tkm_hidden_information",
+      "site_code": "tkm",
+      "site_name": "Ticketmaster",
+      "dp_type_raw": "hidden_information",
+      "dp_type_canonical": "Hidden information",
+      "discriminator": null,
+      "line_start": 11612,
+      "line_end": 11823
+    },
+    {
+      "key": "sbk_disguised",
+      "site_code": "sbk",
+      "site_name": "Starbucks",
+      "dp_type_raw": "disguised",
+      "dp_type_canonical": "Disguised ad",
+      "discriminator": null,
+      "line_start": 11824,
+      "line_end": 11917
+    },
+    {
+      "key": "sbk_false_hierarchy",
+      "site_code": "sbk",
+      "site_name": "Starbucks",
+      "dp_type_raw": "false_hierarchy",
+      "dp_type_canonical": "False hierarchy",
+      "discriminator": null,
+      "line_start": 11918,
+      "line_end": 12137
+    },
+    {
+      "key": "sbk_preselect",
+      "site_code": "sbk",
+      "site_name": "Starbucks",
+      "dp_type_raw": "preselect",
+      "dp_type_canonical": "Preselection",
+      "discriminator": null,
+      "line_start": 12138,
+      "line_end": 12261
+    },
+    {
+      "key": "ult_disguised",
+      "site_code": "ult",
+      "site_name": "Ulta",
+      "dp_type_raw": "disguised",
+      "dp_type_canonical": "Disguised ad",
+      "discriminator": null,
+      "line_start": 12262,
+      "line_end": 12329
+    },
+    {
+      "key": "ult_false_hierarchy",
+      "site_code": "ult",
+      "site_name": "Ulta",
+      "dp_type_raw": "false_hierarchy",
+      "dp_type_canonical": "False hierarchy",
+      "discriminator": null,
+      "line_start": 12330,
+      "line_end": 12416
+    },
+    {
+      "key": "ult_preselect",
+      "site_code": "ult",
+      "site_name": "Ulta",
+      "dp_type_raw": "preselect",
+      "dp_type_canonical": "Preselection",
+      "discriminator": null,
+      "line_start": 12417,
+      "line_end": 12526
+    },
+    {
+      "key": "ups_pop_up",
+      "site_code": "ups",
+      "site_name": "UPS",
+      "dp_type_raw": "pop_up",
+      "dp_type_canonical": "Pop-up ad",
+      "discriminator": null,
+      "line_start": 12527,
+      "line_end": 12690
+    },
+    {
+      "key": "nik_double_negative",
+      "site_code": "nik",
+      "site_name": "Nike",
+      "dp_type_raw": "double_negative",
+      "dp_type_canonical": "Trick wording",
+      "discriminator": null,
+      "line_start": 12691,
+      "line_end": 12838
+    },
+    {
+      "key": "pst_confirm_shaming",
+      "site_code": "pst",
+      "site_name": "PlayStation",
+      "dp_type_raw": "confirm_shaming",
+      "dp_type_canonical": "Confirm shaming",
+      "discriminator": null,
+      "line_start": 12839,
+      "line_end": 12943
+    },
+    {
+      "key": "nyt_social",
+      "site_code": "nyt",
+      "site_name": "NYT",
+      "dp_type_raw": "social",
+      "dp_type_canonical": "Fake social proof",
+      "discriminator": null,
+      "line_start": 12944,
+      "line_end": 13049
+    },
+    {
+      "key": "any_forced_action",
+      "site_code": "any",
+      "site_name": "Generic/any-site",
+      "dp_type_raw": "forced_action",
+      "dp_type_canonical": "Forced Action",
+      "discriminator": null,
+      "line_start": 13050,
+      "line_end": 13176
+    },
+    {
+      "key": "macys_disguised",
+      "site_code": "macys",
+      "site_name": "Macy's",
+      "dp_type_raw": "disguised",
+      "dp_type_canonical": "Disguised ad",
+      "discriminator": null,
+      "line_start": 13177,
+      "line_end": 13238
+    },
+    {
+      "key": "macys_false_hierarchy",
+      "site_code": "macys",
+      "site_name": "Macy's",
+      "dp_type_raw": "false_hierarchy",
+      "dp_type_canonical": "False hierarchy",
+      "discriminator": null,
+      "line_start": 13239,
+      "line_end": 13407
+    },
+    {
+      "key": "macys_double_negative",
+      "site_code": "macys",
+      "site_name": "Macy's",
+      "dp_type_raw": "double_negative",
+      "dp_type_canonical": "Trick wording",
+      "discriminator": null,
+      "line_start": 13408,
+      "line_end": 13538
+    },
+    {
+      "key": "macys_confirm_shaming",
+      "site_code": "macys",
+      "site_name": "Macy's",
+      "dp_type_raw": "confirm_shaming",
+      "dp_type_canonical": "Confirm shaming",
+      "discriminator": null,
+      "line_start": 13539,
+      "line_end": 13626
+    },
+    {
+      "key": "macys_pop_up",
+      "site_code": "macys",
+      "site_name": "Macy's",
+      "dp_type_raw": "pop_up",
+      "dp_type_canonical": "Pop-up ad",
+      "discriminator": null,
+      "line_start": 13627,
+      "line_end": 13735
+    },
+    {
+      "key": "macys_fake_social_proof",
+      "site_code": "macys",
+      "site_name": "Macy's",
+      "dp_type_raw": "fake_social_proof",
+      "dp_type_canonical": "Fake social proof",
+      "discriminator": null,
+      "line_start": 13736,
+      "line_end": 13814
+    },
+    {
+      "key": "ikea_preselect",
+      "site_code": "ikea",
+      "site_name": "IKEA",
+      "dp_type_raw": "preselect",
+      "dp_type_canonical": "Preselection",
+      "discriminator": null,
+      "line_start": 13815,
+      "line_end": 13937
+    },
+    {
+      "key": "ikea_comfirm_shaming",
+      "site_code": "ikea",
+      "site_name": "IKEA",
+      "dp_type_raw": "comfirm_shaming",
+      "dp_type_canonical": "Confirm shaming",
+      "discriminator": null,
+      "line_start": 13938,
+      "line_end": 14051
+    },
+    {
+      "key": "ikea_fake_social_proof",
+      "site_code": "ikea",
+      "site_name": "IKEA",
+      "dp_type_raw": "fake_social_proof",
+      "dp_type_canonical": "Fake social proof",
+      "discriminator": null,
+      "line_start": 14052,
+      "line_end": 14184
+    },
+    {
+      "key": "ikea_false_hierarchy",
+      "site_code": "ikea",
+      "site_name": "IKEA",
+      "dp_type_raw": "false_hierarchy",
+      "dp_type_canonical": "False hierarchy",
+      "discriminator": null,
+      "line_start": 14185,
+      "line_end": 14340
+    },
+    {
+      "key": "apple_preselect_final_cut_pro",
+      "site_code": "apple",
+      "site_name": "Apple",
+      "dp_type_raw": "preselect",
+      "dp_type_canonical": "Preselection",
+      "discriminator": "final_cut_pro",
+      "line_start": 14341,
+      "line_end": 14481
+    },
+    {
+      "key": "apple_preselect_logic_pro",
+      "site_code": "apple",
+      "site_name": "Apple",
+      "dp_type_raw": "preselect",
+      "dp_type_canonical": "Preselection",
+      "discriminator": "logic_pro",
+      "line_start": 14482,
+      "line_end": 14621
+    },
+    {
+      "key": "apple_preselect_iphone_care",
+      "site_code": "apple",
+      "site_name": "Apple",
+      "dp_type_raw": "preselect",
+      "dp_type_canonical": "Preselection",
+      "discriminator": "iphone_care",
+      "line_start": 14622,
+      "line_end": 14792
+    },
+    {
+      "key": "apple_disguised_ad_1",
+      "site_code": "apple",
+      "site_name": "Apple",
+      "dp_type_raw": "disguised",
+      "dp_type_canonical": "Disguised ad",
+      "discriminator": "ad_1",
+      "line_start": 14793,
+      "line_end": 14924
+    },
+    {
+      "key": "apple_disguised_ad_2",
+      "site_code": "apple",
+      "site_name": "Apple",
+      "dp_type_raw": "disguised",
+      "dp_type_canonical": "Disguised ad",
+      "discriminator": "ad_2",
+      "line_start": 14925,
+      "line_end": 15056
+    },
+    {
+      "key": "apple_disguised_ad_3",
+      "site_code": "apple",
+      "site_name": "Apple",
+      "dp_type_raw": "disguised",
+      "dp_type_canonical": "Disguised ad",
+      "discriminator": "ad_3",
+      "line_start": 15057,
+      "line_end": 15371
+    },
+    {
+      "key": "stp_double_negative",
+      "site_code": "stp",
+      "site_name": "Staples",
+      "dp_type_raw": "double_negative",
+      "dp_type_canonical": "Trick wording",
+      "discriminator": null,
+      "line_start": 15372,
+      "line_end": 15535
+    },
+    {
+      "key": "mds_hidden_information",
+      "site_code": "mds",
+      "site_name": "MoMA Design Store",
+      "dp_type_raw": "hidden_information",
+      "dp_type_canonical": "Hidden information",
+      "discriminator": null,
+      "line_start": 15536,
+      "line_end": 15635
+    },
+    {
+      "key": "any_double_negative",
+      "site_code": "any",
+      "site_name": "Generic/any-site",
+      "dp_type_raw": "double_negative",
+      "dp_type_canonical": "Trick wording",
+      "discriminator": null,
+      "line_start": 15636,
+      "line_end": 15756
+    },
+    {
+      "key": "sth_double_negative",
+      "site_code": "sth",
+      "site_name": "StubHub",
+      "dp_type_raw": "double_negative",
+      "dp_type_canonical": "Trick wording",
+      "discriminator": null,
+      "line_start": 15757,
+      "line_end": 15927
+    },
+    {
+      "key": "xbx_double_negative",
+      "site_code": "xbx",
+      "site_name": "Xbox",
+      "dp_type_raw": "double_negative",
+      "dp_type_canonical": "Trick wording",
+      "discriminator": null,
+      "line_start": 15928,
+      "line_end": 16068
+    },
+    {
+      "key": "brg_double_negative",
+      "site_code": "brg",
+      "site_name": "Banana Republic",
+      "dp_type_raw": "double_negative",
+      "dp_type_canonical": "Trick wording",
+      "discriminator": null,
+      "line_start": 16069,
+      "line_end": 16182
+    },
+    {
+      "key": "ong_double_negative",
+      "site_code": "ong",
+      "site_name": "Old Navy",
+      "dp_type_raw": "double_negative",
+      "dp_type_canonical": "Trick wording",
+      "discriminator": null,
+      "line_start": 16183,
+      "line_end": 16319
+    },
+    {
+      "key": "jpp_forced_action",
+      "site_code": "jpp",
+      "site_name": "JCPenney",
+      "dp_type_raw": "forced_action",
+      "dp_type_canonical": "Forced Action",
+      "discriminator": null,
+      "line_start": 16320,
+      "line_end": 16462
+    },
+    {
+      "key": "hrz_forced_action",
+      "site_code": "hrz",
+      "site_name": "Hertz",
+      "dp_type_raw": "forced_action",
+      "dp_type_canonical": "Forced Action",
+      "discriminator": null,
+      "line_start": 16463,
+      "line_end": 16601
+    },
+    {
+      "key": "uss_forced_action",
+      "site_code": "uss",
+      "site_name": "USPS",
+      "dp_type_raw": "forced_action",
+      "dp_type_canonical": "Forced Action",
+      "discriminator": null,
+      "line_start": 16602,
+      "line_end": 16702
+    },
+    {
+      "key": "ddt_hidden_information",
+      "site_code": "ddt",
+      "site_name": "Dunkin'",
+      "dp_type_raw": "hidden_information",
+      "dp_type_canonical": "Hidden information",
+      "discriminator": null,
+      "line_start": 16703,
+      "line_end": 16863
+    },
+    {
+      "key": "hlt_hidden_information",
+      "site_code": "hlt",
+      "site_name": "Hollister",
+      "dp_type_raw": "hidden_information",
+      "dp_type_canonical": "Hidden information",
+      "discriminator": null,
+      "line_start": 16864,
+      "line_end": 17031
+    },
+    {
+      "key": "cpl_hidden_information",
+      "site_code": "cpl",
+      "site_name": "Chipotle",
+      "dp_type_raw": "hidden_information",
+      "dp_type_canonical": "Hidden information",
+      "discriminator": null,
+      "line_start": 17032,
+      "line_end": 17169
+    },
+    {
+      "key": "fde_preselect",
+      "site_code": "fde",
+      "site_name": "FedEx",
+      "dp_type_raw": "preselect",
+      "dp_type_canonical": "Preselection",
+      "discriminator": null,
+      "line_start": 17170,
+      "line_end": 17271
+    },
+    {
+      "key": "lum_preselect",
+      "site_code": "lum",
+      "site_name": "Lululemon",
+      "dp_type_raw": "preselect",
+      "dp_type_canonical": "Preselection",
+      "discriminator": null,
+      "line_start": 17272,
+      "line_end": 17414
+    },
+    {
+      "key": "del_confirm_shaming",
+      "site_code": "del",
+      "site_name": "Dell",
+      "dp_type_raw": "confirm_shaming",
+      "dp_type_canonical": "Confirm shaming",
+      "discriminator": null,
+      "line_start": 17415,
+      "line_end": 17550
+    },
+    {
+      "key": "nds_confirm_shaming",
+      "site_code": "nds",
+      "site_name": "Nordstrom",
+      "dp_type_raw": "confirm_shaming",
+      "dp_type_canonical": "Confirm shaming",
+      "discriminator": null,
+      "line_start": 17551,
+      "line_end": 17658
+    },
+    {
+      "key": "bmd_social",
+      "site_code": "bmd",
+      "site_name": "Bloomingdale's",
+      "dp_type_raw": "social",
+      "dp_type_canonical": "Fake social proof",
+      "discriminator": null,
+      "line_start": 17659,
+      "line_end": 17784
+    },
+    {
+      "key": "kfc_forced_action",
+      "site_code": "kfc",
+      "site_name": "KFC",
+      "dp_type_raw": "forced_action",
+      "dp_type_canonical": "Forced Action",
+      "discriminator": null,
+      "line_start": 17785,
+      "line_end": 17897
+    },
+    {
+      "key": "pzh_hidden_information",
+      "site_code": "pzh",
+      "site_name": "Pizza Hut",
+      "dp_type_raw": "hidden_information",
+      "dp_type_canonical": "Hidden information",
+      "discriminator": null,
+      "line_start": 17898,
+      "line_end": 18073
+    },
+    {
+      "key": "ylp_forced_action",
+      "site_code": "ylp",
+      "site_name": "Yelp",
+      "dp_type_raw": "forced_action",
+      "dp_type_canonical": "Forced Action",
+      "discriminator": null,
+      "line_start": 18074,
+      "line_end": 18213
+    },
+    {
+      "key": "acd_forced_action",
+      "site_code": "acd",
+      "site_name": "Air Canada",
+      "dp_type_raw": "forced_action",
+      "dp_type_canonical": "Forced Action",
+      "discriminator": null,
+      "line_start": 18214,
+      "line_end": 18360
+    },
+    {
+      "key": "mct_forced_action",
+      "site_code": "mct",
+      "site_name": "MicroCenter",
+      "dp_type_raw": "forced_action",
+      "dp_type_canonical": "Forced Action",
+      "discriminator": null,
+      "line_start": 18361,
+      "line_end": 18456
+    },
+    {
+      "key": "fdg_hidden_information",
+      "site_code": "fdg",
+      "site_name": "Fandango",
+      "dp_type_raw": "hidden_information",
+      "dp_type_canonical": "Hidden information",
+      "discriminator": null,
+      "line_start": 18457,
+      "line_end": 18575
+    },
+    {
+      "key": "ptb_hidden_information",
+      "site_code": "ptb",
+      "site_name": "Pottery Barn",
+      "dp_type_raw": "hidden_information",
+      "dp_type_canonical": "Hidden information",
+      "discriminator": null,
+      "line_start": 18576,
+      "line_end": 18734
+    },
+    {
+      "key": "srs_hidden_information",
+      "site_code": "srs",
+      "site_name": "Sears",
+      "dp_type_raw": "hidden_information",
+      "dp_type_canonical": "Hidden information",
+      "discriminator": null,
+      "line_start": 18735,
+      "line_end": 18902
+    },
+    {
+      "key": "uniqle_double_negative",
+      "site_code": "uniqle",
+      "site_name": "Uniqlo",
+      "dp_type_raw": "double_negative",
+      "dp_type_canonical": "Trick wording",
+      "discriminator": null,
+      "line_start": 18903,
+      "line_end": 19013
+    },
+    {
+      "key": "chickfila_double_negative",
+      "site_code": "chickfila",
+      "site_name": "Chick-fil-A",
+      "dp_type_raw": "double_negative",
+      "dp_type_canonical": "Trick wording",
+      "discriminator": null,
+      "line_start": 19014,
+      "line_end": 19158
+    },
+    {
+      "key": "lego_fake_social",
+      "site_code": "lego",
+      "site_name": "LEGO",
+      "dp_type_raw": "fake_social",
+      "dp_type_canonical": "Fake social proof",
+      "discriminator": null,
+      "line_start": 19159,
+      "line_end": 19227
+    }
+  ],
+  "by_site": {
+    "amz": [
+      "amz_disguised",
+      "amz_false_hierarchy",
+      "amz_preselect",
+      "amz_pop_up",
+      "amz_double_neg_notif",
+      "amz_confirm_notif",
+      "amz_social"
+    ],
+    "tgt": [
+      "tgt_disguised",
+      "tgt_false_hierarchy",
+      "tgt_preselect",
+      "tgt_pop_up",
+      "tgt_double_neg_notif",
+      "tgt_confirm_shaming",
+      "tgt_social"
+    ],
+    "cos": [
+      "cos_disguised",
+      "cos_false_hierarchy",
+      "cos_preselect",
+      "cos_pop_up",
+      "cos_double_neg_notif",
+      "cos_confirm_shaming",
+      "cos_social"
+    ],
+    "etp": [
+      "etp_pop_up",
+      "etp_double_neg_notif",
+      "etp_confirm_shaming",
+      "etp_social"
+    ],
+    "att": [
+      "att_disguised",
+      "att_false_hierarchy",
+      "att_preselect",
+      "att_pop_up",
+      "att_doube_negative",
+      "att_confirm_shaming",
+      "att_social"
+    ],
+    "ube": [
+      "ube_disguised",
+      "ube_false_hierarchy",
+      "ube_pop_up"
+    ],
+    "eco": [
+      "eco_preselect",
+      "eco_double_negative",
+      "eco_confirm_shaming"
+    ],
+    "wgs": [
+      "wgs_social",
+      "wgs_forced_action",
+      "wgs_hidden_information"
+    ],
+    "ude": [
+      "ude_disguised",
+      "ude_pop_up"
+    ],
+    "wfr": [
+      "wfr_disguised",
+      "wfr_false_hierarchy",
+      "wfr_preselect"
+    ],
+    "bki": [
+      "bki_pop_up",
+      "bki_double_negative",
+      "bki_confirm_shaming"
+    ],
+    "ghd": [
+      "ghd_social",
+      "ghd_forced_action",
+      "ghd_hidden_information"
+    ],
+    "dmn": [
+      "dmn_disguised",
+      "dmn_false_hierarchy",
+      "dmn_preselect"
+    ],
+    "stm": [
+      "stm_pop_up",
+      "stm_double_negative",
+      "stm_confirm_shaming"
+    ],
+    "eby": [
+      "eby_social",
+      "eby_forced_action",
+      "eby_hidden_information"
+    ],
+    "swt": [
+      "swt_disguised",
+      "swt_false_hierarchy",
+      "swt_preselect"
+    ],
+    "met": [
+      "met_pop_up",
+      "met_double_negative",
+      "met_confirm_shaming"
+    ],
+    "tkm": [
+      "tkm_social",
+      "tkm_forced_action",
+      "tkm_hidden_information"
+    ],
+    "sbk": [
+      "sbk_disguised",
+      "sbk_false_hierarchy",
+      "sbk_preselect"
+    ],
+    "ult": [
+      "ult_disguised",
+      "ult_false_hierarchy",
+      "ult_preselect"
+    ],
+    "ups": [
+      "ups_pop_up"
+    ],
+    "nik": [
+      "nik_double_negative"
+    ],
+    "pst": [
+      "pst_confirm_shaming"
+    ],
+    "nyt": [
+      "nyt_social"
+    ],
+    "any": [
+      "any_forced_action",
+      "any_double_negative"
+    ],
+    "macys": [
+      "macys_disguised",
+      "macys_false_hierarchy",
+      "macys_double_negative",
+      "macys_confirm_shaming",
+      "macys_pop_up",
+      "macys_fake_social_proof"
+    ],
+    "ikea": [
+      "ikea_preselect",
+      "ikea_comfirm_shaming",
+      "ikea_fake_social_proof",
+      "ikea_false_hierarchy"
+    ],
+    "apple": [
+      "apple_preselect_final_cut_pro",
+      "apple_preselect_logic_pro",
+      "apple_preselect_iphone_care",
+      "apple_disguised_ad_1",
+      "apple_disguised_ad_2",
+      "apple_disguised_ad_3"
+    ],
+    "stp": [
+      "stp_double_negative"
+    ],
+    "mds": [
+      "mds_hidden_information"
+    ],
+    "sth": [
+      "sth_double_negative"
+    ],
+    "xbx": [
+      "xbx_double_negative"
+    ],
+    "brg": [
+      "brg_double_negative"
+    ],
+    "ong": [
+      "ong_double_negative"
+    ],
+    "jpp": [
+      "jpp_forced_action"
+    ],
+    "hrz": [
+      "hrz_forced_action"
+    ],
+    "uss": [
+      "uss_forced_action"
+    ],
+    "ddt": [
+      "ddt_hidden_information"
+    ],
+    "hlt": [
+      "hlt_hidden_information"
+    ],
+    "cpl": [
+      "cpl_hidden_information"
+    ],
+    "fde": [
+      "fde_preselect"
+    ],
+    "lum": [
+      "lum_preselect"
+    ],
+    "del": [
+      "del_confirm_shaming"
+    ],
+    "nds": [
+      "nds_confirm_shaming"
+    ],
+    "bmd": [
+      "bmd_social"
+    ],
+    "kfc": [
+      "kfc_forced_action"
+    ],
+    "pzh": [
+      "pzh_hidden_information"
+    ],
+    "ylp": [
+      "ylp_forced_action"
+    ],
+    "acd": [
+      "acd_forced_action"
+    ],
+    "mct": [
+      "mct_forced_action"
+    ],
+    "fdg": [
+      "fdg_hidden_information"
+    ],
+    "ptb": [
+      "ptb_hidden_information"
+    ],
+    "srs": [
+      "srs_hidden_information"
+    ],
+    "uniqle": [
+      "uniqle_double_negative"
+    ],
+    "chickfila": [
+      "chickfila_double_negative"
+    ],
+    "lego": [
+      "lego_fake_social"
+    ]
+  },
+  "by_dp_type": {
+    "Disguised ad": [
+      "amz_disguised",
+      "tgt_disguised",
+      "cos_disguised",
+      "att_disguised",
+      "ube_disguised",
+      "ude_disguised",
+      "wfr_disguised",
+      "dmn_disguised",
+      "swt_disguised",
+      "sbk_disguised",
+      "ult_disguised",
+      "macys_disguised",
+      "apple_disguised_ad_1",
+      "apple_disguised_ad_2",
+      "apple_disguised_ad_3"
+    ],
+    "False hierarchy": [
+      "amz_false_hierarchy",
+      "tgt_false_hierarchy",
+      "cos_false_hierarchy",
+      "att_false_hierarchy",
+      "ube_false_hierarchy",
+      "wfr_false_hierarchy",
+      "dmn_false_hierarchy",
+      "swt_false_hierarchy",
+      "sbk_false_hierarchy",
+      "ult_false_hierarchy",
+      "macys_false_hierarchy",
+      "ikea_false_hierarchy"
+    ],
+    "Preselection": [
+      "amz_preselect",
+      "tgt_preselect",
+      "cos_preselect",
+      "att_preselect",
+      "eco_preselect",
+      "wfr_preselect",
+      "dmn_preselect",
+      "swt_preselect",
+      "sbk_preselect",
+      "ult_preselect",
+      "ikea_preselect",
+      "apple_preselect_final_cut_pro",
+      "apple_preselect_logic_pro",
+      "apple_preselect_iphone_care",
+      "fde_preselect",
+      "lum_preselect"
+    ],
+    "Pop-up ad": [
+      "amz_pop_up",
+      "tgt_pop_up",
+      "cos_pop_up",
+      "etp_pop_up",
+      "att_pop_up",
+      "ube_pop_up",
+      "ude_pop_up",
+      "bki_pop_up",
+      "stm_pop_up",
+      "met_pop_up",
+      "ups_pop_up",
+      "macys_pop_up"
+    ],
+    "Trick wording": [
+      "amz_double_neg_notif",
+      "tgt_double_neg_notif",
+      "cos_double_neg_notif",
+      "etp_double_neg_notif",
+      "att_doube_negative",
+      "eco_double_negative",
+      "bki_double_negative",
+      "stm_double_negative",
+      "met_double_negative",
+      "nik_double_negative",
+      "macys_double_negative",
+      "stp_double_negative",
+      "any_double_negative",
+      "sth_double_negative",
+      "xbx_double_negative",
+      "brg_double_negative",
+      "ong_double_negative",
+      "uniqle_double_negative",
+      "chickfila_double_negative"
+    ],
+    "Confirm shaming": [
+      "amz_confirm_notif",
+      "tgt_confirm_shaming",
+      "cos_confirm_shaming",
+      "etp_confirm_shaming",
+      "att_confirm_shaming",
+      "eco_confirm_shaming",
+      "bki_confirm_shaming",
+      "stm_confirm_shaming",
+      "met_confirm_shaming",
+      "pst_confirm_shaming",
+      "macys_confirm_shaming",
+      "ikea_comfirm_shaming",
+      "del_confirm_shaming",
+      "nds_confirm_shaming"
+    ],
+    "Fake social proof": [
+      "amz_social",
+      "tgt_social",
+      "cos_social",
+      "etp_social",
+      "att_social",
+      "wgs_social",
+      "ghd_social",
+      "eby_social",
+      "tkm_social",
+      "nyt_social",
+      "macys_fake_social_proof",
+      "ikea_fake_social_proof",
+      "bmd_social",
+      "lego_fake_social"
+    ],
+    "Forced Action": [
+      "wgs_forced_action",
+      "ghd_forced_action",
+      "eby_forced_action",
+      "tkm_forced_action",
+      "any_forced_action",
+      "jpp_forced_action",
+      "hrz_forced_action",
+      "uss_forced_action",
+      "kfc_forced_action",
+      "ylp_forced_action",
+      "acd_forced_action",
+      "mct_forced_action"
+    ],
+    "Hidden information": [
+      "wgs_hidden_information",
+      "ghd_hidden_information",
+      "eby_hidden_information",
+      "tkm_hidden_information",
+      "mds_hidden_information",
+      "ddt_hidden_information",
+      "hlt_hidden_information",
+      "cpl_hidden_information",
+      "pzh_hidden_information",
+      "fdg_hidden_information",
+      "ptb_hidden_information",
+      "srs_hidden_information"
+    ]
+  },
+  "warnings": []
+}
