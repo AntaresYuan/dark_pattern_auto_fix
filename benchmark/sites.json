@@ -5,9 +5,10 @@
   "fetched_at": "2026-05-14",
   "filtering_notes": "Dropped CDNs, cloud back-ends, DNS/PKI/NTP infra, tracking + ad networks, link shorteners, and a few generic-utility domains (example.com, w3.org). See benchmark/scripts/build-sites-json.cjs for the full deny-pattern list.",
   "counts": {
-    "input_rows": 300,
+    "csv_total_rows": 300,
+    "rows_considered": 266,
     "kept": 100,
-    "dropped": 168
+    "dropped": 166
   },
   "taxonomy": null,
   "sites": [
@@ -63,6 +64,13 @@
     {
       "rank": 12,
       "domain": "instagram.com",
+      "category": null,
+      "category_rationale": null,
+      "fixture_status": "not_started"
+    },
+    {
+      "rank": 15,
+      "domain": "dzen.ru",
       "category": null,
       "category_rationale": null,
       "fixture_status": "not_started"
@@ -700,13 +708,6 @@
     {
       "rank": 266,
       "domain": "wikimedia.org",
-      "category": null,
-      "category_rationale": null,
-      "fixture_status": "not_started"
-    },
-    {
-      "rank": 268,
-      "domain": "hp.com",
       "category": null,
       "category_rationale": null,
       "fixture_status": "not_started"

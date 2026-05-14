@@ -33,7 +33,7 @@ const DENY_PATTERNS = [
   /(^|\.)gstatic\.com$/,
   /(^|\.)edgekey\.net$/,
   /(^|\.)edgesuite\.net$/,
-  /(^|\.)cdn(77|gslb|instagram|-apple|-?77\.org)?\..*$/,
+  /(^|\.)cdn\..*$/,
   /(^|\.)b-cdn\.net$/,
   /(^|\.)cdninstagram\.com$/,
   /(^|\.)cdngslb\.com$/,
@@ -146,7 +146,6 @@ const DENY_PATTERNS = [
   /(^|\.)telekom\.de$/,
   /(^|\.)reg\.ru$/,
   /(^|\.)mts\.ru$/,
-  /(^|\.)dzen\.ru$/,
   /(^|\.)drom\.ru$/,
   /(^|\.)iiko\.it$/,
   /(^|\.)miit\.gov\.cn$/,
@@ -284,7 +283,8 @@ function main() {
       "link shorteners, and a few generic-utility domains (example.com, w3.org). " +
       "See benchmark/scripts/build-sites-json.cjs for the full deny-pattern list.",
     counts: {
-      input_rows: rows.length,
+      csv_total_rows: rows.length,
+      rows_considered: kept.length + dropped.length,
       kept: kept.length,
       dropped: dropped.length,
     },
