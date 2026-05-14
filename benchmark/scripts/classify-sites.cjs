@@ -39,7 +39,6 @@ const CLASSIFICATIONS = {
   "gandi.net":    [1, "Domain registrar e-commerce; cart/extras flow."],
   "ebay.com":     [1, "Auction/marketplace; PDP, bidding flow, post-bid upsells."],
   "ozon.ru":      [1, "Russian marketplace; PDP + checkout."],
-  "hp.com":       [1, "Direct PC + accessories storefront; configurator + warranty preselects."],
   "xiaomi.com":   [1, "Consumer hardware storefront."],
   "miui.com":     [1, "Xiaomi consumer surface (MIUI account / store)."],
   "kaspersky.com":[1, "Consumer security-software purchase flow; auto-renew preselects, hidden fee structures."],
@@ -169,6 +168,16 @@ function main() {
   if (unclassified.length > 0) {
     console.error("ERROR: unclassified domains in sites.json:");
     for (const d of unclassified) console.error(`  - ${d}`);
+    process.exit(1);
+  }
+
+  // Also flag dead map entries — classifications for domains that aren't in sites.json.
+  // Catches drift between the filter (build-sites-json.cjs) and this classifier.
+  const sitesSet = new Set(sites.sites.map((s) => s.domain));
+  const dead = Object.keys(CLASSIFICATIONS).filter((d) => !sitesSet.has(d));
+  if (dead.length > 0) {
+    console.error("ERROR: classifications for domains not in sites.json (dead map entries):");
+    for (const d of dead) console.error(`  - ${d}`);
     process.exit(1);
   }
 
