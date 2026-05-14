@@ -10,706 +10,717 @@
     "kept": 100,
     "dropped": 166
   },
-  "taxonomy": null,
+  "taxonomy": {
+    "1": "E-commerce",
+    "2": "News & media",
+    "3": "Social media",
+    "4": "Travel & hospitality",
+    "5": "Finance & fintech",
+    "6": "Productivity SaaS",
+    "7": "Streaming & entertainment",
+    "8": "Dating & gaming",
+    "9": "Education",
+    "10": "Utility & misc"
+  },
   "sites": [
     {
       "rank": 1,
       "domain": "google.com",
-      "category": null,
-      "category_rationale": null,
+      "category": 10,
+      "category_rationale": "Primary surface is search; account/settings pages carry consent + preselect DPs.",
       "fixture_status": "not_started"
     },
     {
       "rank": 3,
       "domain": "cloudflare.com",
-      "category": null,
-      "category_rationale": null,
+      "category": 6,
+      "category_rationale": "DNS/CDN SaaS; signup + plan-tier preselects, free-to-paid friction.",
       "fixture_status": "not_started"
     },
     {
       "rank": 5,
       "domain": "facebook.com",
-      "category": null,
-      "category_rationale": null,
+      "category": 3,
+      "category_rationale": "Social network; privacy preselects, deactivation friction, growth nudges.",
       "fixture_status": "not_started"
     },
     {
       "rank": 6,
       "domain": "microsoft.com",
-      "category": null,
-      "category_rationale": null,
+      "category": 1,
+      "category_rationale": "Consumer hardware/software store; product pages + subscription cross-sell.",
       "fixture_status": "not_started"
     },
     {
       "rank": 8,
       "domain": "youtube.com",
-      "category": null,
-      "category_rationale": null,
+      "category": 7,
+      "category_rationale": "Video streaming; cancel/Premium friction, autoplay preselects.",
       "fixture_status": "not_started"
     },
     {
       "rank": 9,
       "domain": "mail.ru",
-      "category": null,
-      "category_rationale": null,
+      "category": 6,
+      "category_rationale": "Russian webmail/portal; account + storage upsells.",
       "fixture_status": "not_started"
     },
     {
       "rank": 11,
       "domain": "apple.com",
-      "category": null,
-      "category_rationale": null,
+      "category": 1,
+      "category_rationale": "Direct sales storefront; product configurator + protection plan upsells trigger preselect + false hierarchy.",
       "fixture_status": "not_started"
     },
     {
       "rank": 12,
       "domain": "instagram.com",
-      "category": null,
-      "category_rationale": null,
+      "category": 3,
+      "category_rationale": "Social/photo; privacy + deactivation, ad consent.",
       "fixture_status": "not_started"
     },
     {
       "rank": 15,
       "domain": "dzen.ru",
-      "category": null,
-      "category_rationale": null,
+      "category": 2,
+      "category_rationale": "Yandex consumer news/feed; cookie + consent + content-recommendation DPs.",
       "fixture_status": "not_started"
     },
     {
       "rank": 16,
       "domain": "twitter.com",
-      "category": null,
-      "category_rationale": null,
+      "category": 3,
+      "category_rationale": "Microblogging; account deletion friction, ad consent.",
       "fixture_status": "not_started"
     },
     {
       "rank": 17,
       "domain": "linkedin.com",
-      "category": null,
-      "category_rationale": null,
+      "category": 3,
+      "category_rationale": "Professional social; growth dark patterns (connect prompts), data preselects.",
       "fixture_status": "not_started"
     },
     {
       "rank": 19,
       "domain": "office.com",
-      "category": null,
-      "category_rationale": null,
+      "category": 6,
+      "category_rationale": "Microsoft 365 productivity surface.",
       "fixture_status": "not_started"
     },
     {
       "rank": 20,
       "domain": "live.com",
-      "category": null,
-      "category_rationale": null,
+      "category": 6,
+      "category_rationale": "Microsoft consumer login + Outlook/OneDrive.",
       "fixture_status": "not_started"
     },
     {
       "rank": 24,
       "domain": "amazon.com",
-      "category": null,
-      "category_rationale": null,
+      "category": 1,
+      "category_rationale": "Marketplace; PDP, cart, checkout flows are DP-dense (preselects, hidden fees, false hierarchy).",
       "fixture_status": "not_started"
     },
     {
       "rank": 26,
       "domain": "azure.com",
-      "category": null,
-      "category_rationale": null,
+      "category": 6,
+      "category_rationale": "Microsoft cloud signup; paid-tier preselects on free signup.",
       "fixture_status": "not_started"
     },
     {
       "rank": 27,
       "domain": "wikipedia.org",
-      "category": null,
-      "category_rationale": null,
+      "category": 10,
+      "category_rationale": "Encyclopedia + donation banners; low DP density.",
       "fixture_status": "not_started"
     },
     {
       "rank": 29,
       "domain": "github.com",
-      "category": null,
-      "category_rationale": null,
+      "category": 6,
+      "category_rationale": "Dev SaaS; Pro/Team upgrade flows, billing UX.",
       "fixture_status": "not_started"
     },
     {
       "rank": 32,
       "domain": "bing.com",
-      "category": null,
-      "category_rationale": null,
+      "category": 10,
+      "category_rationale": "Search engine + Rewards consent.",
       "fixture_status": "not_started"
     },
     {
       "rank": 40,
       "domain": "netflix.com",
-      "category": null,
-      "category_rationale": null,
+      "category": 7,
+      "category_rationale": "Video streaming; plan preselects, cancel-flow.",
       "fixture_status": "not_started"
     },
     {
       "rank": 42,
       "domain": "wordpress.org",
-      "category": null,
-      "category_rationale": null,
+      "category": 10,
+      "category_rationale": "Open-source community/download site.",
       "fixture_status": "not_started"
     },
     {
       "rank": 44,
       "domain": "skype.com",
-      "category": null,
-      "category_rationale": null,
+      "category": 6,
+      "category_rationale": "Messaging; subscription credit + auto-renew preselects.",
       "fixture_status": "not_started"
     },
     {
       "rank": 45,
       "domain": "sharepoint.com",
-      "category": null,
-      "category_rationale": null,
+      "category": 6,
+      "category_rationale": "Microsoft 365 collaboration.",
       "fixture_status": "not_started"
     },
     {
       "rank": 47,
       "domain": "pinterest.com",
-      "category": null,
-      "category_rationale": null,
+      "category": 3,
+      "category_rationale": "Visual social; cookie + recommendation preselects.",
       "fixture_status": "not_started"
     },
     {
       "rank": 49,
       "domain": "chatgpt.com",
-      "category": null,
-      "category_rationale": null,
+      "category": 6,
+      "category_rationale": "Consumer LLM SaaS; Plus subscription, cancel-flow friction.",
       "fixture_status": "not_started"
     },
     {
       "rank": 50,
       "domain": "whatsapp.com",
-      "category": null,
-      "category_rationale": null,
+      "category": 6,
+      "category_rationale": "Messaging SaaS; account deletion + backup preselects.",
       "fixture_status": "not_started"
     },
     {
       "rank": 52,
       "domain": "gandi.net",
-      "category": null,
-      "category_rationale": null,
+      "category": 1,
+      "category_rationale": "Domain registrar e-commerce; cart/extras flow.",
       "fixture_status": "not_started"
     },
     {
       "rank": 56,
       "domain": "yahoo.com",
-      "category": null,
-      "category_rationale": null,
+      "category": 2,
+      "category_rationale": "News portal + email; subscription paywall + content gates.",
       "fixture_status": "not_started"
     },
     {
       "rank": 57,
       "domain": "x.com",
-      "category": null,
-      "category_rationale": null,
+      "category": 3,
+      "category_rationale": "Twitter-rebranded surface; same DP signature.",
       "fixture_status": "not_started"
     },
     {
       "rank": 58,
       "domain": "cloud.microsoft",
-      "category": null,
-      "category_rationale": null,
+      "category": 6,
+      "category_rationale": "Microsoft cloud portal entry.",
       "fixture_status": "not_started"
     },
     {
       "rank": 59,
       "domain": "icloud.com",
-      "category": null,
-      "category_rationale": null,
+      "category": 6,
+      "category_rationale": "Apple consumer storage; tier-upgrade nudges.",
       "fixture_status": "not_started"
     },
     {
       "rank": 60,
       "domain": "tiktok.com",
-      "category": null,
-      "category_rationale": null,
+      "category": 3,
+      "category_rationale": "Short-video social; consent + personalization, FYP opt-out friction.",
       "fixture_status": "not_started"
     },
     {
       "rank": 61,
       "domain": "msn.com",
-      "category": null,
-      "category_rationale": null,
+      "category": 2,
+      "category_rationale": "Microsoft news portal.",
       "fixture_status": "not_started"
     },
     {
       "rank": 63,
       "domain": "spotify.com",
-      "category": null,
-      "category_rationale": null,
+      "category": 7,
+      "category_rationale": "Audio streaming; Premium preselects, family-plan upsells.",
       "fixture_status": "not_started"
     },
     {
       "rank": 65,
       "domain": "adobe.com",
-      "category": null,
-      "category_rationale": null,
+      "category": 6,
+      "category_rationale": "Creative Cloud SaaS; annual-vs-monthly preselects, cancel-flow notoriously dark.",
       "fixture_status": "not_started"
     },
     {
       "rank": 66,
       "domain": "vimeo.com",
-      "category": null,
-      "category_rationale": null,
+      "category": 7,
+      "category_rationale": "Video hosting; tier preselects.",
       "fixture_status": "not_started"
     },
     {
       "rank": 78,
       "domain": "zoom.us",
-      "category": null,
-      "category_rationale": null,
+      "category": 6,
+      "category_rationale": "Video-conferencing SaaS; pro plan upsells.",
       "fixture_status": "not_started"
     },
     {
       "rank": 82,
       "domain": "roblox.com",
-      "category": null,
-      "category_rationale": null,
+      "category": 8,
+      "category_rationale": "Online gaming platform; in-app currency + parental-control friction.",
       "fixture_status": "not_started"
     },
     {
       "rank": 83,
       "domain": "qq.com",
-      "category": null,
-      "category_rationale": null,
+      "category": 3,
+      "category_rationale": "Tencent social/IM portal; bundle preselects + cross-product nudges.",
       "fixture_status": "not_started"
     },
     {
       "rank": 86,
       "domain": "baidu.com",
-      "category": null,
-      "category_rationale": null,
+      "category": 10,
+      "category_rationale": "Chinese search + portal.",
       "fixture_status": "not_started"
     },
     {
       "rank": 93,
       "domain": "mozilla.org",
-      "category": null,
-      "category_rationale": null,
+      "category": 10,
+      "category_rationale": "Browser foundation site + Firefox download.",
       "fixture_status": "not_started"
     },
     {
       "rank": 94,
       "domain": "yandex.ru",
-      "category": null,
-      "category_rationale": null,
+      "category": 10,
+      "category_rationale": "Russian search/portal.",
       "fixture_status": "not_started"
     },
     {
       "rank": 95,
       "domain": "samsung.com",
-      "category": null,
-      "category_rationale": null,
+      "category": 1,
+      "category_rationale": "Consumer electronics storefront; PDP + bundle upsells.",
       "fixture_status": "not_started"
     },
     {
       "rank": 98,
       "domain": "windows.com",
-      "category": null,
-      "category_rationale": null,
+      "category": 1,
+      "category_rationale": "Redirects to Microsoft's Windows commerce surface; edition + upgrade upsells.",
       "fixture_status": "not_started"
     },
     {
       "rank": 99,
       "domain": "office365.com",
-      "category": null,
-      "category_rationale": null,
+      "category": 6,
+      "category_rationale": "Microsoft 365 SaaS.",
       "fixture_status": "not_started"
     },
     {
       "rank": 100,
       "domain": "wordpress.com",
-      "category": null,
-      "category_rationale": null,
+      "category": 6,
+      "category_rationale": "Hosted blog SaaS; plan upgrade nudges.",
       "fixture_status": "not_started"
     },
     {
       "rank": 106,
       "domain": "reddit.com",
-      "category": null,
-      "category_rationale": null,
+      "category": 3,
+      "category_rationale": "Community forum; signup wall, premium upsells, mobile-app deeplinks.",
       "fixture_status": "not_started"
     },
     {
       "rank": 117,
       "domain": "europa.eu",
-      "category": null,
-      "category_rationale": null,
+      "category": 10,
+      "category_rationale": "EU government info site.",
       "fixture_status": "not_started"
     },
     {
       "rank": 118,
       "domain": "vk.com",
-      "category": null,
-      "category_rationale": null,
+      "category": 3,
+      "category_rationale": "Russian social network; privacy + ad consent.",
       "fixture_status": "not_started"
     },
     {
       "rank": 121,
       "domain": "unity3d.com",
-      "category": null,
-      "category_rationale": null,
+      "category": 6,
+      "category_rationale": "Game-engine SaaS; subscription + asset-store.",
       "fixture_status": "not_started"
     },
     {
       "rank": 122,
       "domain": "intuit.com",
-      "category": null,
-      "category_rationale": null,
+      "category": 5,
+      "category_rationale": "TurboTax/Quicken parent; tax-filing tier upsells, preselected add-ons.",
       "fixture_status": "not_started"
     },
     {
       "rank": 123,
       "domain": "snapchat.com",
-      "category": null,
-      "category_rationale": null,
+      "category": 3,
+      "category_rationale": "Ephemeral social; account deletion + ad personalization.",
       "fixture_status": "not_started"
     },
     {
       "rank": 132,
       "domain": "outlook.com",
-      "category": null,
-      "category_rationale": null,
+      "category": 6,
+      "category_rationale": "Microsoft consumer email.",
       "fixture_status": "not_started"
     },
     {
       "rank": 133,
       "domain": "kaspersky.com",
-      "category": null,
-      "category_rationale": null,
+      "category": 1,
+      "category_rationale": "Consumer security-software purchase flow; auto-renew preselects, hidden fee structures.",
       "fixture_status": "not_started"
     },
     {
       "rank": 134,
       "domain": "nih.gov",
-      "category": null,
-      "category_rationale": null,
+      "category": 10,
+      "category_rationale": "US government health info.",
       "fixture_status": "not_started"
     },
     {
       "rank": 137,
       "domain": "dropbox.com",
-      "category": null,
-      "category_rationale": null,
+      "category": 6,
+      "category_rationale": "File storage SaaS; tier upsells + cancel friction.",
       "fixture_status": "not_started"
     },
     {
       "rank": 139,
       "domain": "epicgames.com",
-      "category": null,
-      "category_rationale": null,
+      "category": 8,
+      "category_rationale": "Game store + launcher; Epic Games store checkout, account deletion friction.",
       "fixture_status": "not_started"
     },
     {
       "rank": 142,
       "domain": "xiaomi.com",
-      "category": null,
-      "category_rationale": null,
+      "category": 1,
+      "category_rationale": "Consumer hardware storefront.",
       "fixture_status": "not_started"
     },
     {
       "rank": 146,
       "domain": "archive.org",
-      "category": null,
-      "category_rationale": null,
+      "category": 10,
+      "category_rationale": "Internet Archive; donation banners.",
       "fixture_status": "not_started"
     },
     {
       "rank": 151,
       "domain": "godaddy.com",
-      "category": null,
-      "category_rationale": null,
+      "category": 1,
+      "category_rationale": "Domain registrar e-commerce; cart preselects (privacy, hosting bundles) are notorious.",
       "fixture_status": "not_started"
     },
     {
       "rank": 152,
       "domain": "tumblr.com",
-      "category": null,
-      "category_rationale": null,
+      "category": 3,
+      "category_rationale": "Microblog/social; subscription preselects (Tumblr Premium).",
       "fixture_status": "not_started"
     },
     {
       "rank": 153,
       "domain": "nytimes.com",
-      "category": null,
-      "category_rationale": null,
+      "category": 2,
+      "category_rationale": "Paywalled news; subscription preselects, confirm-shaming decline link.",
       "fixture_status": "not_started"
     },
     {
       "rank": 158,
       "domain": "paypal.com",
-      "category": null,
-      "category_rationale": null,
+      "category": 5,
+      "category_rationale": "Payments; account-close friction, hidden conversion fees.",
       "fixture_status": "not_started"
     },
     {
       "rank": 163,
       "domain": "shopify.com",
-      "category": null,
-      "category_rationale": null,
+      "category": 6,
+      "category_rationale": "Merchant SaaS; plan-tier signup.",
       "fixture_status": "not_started"
     },
     {
       "rank": 168,
       "domain": "discord.com",
-      "category": null,
-      "category_rationale": null,
+      "category": 3,
+      "category_rationale": "Community chat; Nitro subscription upsells, deletion friction.",
       "fixture_status": "not_started"
     },
     {
       "rank": 169,
       "domain": "webex.com",
-      "category": null,
-      "category_rationale": null,
+      "category": 6,
+      "category_rationale": "Video-conferencing SaaS.",
       "fixture_status": "not_started"
     },
     {
       "rank": 174,
       "domain": "flickr.com",
-      "category": null,
-      "category_rationale": null,
+      "category": 3,
+      "category_rationale": "Photo-sharing social; Pro subscription preselects.",
       "fixture_status": "not_started"
     },
     {
       "rank": 177,
       "domain": "soundcloud.com",
-      "category": null,
-      "category_rationale": null,
+      "category": 7,
+      "category_rationale": "Audio streaming; Premium upsells.",
       "fixture_status": "not_started"
     },
     {
       "rank": 178,
       "domain": "medium.com",
-      "category": null,
-      "category_rationale": null,
+      "category": 2,
+      "category_rationale": "Publishing platform; metered paywall + member-upsell modals.",
       "fixture_status": "not_started"
     },
     {
       "rank": 183,
       "domain": "cnn.com",
-      "category": null,
-      "category_rationale": null,
+      "category": 2,
+      "category_rationale": "News site; ad consent, newsletter modals.",
       "fixture_status": "not_started"
     },
     {
       "rank": 185,
       "domain": "theguardian.com",
-      "category": null,
-      "category_rationale": null,
+      "category": 2,
+      "category_rationale": "News site with donation upsell flow.",
       "fixture_status": "not_started"
     },
     {
       "rank": 188,
       "domain": "avast.com",
-      "category": null,
-      "category_rationale": null,
+      "category": 1,
+      "category_rationale": "Consumer security-software purchase flow; free-to-paid upgrade DPs.",
       "fixture_status": "not_started"
     },
     {
       "rank": 192,
       "domain": "oracle.com",
-      "category": null,
-      "category_rationale": null,
+      "category": 6,
+      "category_rationale": "Enterprise SaaS; cloud signup.",
       "fixture_status": "not_started"
     },
     {
       "rank": 194,
       "domain": "forbes.com",
-      "category": null,
-      "category_rationale": null,
+      "category": 2,
+      "category_rationale": "News site; aggressive interstitials + paywall.",
       "fixture_status": "not_started"
     },
     {
       "rank": 195,
       "domain": "creativecommons.org",
-      "category": null,
-      "category_rationale": null,
+      "category": 10,
+      "category_rationale": "Open-license organization.",
       "fixture_status": "not_started"
     },
     {
       "rank": 199,
       "domain": "ozon.ru",
-      "category": null,
-      "category_rationale": null,
+      "category": 1,
+      "category_rationale": "Russian marketplace; PDP + checkout.",
       "fixture_status": "not_started"
     },
     {
       "rank": 201,
       "domain": "bbc.com",
-      "category": null,
-      "category_rationale": null,
+      "category": 2,
+      "category_rationale": "International news; consent banners + algorithmic-content gates.",
       "fixture_status": "not_started"
     },
     {
       "rank": 207,
       "domain": "roku.com",
-      "category": null,
-      "category_rationale": null,
+      "category": 7,
+      "category_rationale": "Streaming device portal; channel preselects, account billing.",
       "fixture_status": "not_started"
     },
     {
       "rank": 208,
       "domain": "weather.com",
-      "category": null,
-      "category_rationale": null,
+      "category": 10,
+      "category_rationale": "Weather utility; ad-heavy but largely information.",
       "fixture_status": "not_started"
     },
     {
       "rank": 211,
       "domain": "twitch.tv",
-      "category": null,
-      "category_rationale": null,
+      "category": 7,
+      "category_rationale": "Live streaming; subscription + cancel friction, Prime-linking preselects.",
       "fixture_status": "not_started"
     },
     {
       "rank": 213,
       "domain": "sciencedirect.com",
-      "category": null,
-      "category_rationale": null,
+      "category": 9,
+      "category_rationale": "Academic publishing (Elsevier); paywall + access-tier UI.",
       "fixture_status": "not_started"
     },
     {
       "rank": 214,
       "domain": "researchgate.net",
-      "category": null,
-      "category_rationale": null,
+      "category": 9,
+      "category_rationale": "Academic social network; data preselects, paper-access gates.",
       "fixture_status": "not_started"
     },
     {
       "rank": 215,
       "domain": "bbc.co.uk",
-      "category": null,
-      "category_rationale": null,
+      "category": 2,
+      "category_rationale": "UK news + iPlayer streaming.",
       "fixture_status": "not_started"
     },
     {
       "rank": 217,
       "domain": "gmail.com",
-      "category": null,
-      "category_rationale": null,
+      "category": 6,
+      "category_rationale": "Consumer email surface.",
       "fixture_status": "not_started"
     },
     {
       "rank": 220,
       "domain": "ebay.com",
-      "category": null,
-      "category_rationale": null,
+      "category": 1,
+      "category_rationale": "Auction/marketplace; PDP, bidding flow, post-bid upsells.",
       "fixture_status": "not_started"
     },
     {
       "rank": 224,
       "domain": "sourceforge.net",
-      "category": null,
-      "category_rationale": null,
+      "category": 10,
+      "category_rationale": "Open-source download portal.",
       "fixture_status": "not_started"
     },
     {
       "rank": 226,
       "domain": "mit.edu",
-      "category": null,
-      "category_rationale": null,
+      "category": 9,
+      "category_rationale": "University site; mostly informational + admissions UX.",
       "fixture_status": "not_started"
     },
     {
       "rank": 227,
       "domain": "ubuntu.com",
-      "category": null,
-      "category_rationale": null,
+      "category": 10,
+      "category_rationale": "Linux distribution; community + download.",
       "fixture_status": "not_started"
     },
     {
       "rank": 229,
       "domain": "canva.com",
-      "category": null,
-      "category_rationale": null,
+      "category": 6,
+      "category_rationale": "Design SaaS; Pro upsells, free-to-paid friction.",
       "fixture_status": "not_started"
     },
     {
       "rank": 232,
       "domain": "android.com",
-      "category": null,
-      "category_rationale": null,
+      "category": 10,
+      "category_rationale": "Google's Android info site.",
       "fixture_status": "not_started"
     },
     {
       "rank": 237,
       "domain": "nist.gov",
-      "category": null,
-      "category_rationale": null,
+      "category": 10,
+      "category_rationale": "US standards body.",
       "fixture_status": "not_started"
     },
     {
       "rank": 245,
       "domain": "imdb.com",
-      "category": null,
-      "category_rationale": null,
+      "category": 7,
+      "category_rationale": "Entertainment metadata; ad consent, Amazon-account nudges.",
       "fixture_status": "not_started"
     },
     {
       "rank": 246,
       "domain": "stripe.com",
-      "category": null,
-      "category_rationale": null,
+      "category": 5,
+      "category_rationale": "Payment platform; signup + plan-tier UI.",
       "fixture_status": "not_started"
     },
     {
       "rank": 247,
       "domain": "who.int",
-      "category": null,
-      "category_rationale": null,
+      "category": 10,
+      "category_rationale": "World Health Organization.",
       "fixture_status": "not_started"
     },
     {
       "rank": 248,
       "domain": "miui.com",
-      "category": null,
-      "category_rationale": null,
+      "category": 1,
+      "category_rationale": "Xiaomi consumer surface (MIUI account / store).",
       "fixture_status": "not_started"
     },
     {
       "rank": 250,
       "domain": "telegram.org",
-      "category": null,
-      "category_rationale": null,
+      "category": 6,
+      "category_rationale": "Messaging; Premium upsells.",
       "fixture_status": "not_started"
     },
     {
       "rank": 252,
       "domain": "hubspot.com",
-      "category": null,
-      "category_rationale": null,
+      "category": 6,
+      "category_rationale": "Marketing/CRM SaaS; free-to-paid + plan-tier UI.",
       "fixture_status": "not_started"
     },
     {
       "rank": 258,
       "domain": "openai.com",
-      "category": null,
-      "category_rationale": null,
+      "category": 6,
+      "category_rationale": "LLM SaaS; signup + plan-tier.",
       "fixture_status": "not_started"
     },
     {
       "rank": 259,
       "domain": "booking.com",
-      "category": null,
-      "category_rationale": null,
+      "category": 4,
+      "category_rationale": "Hotel booking; classic DP-dense surface — urgency banners, scarcity messaging, preselected insurance, hidden resort fees.",
       "fixture_status": "not_started"
     },
     {
       "rank": 265,
       "domain": "autodesk.com",
-      "category": null,
-      "category_rationale": null,
+      "category": 6,
+      "category_rationale": "Engineering SaaS; subscription billing UX.",
       "fixture_status": "not_started"
     },
     {
       "rank": 266,
       "domain": "wikimedia.org",
-      "category": null,
-      "category_rationale": null,
+      "category": 10,
+      "category_rationale": "Wikimedia Foundation umbrella site.",
       "fixture_status": "not_started"
     }
   ]
