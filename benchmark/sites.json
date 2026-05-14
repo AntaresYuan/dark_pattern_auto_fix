@@ -1,0 +1,716 @@
+{
+  "source": "tranco-list.eu",
+  "source_file": "tranco-6G8PX-2026-05-14-top-300.csv",
+  "list_id": "6G8PX",
+  "fetched_at": "2026-05-14",
+  "filtering_notes": "Dropped CDNs, cloud back-ends, DNS/PKI/NTP infra, tracking + ad networks, link shorteners, and a few generic-utility domains (example.com, w3.org). See benchmark/scripts/build-sites-json.cjs for the full deny-pattern list.",
+  "counts": {
+    "csv_total_rows": 300,
+    "rows_considered": 266,
+    "kept": 100,
+    "dropped": 166
+  },
+  "taxonomy": null,
+  "sites": [
+    {
+      "rank": 1,
+      "domain": "google.com",
+      "category": null,
+      "category_rationale": null,
+      "fixture_status": "not_started"
+    },
+    {
+      "rank": 3,
+      "domain": "cloudflare.com",
+      "category": null,
+      "category_rationale": null,
+      "fixture_status": "not_started"
+    },
+    {
+      "rank": 5,
+      "domain": "facebook.com",
+      "category": null,
+      "category_rationale": null,
+      "fixture_status": "not_started"
+    },
+    {
+      "rank": 6,
+      "domain": "microsoft.com",
+      "category": null,
+      "category_rationale": null,
+      "fixture_status": "not_started"
+    },
+    {
+      "rank": 8,
+      "domain": "youtube.com",
+      "category": null,
+      "category_rationale": null,
+      "fixture_status": "not_started"
+    },
+    {
+      "rank": 9,
+      "domain": "mail.ru",
+      "category": null,
+      "category_rationale": null,
+      "fixture_status": "not_started"
+    },
+    {
+      "rank": 11,
+      "domain": "apple.com",
+      "category": null,
+      "category_rationale": null,
+      "fixture_status": "not_started"
+    },
+    {
+      "rank": 12,
+      "domain": "instagram.com",
+      "category": null,
+      "category_rationale": null,
+      "fixture_status": "not_started"
+    },
+    {
+      "rank": 15,
+      "domain": "dzen.ru",
+      "category": null,
+      "category_rationale": null,
+      "fixture_status": "not_started"
+    },
+    {
+      "rank": 16,
+      "domain": "twitter.com",
+      "category": null,
+      "category_rationale": null,
+      "fixture_status": "not_started"
+    },
+    {
+      "rank": 17,
+      "domain": "linkedin.com",
+      "category": null,
+      "category_rationale": null,
+      "fixture_status": "not_started"
+    },
+    {
+      "rank": 19,
+      "domain": "office.com",
+      "category": null,
+      "category_rationale": null,
+      "fixture_status": "not_started"
+    },
+    {
+      "rank": 20,
+      "domain": "live.com",
+      "category": null,
+      "category_rationale": null,
+      "fixture_status": "not_started"
+    },
+    {
+      "rank": 24,
+      "domain": "amazon.com",
+      "category": null,
+      "category_rationale": null,
+      "fixture_status": "not_started"
+    },
+    {
+      "rank": 26,
+      "domain": "azure.com",
+      "category": null,
+      "category_rationale": null,
+      "fixture_status": "not_started"
+    },
+    {
+      "rank": 27,
+      "domain": "wikipedia.org",
+      "category": null,
+      "category_rationale": null,
+      "fixture_status": "not_started"
+    },
+    {
+      "rank": 29,
+      "domain": "github.com",
+      "category": null,
+      "category_rationale": null,
+      "fixture_status": "not_started"
+    },
+    {
+      "rank": 32,
+      "domain": "bing.com",
+      "category": null,
+      "category_rationale": null,
+      "fixture_status": "not_started"
+    },
+    {
+      "rank": 40,
+      "domain": "netflix.com",
+      "category": null,
+      "category_rationale": null,
+      "fixture_status": "not_started"
+    },
+    {
+      "rank": 42,
+      "domain": "wordpress.org",
+      "category": null,
+      "category_rationale": null,
+      "fixture_status": "not_started"
+    },
+    {
+      "rank": 44,
+      "domain": "skype.com",
+      "category": null,
+      "category_rationale": null,
+      "fixture_status": "not_started"
+    },
+    {
+      "rank": 45,
+      "domain": "sharepoint.com",
+      "category": null,
+      "category_rationale": null,
+      "fixture_status": "not_started"
+    },
+    {
+      "rank": 47,
+      "domain": "pinterest.com",
+      "category": null,
+      "category_rationale": null,
+      "fixture_status": "not_started"
+    },
+    {
+      "rank": 49,
+      "domain": "chatgpt.com",
+      "category": null,
+      "category_rationale": null,
+      "fixture_status": "not_started"
+    },
+    {
+      "rank": 50,
+      "domain": "whatsapp.com",
+      "category": null,
+      "category_rationale": null,
+      "fixture_status": "not_started"
+    },
+    {
+      "rank": 52,
+      "domain": "gandi.net",
+      "category": null,
+      "category_rationale": null,
+      "fixture_status": "not_started"
+    },
+    {
+      "rank": 56,
+      "domain": "yahoo.com",
+      "category": null,
+      "category_rationale": null,
+      "fixture_status": "not_started"
+    },
+    {
+      "rank": 57,
+      "domain": "x.com",
+      "category": null,
+      "category_rationale": null,
+      "fixture_status": "not_started"
+    },
+    {
+      "rank": 58,
+      "domain": "cloud.microsoft",
+      "category": null,
+      "category_rationale": null,
+      "fixture_status": "not_started"
+    },
+    {
+      "rank": 59,
+      "domain": "icloud.com",
+      "category": null,
+      "category_rationale": null,
+      "fixture_status": "not_started"
+    },
+    {
+      "rank": 60,
+      "domain": "tiktok.com",
+      "category": null,
+      "category_rationale": null,
+      "fixture_status": "not_started"
+    },
+    {
+      "rank": 61,
+      "domain": "msn.com",
+      "category": null,
+      "category_rationale": null,
+      "fixture_status": "not_started"
+    },
+    {
+      "rank": 63,
+      "domain": "spotify.com",
+      "category": null,
+      "category_rationale": null,
+      "fixture_status": "not_started"
+    },
+    {
+      "rank": 65,
+      "domain": "adobe.com",
+      "category": null,
+      "category_rationale": null,
+      "fixture_status": "not_started"
+    },
+    {
+      "rank": 66,
+      "domain": "vimeo.com",
+      "category": null,
+      "category_rationale": null,
+      "fixture_status": "not_started"
+    },
+    {
+      "rank": 78,
+      "domain": "zoom.us",
+      "category": null,
+      "category_rationale": null,
+      "fixture_status": "not_started"
+    },
+    {
+      "rank": 82,
+      "domain": "roblox.com",
+      "category": null,
+      "category_rationale": null,
+      "fixture_status": "not_started"
+    },
+    {
+      "rank": 83,
+      "domain": "qq.com",
+      "category": null,
+      "category_rationale": null,
+      "fixture_status": "not_started"
+    },
+    {
+      "rank": 86,
+      "domain": "baidu.com",
+      "category": null,
+      "category_rationale": null,
+      "fixture_status": "not_started"
+    },
+    {
+      "rank": 93,
+      "domain": "mozilla.org",
+      "category": null,
+      "category_rationale": null,
+      "fixture_status": "not_started"
+    },
+    {
+      "rank": 94,
+      "domain": "yandex.ru",
+      "category": null,
+      "category_rationale": null,
+      "fixture_status": "not_started"
+    },
+    {
+      "rank": 95,
+      "domain": "samsung.com",
+      "category": null,
+      "category_rationale": null,
+      "fixture_status": "not_started"
+    },
+    {
+      "rank": 98,
+      "domain": "windows.com",
+      "category": null,
+      "category_rationale": null,
+      "fixture_status": "not_started"
+    },
+    {
+      "rank": 99,
+      "domain": "office365.com",
+      "category": null,
+      "category_rationale": null,
+      "fixture_status": "not_started"
+    },
+    {
+      "rank": 100,
+      "domain": "wordpress.com",
+      "category": null,
+      "category_rationale": null,
+      "fixture_status": "not_started"
+    },
+    {
+      "rank": 106,
+      "domain": "reddit.com",
+      "category": null,
+      "category_rationale": null,
+      "fixture_status": "not_started"
+    },
+    {
+      "rank": 117,
+      "domain": "europa.eu",
+      "category": null,
+      "category_rationale": null,
+      "fixture_status": "not_started"
+    },
+    {
+      "rank": 118,
+      "domain": "vk.com",
+      "category": null,
+      "category_rationale": null,
+      "fixture_status": "not_started"
+    },
+    {
+      "rank": 121,
+      "domain": "unity3d.com",
+      "category": null,
+      "category_rationale": null,
+      "fixture_status": "not_started"
+    },
+    {
+      "rank": 122,
+      "domain": "intuit.com",
+      "category": null,
+      "category_rationale": null,
+      "fixture_status": "not_started"
+    },
+    {
+      "rank": 123,
+      "domain": "snapchat.com",
+      "category": null,
+      "category_rationale": null,
+      "fixture_status": "not_started"
+    },
+    {
+      "rank": 132,
+      "domain": "outlook.com",
+      "category": null,
+      "category_rationale": null,
+      "fixture_status": "not_started"
+    },
+    {
+      "rank": 133,
+      "domain": "kaspersky.com",
+      "category": null,
+      "category_rationale": null,
+      "fixture_status": "not_started"
+    },
+    {
+      "rank": 134,
+      "domain": "nih.gov",
+      "category": null,
+      "category_rationale": null,
+      "fixture_status": "not_started"
+    },
+    {
+      "rank": 137,
+      "domain": "dropbox.com",
+      "category": null,
+      "category_rationale": null,
+      "fixture_status": "not_started"
+    },
+    {
+      "rank": 139,
+      "domain": "epicgames.com",
+      "category": null,
+      "category_rationale": null,
+      "fixture_status": "not_started"
+    },
+    {
+      "rank": 142,
+      "domain": "xiaomi.com",
+      "category": null,
+      "category_rationale": null,
+      "fixture_status": "not_started"
+    },
+    {
+      "rank": 146,
+      "domain": "archive.org",
+      "category": null,
+      "category_rationale": null,
+      "fixture_status": "not_started"
+    },
+    {
+      "rank": 151,
+      "domain": "godaddy.com",
+      "category": null,
+      "category_rationale": null,
+      "fixture_status": "not_started"
+    },
+    {
+      "rank": 152,
+      "domain": "tumblr.com",
+      "category": null,
+      "category_rationale": null,
+      "fixture_status": "not_started"
+    },
+    {
+      "rank": 153,
+      "domain": "nytimes.com",
+      "category": null,
+      "category_rationale": null,
+      "fixture_status": "not_started"
+    },
+    {
+      "rank": 158,
+      "domain": "paypal.com",
+      "category": null,
+      "category_rationale": null,
+      "fixture_status": "not_started"
+    },
+    {
+      "rank": 163,
+      "domain": "shopify.com",
+      "category": null,
+      "category_rationale": null,
+      "fixture_status": "not_started"
+    },
+    {
+      "rank": 168,
+      "domain": "discord.com",
+      "category": null,
+      "category_rationale": null,
+      "fixture_status": "not_started"
+    },
+    {
+      "rank": 169,
+      "domain": "webex.com",
+      "category": null,
+      "category_rationale": null,
+      "fixture_status": "not_started"
+    },
+    {
+      "rank": 174,
+      "domain": "flickr.com",
+      "category": null,
+      "category_rationale": null,
+      "fixture_status": "not_started"
+    },
+    {
+      "rank": 177,
+      "domain": "soundcloud.com",
+      "category": null,
+      "category_rationale": null,
+      "fixture_status": "not_started"
+    },
+    {
+      "rank": 178,
+      "domain": "medium.com",
+      "category": null,
+      "category_rationale": null,
+      "fixture_status": "not_started"
+    },
+    {
+      "rank": 183,
+      "domain": "cnn.com",
+      "category": null,
+      "category_rationale": null,
+      "fixture_status": "not_started"
+    },
+    {
+      "rank": 185,
+      "domain": "theguardian.com",
+      "category": null,
+      "category_rationale": null,
+      "fixture_status": "not_started"
+    },
+    {
+      "rank": 188,
+      "domain": "avast.com",
+      "category": null,
+      "category_rationale": null,
+      "fixture_status": "not_started"
+    },
+    {
+      "rank": 192,
+      "domain": "oracle.com",
+      "category": null,
+      "category_rationale": null,
+      "fixture_status": "not_started"
+    },
+    {
+      "rank": 194,
+      "domain": "forbes.com",
+      "category": null,
+      "category_rationale": null,
+      "fixture_status": "not_started"
+    },
+    {
+      "rank": 195,
+      "domain": "creativecommons.org",
+      "category": null,
+      "category_rationale": null,
+      "fixture_status": "not_started"
+    },
+    {
+      "rank": 199,
+      "domain": "ozon.ru",
+      "category": null,
+      "category_rationale": null,
+      "fixture_status": "not_started"
+    },
+    {
+      "rank": 201,
+      "domain": "bbc.com",
+      "category": null,
+      "category_rationale": null,
+      "fixture_status": "not_started"
+    },
+    {
+      "rank": 207,
+      "domain": "roku.com",
+      "category": null,
+      "category_rationale": null,
+      "fixture_status": "not_started"
+    },
+    {
+      "rank": 208,
+      "domain": "weather.com",
+      "category": null,
+      "category_rationale": null,
+      "fixture_status": "not_started"
+    },
+    {
+      "rank": 211,
+      "domain": "twitch.tv",
+      "category": null,
+      "category_rationale": null,
+      "fixture_status": "not_started"
+    },
+    {
+      "rank": 213,
+      "domain": "sciencedirect.com",
+      "category": null,
+      "category_rationale": null,
+      "fixture_status": "not_started"
+    },
+    {
+      "rank": 214,
+      "domain": "researchgate.net",
+      "category": null,
+      "category_rationale": null,
+      "fixture_status": "not_started"
+    },
+    {
+      "rank": 215,
+      "domain": "bbc.co.uk",
+      "category": null,
+      "category_rationale": null,
+      "fixture_status": "not_started"
+    },
+    {
+      "rank": 217,
+      "domain": "gmail.com",
+      "category": null,
+      "category_rationale": null,
+      "fixture_status": "not_started"
+    },
+    {
+      "rank": 220,
+      "domain": "ebay.com",
+      "category": null,
+      "category_rationale": null,
+      "fixture_status": "not_started"
+    },
+    {
+      "rank": 224,
+      "domain": "sourceforge.net",
+      "category": null,
+      "category_rationale": null,
+      "fixture_status": "not_started"
+    },
+    {
+      "rank": 226,
+      "domain": "mit.edu",
+      "category": null,
+      "category_rationale": null,
+      "fixture_status": "not_started"
+    },
+    {
+      "rank": 227,
+      "domain": "ubuntu.com",
+      "category": null,
+      "category_rationale": null,
+      "fixture_status": "not_started"
+    },
+    {
+      "rank": 229,
+      "domain": "canva.com",
+      "category": null,
+      "category_rationale": null,
+      "fixture_status": "not_started"
+    },
+    {
+      "rank": 232,
+      "domain": "android.com",
+      "category": null,
+      "category_rationale": null,
+      "fixture_status": "not_started"
+    },
+    {
+      "rank": 237,
+      "domain": "nist.gov",
+      "category": null,
+      "category_rationale": null,
+      "fixture_status": "not_started"
+    },
+    {
+      "rank": 245,
+      "domain": "imdb.com",
+      "category": null,
+      "category_rationale": null,
+      "fixture_status": "not_started"
+    },
+    {
+      "rank": 246,
+      "domain": "stripe.com",
+      "category": null,
+      "category_rationale": null,
+      "fixture_status": "not_started"
+    },
+    {
+      "rank": 247,
+      "domain": "who.int",
+      "category": null,
+      "category_rationale": null,
+      "fixture_status": "not_started"
+    },
+    {
+      "rank": 248,
+      "domain": "miui.com",
+      "category": null,
+      "category_rationale": null,
+      "fixture_status": "not_started"
+    },
+    {
+      "rank": 250,
+      "domain": "telegram.org",
+      "category": null,
+      "category_rationale": null,
+      "fixture_status": "not_started"
+    },
+    {
+      "rank": 252,
+      "domain": "hubspot.com",
+      "category": null,
+      "category_rationale": null,
+      "fixture_status": "not_started"
+    },
+    {
+      "rank": 258,
+      "domain": "openai.com",
+      "category": null,
+      "category_rationale": null,
+      "fixture_status": "not_started"
+    },
+    {
+      "rank": 259,
+      "domain": "booking.com",
+      "category": null,
+      "category_rationale": null,
+      "fixture_status": "not_started"
+    },
+    {
+      "rank": 265,
+      "domain": "autodesk.com",
+      "category": null,
+      "category_rationale": null,
+      "fixture_status": "not_started"
+    },
+    {
+      "rank": 266,
+      "domain": "wikimedia.org",
+      "category": null,
+      "category_rationale": null,
+      "fixture_status": "not_started"
+    }
+  ]
+}
