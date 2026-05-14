@@ -4,12 +4,27 @@ A controlled test fixture for measuring how well the extension's identification
 prompt finds dark patterns — and, just as importantly, how often it **false-positives**
 on normal UX.
 
+## Layout
+
+```
+benchmark/
+  README.md                            ← this file (overview + scoring methodology)
+  fixtures/
+    amazon-product-page/
+      amazon-product-page.html         ← the fixture page
+      ground-truth.json                ← per-element answer key
+    <future-fixture>/
+      ...
+```
+
+Each fixture lives in its own directory under `fixtures/`. Today there's one (`amazon-product-page`); more will be added.
+
 ## What's here
 
-| File | What it is |
+| Path | What it is |
 |---|---|
-| `amazon-product-page.html` | A self-contained replica of an Amazon product detail page (Logitech MX Master 3S mouse). Renders offline; no external resources. |
-| `ground-truth.json` | The answer key: every benchmarked element, whether it's a dark pattern (and which type) or a counterexample, and why. |
+| `fixtures/amazon-product-page/amazon-product-page.html` | A self-contained replica of an Amazon product detail page (Logitech MX Master 3S mouse). Renders offline; no external resources. |
+| `fixtures/amazon-product-page/ground-truth.json` | The answer key: every benchmarked element, whether it's a dark pattern (and which type) or a counterexample, and why. |
 
 The HTML has **8 injected dark patterns** (one per type, except Forced Action which doesn't fit a product page naturally) and **8 counterexamples** — elements that visually resemble dark patterns but are legitimate UX. Every benchmarked element carries a `data-gt-id` attribute and an HTML comment (`[DP-x]` = dark pattern, `[CE-x]` = counterexample).
 
@@ -38,11 +53,11 @@ The HTML has **8 injected dark patterns** (one per type, except Forced Action wh
    ```
    Then load `dist/` as an unpacked extension at `chrome://extensions` (Developer mode → Load unpacked).
 
-2. **Serve this page over HTTP.** The extension rejects `file://` URLs (`isSupportedPageUrl` only allows `http`/`https`), so open a terminal in this `benchmark/` directory and run:
+2. **Serve fixtures over HTTP.** The extension rejects `file://` URLs (`isSupportedPageUrl` only allows `http`/`https`), so open a terminal in this `benchmark/` directory and run:
    ```bash
    python3 -m http.server 8000
    ```
-   Then visit `http://localhost:8000/amazon-product-page.html` in Chrome.
+   Then visit `http://localhost:8000/fixtures/amazon-product-page/amazon-product-page.html` in Chrome. (One server serves all fixtures — swap the path to test others.)
 
 3. **Run the extension on the page** (open the side panel, click Start). Use a fresh cache — click "Clear All Saved Websites" first if there are stale entries, so Layer-1/Layer-2 caching doesn't short-circuit the LLM call.
 
