@@ -23,3 +23,27 @@ Queue: milestone `benchmark-pipeline` (issues #8–#16). Stop after #16.
 - **Acceptance deviation**: issue body said "≥145 entries"; actual is 126. Estimate was wrong at draft time. Index is exhaustive — confirmed via `grep -c` on source.
 
 ---
+
+## #9 — pull Tranco top 100 + write sites.json
+
+- **Branch**: `feat/benchmark-sites-top-100` (deleted post-merge)
+- **PR**: [#18](https://github.com/AntaresYuan/dark_pattern_auto_fix/pull/18) — squash-merged as `5bf8283`
+- **What was done**: filter script at `benchmark/scripts/build-sites-json.cjs`; Tranco snapshot at `benchmark/data/tranco-6G8PX-2026-05-14-top-300.csv`; output at `benchmark/sites.json`. List ID `6G8PX` (daily list, fetched via Tranco's `api/lists/date/latest`).
+- **What was tested**:
+  - 100 / 100 entries (`jq '.sites | length'`)
+  - All 5 required fields per entry (`rank`, `domain`, `category=null`, `category_rationale=null`, `fixture_status="not_started"`)
+  - JSON valid (`jq empty`)
+  - Idempotency: byte-identical re-runs
+  - Random spot-check of 10 sites — all known UI surfaces
+- **Reviewer verdict** (independent sub-agent): **OK to merge after fixing 2 items**. Fixed in `22b291f`:
+  1. `dzen.ru` (rank 15) wrongly placed under DNS-infra deny — it's a Yandex consumer feed product. Removed the rule, now kept.
+  2. `counts.input_rows: 300` misleading. Renamed to `csv_total_rows` + added `rows_considered: 266` so 100 + 166 = 266 reconciles.
+  3. Cheap polish: simplified tangled cdn regex (had dead-code alternation) to `/(^|\.)cdn\..*$/`.
+- **Friction**: none in this task. Reviewer-cycle was 1 (single revision before merge).
+- **Follow-ups** (non-blocking, deferred):
+  - `wikimedia.org` (rank 266) borderline — could drop since wikipedia.org (27) covers Wikimedia's consumer surface.
+  - `opera.com` / `ui.com` / `comcast.net` borderline drops; left in infra. Defensible either way.
+  - Headroom: only 34 unread rows in the 300-row snapshot. If Tranco rankings shift such that 5+ keeps re-classify as deny, re-fetch with `--count 500` or larger.
+  - Script doesn't BOM-strip the CSV or dedupe rows. Current Tranco CSV is clean. Worth hardening if Tranco ever ships malformed data.
+
+---
