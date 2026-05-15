@@ -87,16 +87,55 @@ Queue: milestone `benchmark-pipeline` (issues #8–#16). Stop after #16.
 
 ---
 
-## ⏸ Devloop paused (mid-queue, after #12)
+## ⏸→▶ Sheet sync added; devloop resumed at #13
 
-Reason: user requested adding Google Sheet sync as a new pipeline step before continuing fixture builds (#13-#16). Booking fixture (#12) merged; remaining queue is #13 nytimes-article-paywall → #14 netflix-cancel-flow → #15 facebook-deactivation → #16 paypal-account-close.
+User-initiated mid-queue change: add Google Sheet sync as a new pipeline step before continuing fixture builds.
 
-Plan:
-1. User shares Google Sheet draft link
-2. Agree on row schema (probably one row per DP/CE with fixture_slug + gt_id + kind + type + selector + why columns)
-3. Build `benchmark/scripts/sync-to-sheet.cjs` + GitHub Actions workflow that runs on PR merge to main (gated on changes under `benchmark/fixtures/*/ground-truth.json`)
-4. Backfill: sync booking + amazon fixtures retroactively
-5. Update fixture-build issue acceptance criteria (#13-#16) to include "verify sheet sync ran"
-6. Resume queue with #13
+### What got built (PR [#22](https://github.com/AntaresYuan/dark_pattern_auto_fix/pull/22) — squash-merged as `b5fd509`)
+
+- `benchmark/scripts/sync-to-sheet.cjs` — reads all fixture ground-truths, writes to two sheet surfaces
+- `.github/workflows/sync-benchmark-to-sheet.yml` — Actions workflow on push-to-main, paths-filter on `benchmark/fixtures/**/ground-truth.json`
+- `benchmark/scripts/SHEET-SETUP.md` — one-time setup instructions for service account + secrets
+- `googleapis` added to package.json devDependencies
+
+### Sheet schema agreed with user
+
+User's existing sheet has 3 surfaces now:
+- Tab "dark-patterns" — Section 1, 354 rows of real-world observations (untouched by sync)
+- Tab "Ground truth dataset" — Section 2, per-fixture summary (one row per fixture, columns are per-DP-type counts). User did Phase A rename: "Double negative" → "Trick wording".
+- Tab "Synthetic DP Detail" — auto-created by sync. One row per DP and CE with composite `<slug>::<gt_id>` for idempotent updates.
+
+### Reviewer-found issues fixed in `bc2e386`
+
+- BLOCKER: Section 2 append placement — replaced Sheets API `append()` (which finds end of enclosing table, dangerous when Section 1 + Section 2 share a tab) with explicit-row `update` at calculated `nextEmptyRow1`.
+- A1 column encoding past Z; case-insensitive header match; duplicate dp_id warning; truncation limits raised (200→2000, 300→5000); `::` collision guard; deterministic slug sort.
+
+### First successful sync
+
+Manually triggered via `gh workflow run` after user completed Phases A-D. Run [25912192544](https://github.com/AntaresYuan/dark_pattern_auto_fix/actions/runs/25912192544):
+```
+fixtures loaded: 2 (amazon-product-page, booking-hotel-checkout)
+tabs in sheet: dark-patterns, Ground truth dataset
+Section 2 found in tab "Ground truth dataset", header at row 1
+Section 2: 0 updated, 2 appended at row 2
+created tab "Synthetic DP Detail"
+Detail tab: 0 updated, 30 appended (16 DP + 14 CE)
+done.
+```
+
+Verified by reading sheet back via MCP — both fixture summary rows landed with correct counts, all 30 detail rows formed correctly with Mathur category mapping, Section 1 preserved untouched.
+
+### Friction
+
+- 1 blocker from sub-agent reviewer (Section 2 append placement) — caught before merge, fixed in same branch.
+- User Phase B-D took ~10 minutes (one-time GCP service account + sheet share + 2 GitHub secrets). I couldn't automate any of it: gcloud not installed locally, `gh secret` in harness deny list.
+- Workflow auto-triggered on PR #22 merge with no secrets present and failed cleanly (caught the missing-env case correctly via the script's `loadCredentials()` check).
+
+### Resume plan
+
+Devloop resuming at #13 nytimes-article-paywall. Future fixture-build PRs auto-sync on merge to main; no per-fixture manual step. Convention from #12 to propagate: real-CTA CEs get a meaningful element id (`#cancel-button`, `#signin-button`) matching the action.
 
 ---
+
+## #13 — TODO (next)
+
