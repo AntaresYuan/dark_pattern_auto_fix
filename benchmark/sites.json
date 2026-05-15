@@ -448,7 +448,7 @@
       "domain": "nytimes.com",
       "category": 2,
       "category_rationale": "Paywalled news; subscription preselects, confirm-shaming decline link.",
-      "fixture_status": "planned"
+      "fixture_status": "built"
     },
     {
       "rank": 158,
