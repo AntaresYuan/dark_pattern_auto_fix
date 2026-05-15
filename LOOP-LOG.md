@@ -137,5 +137,23 @@ Devloop resuming at #13 nytimes-article-paywall. Future fixture-build PRs auto-s
 
 ---
 
-## #13 — TODO (next)
+## #13 — build fixture nytimes-article-paywall
+
+- **Branch**: `feat/benchmark-fixture-nytimes-paywall` (deleted post-merge)
+- **PR**: [#23](https://github.com/AntaresYuan/dark_pattern_auto_fix/pull/23) — squash-merged as `e3adc05`
+- **What was done**: Replica NYT article (Business reporting) at the paywall point. ~390-line self-contained HTML + ground-truth.json. 8 DPs covering 8 of 9 schema types (first fixture to use Forced Action — paywall blocks the article). 6 CEs.
+- **What was tested**: served via http.server returns 200 (26KB), all 14 gt-ids unique on page, JSON valid, all dark_pattern_type values exact-match schema, no external resource URLs.
+- **Reviewer verdict**: **OK to merge after 2 fixes**. Caught:
+  1. `dp-paywall-modal` as Forced Action conflicts with the prompt's "intrinsic to service" carve-out (bank-login is the prompt's own structurally-similar counterexample). Added `known_stress_test_notes` field documenting this is a deliberate stress test against a contested DP-literature case.
+  2. `expected_page_evaluation.page_type` had {article, paywall, news} — only `article` is in the schema enum. Tightened.
+- **Sheet sync**: auto-fired on merge. Run [25913351367](https://github.com/AntaresYuan/dark_pattern_auto_fix/actions/runs/25913351367) succeeded. Sheet now has 3 fixture summaries + 44 detail rows.
+- **Friction**: 1 reviewer cycle. Mid-validation a Bash loop hit a "claude native binary not installed" shell-wrapper interference; recovered by running grep checks individually. Unrelated to fixture quality.
+- **Follow-ups for #14-#16**:
+  - dp-fake-readers nested inside dp-paywall-modal worked for ground-truth schema; reviewer flagged double-counting risk to track on early actual model runs.
+  - `ce-most-read-list` is a weak FP-trap; consider stronger CE shapes in future fixtures.
+  - Forced Action / paywall tension is now noted in this fixture — if the user wants to update prompt.ts to add a paywall sub-case, that's a separate PR.
+
+---
+
+## #14 — TODO (next)
 
