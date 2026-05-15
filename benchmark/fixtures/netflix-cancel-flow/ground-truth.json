@@ -57,7 +57,7 @@
       "type": "Trick wording",
       "selector": "[data-gt-id='dp-trick-wording-confirm']",
       "element": "Pair of equally-styled buttons: 'I want to keep my membership' and 'I do not want to not keep my membership'",
-      "why": "Two equally-styled buttons whose semantic effects are IDENTICAL (both keep the membership) but whose surface readings invert. A hurried user reads the second button's stacked double negative ('do not… not keep') as 'I want to cancel' and clicks it — but the button-meaning, properly parsed, is 'I want to keep my membership'. The semantic inversion is in the label itself; the button-meaning maps to the opposite of the surface reading. Adapted from injection-mapping stm_double_negative and Amazon's dp-trick-wording-notif pattern.",
+      "why": "Two equally-styled buttons whose semantic effects are IDENTICAL (both keep the membership) but whose surface readings invert. A hurried user reads the second button's stacked double negative ('do not… not keep') as 'I want to cancel' and clicks it — but the button-meaning, properly parsed, is 'I want to keep my membership'. The harm: the user believes they cancelled and walks away thinking the membership is over, but the membership stays active and continues billing on June 14. Same shape as Amazon's dp-trick-wording-notif (where 'I do not want no notifications' opts the user IN — the harm is missed expectation, identical structure). Adapted from injection-mapping stm_double_negative.",
       "accepts_types": ["Trick wording"]
     },
     {
@@ -73,8 +73,8 @@
       "type": "Confirm shaming",
       "selector": "[data-gt-id='dp-confirm-shaming-cancel']",
       "element": "Tiny gray cancellation link below the pause pill: 'Yes, cancel anyway and lose my watchlist, recommendations, continue-watching progress, and downloaded titles'",
-      "why": "The cancel-completion link's LABEL frames the user's choice as a self-inflicted loss enumerated in concrete terms (watchlist, recommendations, continue-watching, downloaded titles). The user can cancel (the link is functional), but the decline option itself shames the user for declining by listing every personalization artifact they will lose. Manipulation is in the wording of the action control, not the action it performs. Adapted from injection-mapping stm_confirm_shaming ('Say no, and you're choosing to fall behind while everyone else levels up.'), Booking's bki_confirm_shaming, and Amazon's Prime decline link.",
-      "accepts_types": ["Confirm shaming"]
+      "why": "The cancel-completion link's LABEL frames the user's choice as a self-inflicted loss enumerated in concrete terms (watchlist, recommendations, continue-watching, downloaded titles). The user can cancel (the link is functional), but the decline option itself shames the user for declining by listing every personalization artifact they will lose. Manipulation is in the wording of the action control, not the action it performs. Adapted from injection-mapping stm_confirm_shaming ('Say no, and you're choosing to fall behind while everyone else levels up.'), Booking's bki_confirm_shaming, and Amazon's Prime decline link. NOTE: this same element is also the visually-buried half of the False hierarchy pair with DP-3 (the PAUSE pill) — a model that flags this link with type=False hierarchy is making a defensible call grounded in the same harm test, hence the dual accepts_types.",
+      "accepts_types": ["Confirm shaming", "False hierarchy"]
     },
     {
       "gt_id": "dp-popup-games",
