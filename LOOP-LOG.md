@@ -155,5 +155,22 @@ Devloop resuming at #13 nytimes-article-paywall. Future fixture-build PRs auto-s
 
 ---
 
-## #14 — TODO (next)
+## #14 — build fixture netflix-cancel-flow
+
+- **Branch**: `feat/benchmark-fixture-netflix-cancel` (deleted post-merge)
+- **PR**: [#24](https://github.com/AntaresYuan/dark_pattern_auto_fix/pull/24) — squash-merged as `16c84f2`
+- **What was done**: Replica Netflix cancellation page with retention friction. ~340-line HTML + ground-truth.json. 8 DPs covering 8 of 9 schema types (skipping Forced Action, used in #13). 5 CEs (one fewer than the 6-CE convention from #12-13 — cancel flow doesn't naturally surface a "real Subscribe CTA" CE since user is already paying; documented in `fixture_notes`).
+- **What was tested**: HTML well-formed, 13 gt-ids unique on page + cross-reference ground-truth.json, JSON valid, all dark_pattern_type values exact-match schema, no external resource URLs except deliberate affiliate stub.
+- **Reviewer verdict**: **OK to merge after 1 fix** + 1 polish. Fixed in `73231a2`:
+  1. Added `"False hierarchy"` to `dp-confirm-shaming-cancel.accepts_types` — the cancel link is the visually-buried half of the False hierarchy pair with DP-3 (PAUSE pill); a model flagging it as False hierarchy is making a defensible call grounded in the same harm test.
+  2. Clarified the harm direction in `dp-trick-wording-confirm.why` — user thinks they cancelled (button #2's surface reading) but membership stays active and continues billing.
+- **Sheet sync**: auto-fired on merge. Run [25914722087](https://github.com/AntaresYuan/dark_pattern_auto_fix/actions/runs/25914722087) succeeded. Sheet now has 4 fixture summaries + 57 detail rows.
+- **Friction**: 1 reviewer cycle. Initial fixture had 6 CEs but 1 was a placeholder I caught before commit (no element existed in HTML); shipped with 5.
+- **Convention shifts noted for #15-#16**:
+  - `accepts_types` can include multiple types when a single element legitimately satisfies multiple harm tests — useful for buried-cancel-link patterns.
+  - `fixture_notes` array is the right place to document acceptable deviations from the convention (e.g., CE count, missing DP types).
+
+---
+
+## #15 — TODO (next)
 
