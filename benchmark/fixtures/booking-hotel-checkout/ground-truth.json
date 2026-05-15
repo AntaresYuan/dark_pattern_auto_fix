@@ -1,0 +1,147 @@
+{
+  "fixture": "booking-hotel-checkout.html",
+  "description": "Replica Booking.com hotel-property page (The Royal Park Hotel Iconic Tokyo Shiodome) at the moment the user has selected dates and is about to reserve. Deliberately injected dark patterns and counterexamples. Used to measure the identification prompt's true-positive, false-positive, and false-negative rates on a Travel & hospitality fixture.",
+  "page_url_when_served": "http://localhost:8000/fixtures/booking-hotel-checkout/booking-hotel-checkout.html (or any http:// host; the extension rejects file:// URLs)",
+
+  "mimicked_site": "booking.com",
+  "category": "Travel & hospitality",
+  "category_id": 4,
+  "page_type": "hotel-checkout",
+  "fixture_plan_row": 1,
+
+  "expected_page_evaluation": {
+    "page_type": "checkout",
+    "user_primary_intent_acceptable": [
+      "reserve a room at this hotel for the selected dates",
+      "book the Royal Park Hotel Iconic Tokyo Shiodome for May 23-25",
+      "complete the hotel reservation"
+    ],
+    "scoring_note": "Mark page_evaluation correct if page_type ∈ {checkout, hotel_detail, booking} AND user_primary_intent is a reasonable paraphrase of 'book/reserve this hotel for these dates'. Vague intents ('travel', 'browsing hotels') or wrong ones ('cancel a booking', 'compare hotels') are incorrect — every downstream harm test depends on this."
+  },
+
+  "dark_patterns": [
+    {
+      "gt_id": "dp-popup-ad",
+      "type": "Pop-up ad",
+      "selector": ".modal-overlay[data-gt-id='dp-popup-ad']",
+      "element": "Modal overlay shown on page load promoting a different hotel deal ('Trending in Shiodome — Mesm Tokyo at US$298/night, 22% off')",
+      "why": "Promotional content unrelated to the user's task (reserving THIS hotel); the only dismiss control is a near-invisible '×' (opacity 0.18, parked in the bottom-right corner) while the modal's 'See availability →' CTA is full-width and prominent. Unrelated cross-promotion + degraded dismiss path. Adapted from injection-mapping `bki_pop_up`.",
+      "accepts_types": ["Pop-up ad"]
+    },
+    {
+      "gt_id": "dp-hidden-fees",
+      "type": "Hidden information",
+      "selector": "[data-gt-id='dp-hidden-fees']",
+      "element": "'See additional charges for this stay' collapsed <details> below the room price",
+      "why": "Mandatory, unavoidable surcharges (US$48 resort fee + US$17 city tax + US$2.50 service = US$67.50, ~18% over the headline US$378) are concealed inside a collapsed, low-contrast disclosure (gray summary, no chevron icon). A user who clicks Reserve without expanding it never sees the true total (US$445.50). The right-sidebar price summary shows US$378 as the 'Total' and labels it 'Includes taxes and fees' — actively reinforcing the deception. Decision-critical cost hidden at the moment of commitment.",
+      "accepts_types": ["Hidden information"]
+    },
+    {
+      "gt_id": "dp-fake-urgency",
+      "type": "Fake social proof",
+      "selector": "[data-gt-id='dp-fake-urgency']",
+      "element": "Urgency/scarcity banner: '37 people are looking at this hotel right now', 'Only 2 rooms left at this price!', 'Booked 84 times in the past 24 hours'",
+      "why": "Unverifiable popularity and scarcity claims with no source or methodology, used to pressure an immediate reservation. The viewer count, room count, and booking count cannot be audited by the user — and even if they're true at this instant they collapse what would be a deliberation into urgency. Travel-vertical canonical pattern (Mathur 2019 high-density bucket).",
+      "accepts_types": ["Fake social proof"]
+    },
+    {
+      "gt_id": "dp-preselect-insurance",
+      "type": "Preselection",
+      "selector": "[data-gt-id='dp-preselect-insurance'] #travel-insurance",
+      "element": "Pre-checked checkbox 'Add Travel Plus Protection — US$24.99/night' inside the reservation flow",
+      "why": "Opts the user into a paid insurance add-on by default (US$24.99 × 2 nights = US$49.98). Benefits Booking (commission), not the user; embedded in a focused checkout flow where it's easy to miss; reverses what most users would actively choose. Pre-checked PAID add-on inside a checkout is the textbook Preselection harm test — distinct from a pre-checked free default (see CE-3).",
+      "accepts_types": ["Preselection"]
+    },
+    {
+      "gt_id": "dp-false-hierarchy-cancel",
+      "type": "False hierarchy",
+      "selector": "[data-gt-id='dp-false-hierarchy-cancel']",
+      "element": "'Protect your booking' section: large bright green pill button '✓ Add Cancel-Anytime — US$19.99/night' (full-width, 17px bold) vs a tiny, gray, no-underline, thin-weight 'no, decline coverage' link (10px, color #999)",
+      "why": "The user came to reserve a room; the visually dominant CTA pushes a paid add-on that benefits Booking, and the decline option matching the user's intent (proceed without coverage) is visually buried (smallest font, low-contrast gray, no underline, lowercase). Prominence misaligned with user intent. Same shape as Amazon's '3-Year Protection' false-hierarchy pattern — the architectural fingerprint of the DP, not just the styling.",
+      "accepts_types": ["False hierarchy"]
+    },
+    {
+      "gt_id": "dp-trick-wording-newsletter",
+      "type": "Trick wording",
+      "selector": "[data-gt-id='dp-trick-wording-newsletter'] #newsletter-optin",
+      "element": "Newsletter consent checkbox with label 'Do you not want to not receive our exclusive deal alerts and travel perks? (Tick to confirm.)'",
+      "why": "Stacked double negative in the consent label. A hurried user reads 'do you NOT want to NOT receive...' as 'I don't want emails' and ticks the box — but checking the box actually OPTS THEM IN. The semantic inversion is in the label itself; the box-state-meaning maps to the opposite of the surface reading. Adapted from injection-mapping `bki_double_negative` and Amazon's `_double_neg_notif` pattern.",
+      "accepts_types": ["Trick wording"]
+    },
+    {
+      "gt_id": "dp-confirm-shaming-decline",
+      "type": "Confirm shaming",
+      "selector": "[data-gt-id='dp-confirm-shaming-decline']",
+      "element": "Decline link below the reserve button: 'No thanks, I'd rather pay more elsewhere and risk losing this deal'",
+      "why": "The decline option's LABEL shames the user for choosing to back out, framing it as a self-inflicted loss ('pay more elsewhere', 'risk losing this deal'). The user can decline, but the decline option itself frames the action as foolish. Manipulation is in the wording of the decline control, not the action it performs. Adapted from injection-mapping `bki_confirm_shaming` ('Wait! Don't miss out … Do you really want to miss out?') and Amazon's Prime decline-link pattern.",
+      "accepts_types": ["Confirm shaming"]
+    },
+    {
+      "gt_id": "dp-disguised-ad-reserve",
+      "type": "Disguised ad",
+      "selector": "[data-gt-id='dp-disguised-ad-reserve'] .fake-cta-btn",
+      "element": "Fake 'RESERVE NOW' button injected ABOVE the real reserve button; styled almost identically to Booking's blue primary CTA (linear gradient, same width, 17px bold), with a tiny 9px low-contrast 'Advertisement' label",
+      "why": "Mimics Booking's native primary CTA (the 'I'll reserve' button below it, see CE-2), but the onclick/href navigates to an external affiliate offer (booking-deals-partner.example), NOT to the reservation flow for this hotel + dates. Clicking does NOT do what the label promises — destination mismatch + impersonation of the native primary action. Same shape as Amazon's `amz_disguised` injection.",
+      "accepts_types": ["Disguised ad"]
+    }
+  ],
+
+  "counterexamples": [
+    {
+      "gt_id": "ce-signin-link",
+      "looks_like": "Forced Action",
+      "selector": "[data-gt-id='ce-signin-link']",
+      "element": "'Sign in' link in the top nav",
+      "why_not": "A plain navigation link. Nothing on this reservation page is gated behind sign-in — Booking.com supports guest checkout, and a guest can complete the reservation without an account. No coercion."
+    },
+    {
+      "gt_id": "ce-real-reserve",
+      "looks_like": "False hierarchy / Disguised ad",
+      "selector": "#reserve-button, [data-gt-id='ce-real-reserve'] .reserve-btn",
+      "element": "The real blue 'I'll reserve' button (full-width, prominent)",
+      "why_not": "A prominent blue CTA — same visual weight asymmetry vs surrounding text as the disguised fake above (DP-8) — but it does exactly what its label promises: navigates to the reservation flow for THIS hotel with THIS room rate on THESE dates. Prominence matches the user's intent on a hotel-checkout page. Visual prominence alone is never sufficient evidence of a DP."
+    },
+    {
+      "gt_id": "ce-rate-default",
+      "looks_like": "Preselection",
+      "selector": "[data-gt-id='ce-rate-default']",
+      "element": "Room-rate radio group with 'Standard Rate (free cancellation) — US$378' pre-selected",
+      "why_not": "A radio is pre-selected, but the pre-selected option is the CHEAPEST one (and the one with free cancellation, which is most user-favoring). A sensible default. Nothing is being extracted from the user — no paid add-on, no consent, no recurring charge. Compare DP-4 (paid add-on pre-checked), where the harm test is satisfied."
+    },
+    {
+      "gt_id": "ce-rating-aggregate",
+      "looks_like": "Fake social proof",
+      "selector": "[data-gt-id='ce-rating-aggregate']",
+      "element": "'8.9 Excellent · 2,847 reviews' badge in the right sidebar, linking to underlying reviews",
+      "why_not": "A genuine review aggregate from a disclosed, auditable source ('Based on guests who actually stayed at this property') that links directly to the underlying review list. Informs rather than pressures; no urgency framing; no unverifiable popularity claims. Compare DP-3 (live-viewer + scarcity claims with no source)."
+    },
+    {
+      "gt_id": "ce-amenities-collapsed",
+      "looks_like": "Hidden information",
+      "selector": "[data-gt-id='ce-amenities-collapsed']",
+      "element": "'Property amenities' collapsed <details> accordion (pool, gym, WiFi, etc.)",
+      "why_not": "The collapsed content is general, non-decision-critical reference info (amenities list), not material costs or terms affecting the reservation decision. The price and dates are already visible. Normal progressive disclosure of supplementary detail. Compare DP-2 (mandatory fees hidden at the moment of commitment) — same collapse pattern, opposite harm-test answer."
+    },
+    {
+      "gt_id": "ce-sponsored-carousel",
+      "looks_like": "Disguised ad",
+      "selector": "[data-gt-id='ce-sponsored-carousel']",
+      "element": "'Sponsored — Hotels you might like' carousel in the sidebar with a clear 'Sponsored' uppercase header",
+      "why_not": "These ARE ads, but honestly labeled with a prominent 'Sponsored' header (font-weight 600, uppercase, letter-spaced) and visually distinct from the organic reservation content — no impersonation of native primary actions. Labeled ads on a page are not a dark pattern."
+    }
+  ],
+
+  "scoring": {
+    "true_positive": "Model output contains an entry whose target element matches a `dark_patterns` gt_id (by selector / html_evidence overlap) AND whose dark_pattern_type is in that entry's `accepts_types`.",
+    "false_negative": "A `dark_patterns` gt_id has no matching entry in the model output.",
+    "false_positive": "Model output contains an entry whose target element matches a `counterexamples` gt_id, OR an entry whose target element matches no gt_id at all.",
+    "wrong_type": "Model flags the right element (a `dark_patterns` gt_id) but with a dark_pattern_type NOT in `accepts_types`. Count separately from TP/FP — found something real but mislabeled it.",
+    "page_eval": "Separately, score expected_page_evaluation as correct/incorrect per its scoring_note.",
+    "headline_metrics": [
+      "precision = TP / (TP + FP)",
+      "recall = TP / (TP + FN)   [TP + FN = 8, the count of injected dark patterns]",
+      "false_positive_rate = FP / (number of counterexamples + extraneous flags) — this is the metric the recent prompt rewrite targets",
+      "Note: maxItems is 3 in the schema, so the model can report at most 3 patterns per run. Recall is bounded at 3/8 in a single pass — run the page multiple times, or accept that 'top 3' coverage is the realistic ceiling. Track WHICH 3 it picks and whether they are all real."
+    ]
+  }
+}
