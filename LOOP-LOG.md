@@ -172,5 +172,32 @@ Devloop resuming at #13 nytimes-article-paywall. Future fixture-build PRs auto-s
 
 ---
 
-## #15 — TODO (next)
+## #15 — build fixture facebook-deactivation
+
+- **Branch**: `feat/benchmark-fixture-facebook-deactivation` (deleted post-merge)
+- **PR**: [#25](https://github.com/AntaresYuan/dark_pattern_auto_fix/pull/25) — squash-merged as `4c5a6b2` (approx)
+- **What was done**: Replica Facebook account-deactivation page. **6 DPs + 5 CEs** (vs the 8-DP convention).
+- **Major principle shift mid-build**: user feedback received during HTML authoring: "我看你都是做的8个，记住了啊，不一定每个dark pattern都需要囊括在一个网站里，第一性原则是要真实，贴合用户使用场景". Translation: not every fixture needs 8 DPs; **realism > coverage**. Dropped 2 contrived DPs (Trick wording double-negative button pair, Marketplace cross-promo popup) that were padding for schema-type coverage at the cost of authenticity. Remaining 6 DPs are all canonical Facebook deactivation patterns documented in Bösch 2016 + Mathur 2019.
+- **DPs covered**: Confirm shaming (friend-faces with "will miss you" copy + photos), Fake social proof (98% reactivate stat), Preselection (temp deactivate preselected with "Recommended" pill), Hidden information (auto-restore + 3rd-party API access details collapsed), Forced Action (required reason picker — Facebook-canonical), False hierarchy (giant Cancel pill vs secondary deactivate button).
+- **Notable contrast pair**: `dp-friend-faces` (Confirm shaming via "miss you" copy) vs `ce-recent-friends-list` (informational friend list with last-active timestamps). Same friend-photo UI primitive, opposite harm-test answer — high-signal test of harm-test reasoning vs surface-pattern matching.
+- **Reviewer verdict**: **OK to merge after 3 cheap nits**. Fixed in `8996051`: renumbered HTML comments from non-sequential to sequential [DP-1..6 + CE-1..5]; stripped dead CSS for dropped components (.trick-wording-row, .promo-*); added a fixture_notes bullet acknowledging dp-forced-reason is a contested harm-test case (the "unrelated demand" criterion for Forced Action is defensible-but-debatable for a reason picker — same stress-test framing as nytimes #13's paywall).
+- **Sheet sync**: auto-fired on merge, **hit Sheets API quota** (60 writes/min/user limit). Section 2 wrote successfully (1 appended at row 6). Detail tab partial-wrote then crashed. Manual retry via `gh workflow run` succeeded — quota window resets within ~1 minute. Sheet now has 5 fixture summaries + 68 detail rows.
+- **Friction**: 1 reviewer cycle. **Quota limit on sync** is real friction; tracking as tech-debt to fix after #16 (batch the per-row `values.update` calls into `spreadsheets.values.batchUpdate` — should cut write count from N to ~3 per run).
+- **Convention shifts**:
+  - **Realism-first principle (NEW)**: DPs only appear on a fixture when canonical to that surface. 8-DP coverage was a soft default, not a hard rule.
+  - `fixture_notes` is the right place to document acceptable deviations (CE count, DP count, harm-test stress tests).
+
+---
+
+## ⚠️ Known issue: Sheets API quota on sync
+
+Each sync run does individual `values.update` per existing row + 1 batch append. With 5+ fixtures × ~14 detail rows each = 70+ writes per run, we routinely exceed Google's 60 writes/min/user free-tier limit.
+
+**Workaround**: manually retry the workflow via `gh workflow run sync-benchmark-to-sheet.yml --ref main` 1 minute later — the quota window resets. Script is idempotent so partial → full runs converge.
+
+**Permanent fix**: refactor `writeRow` to collect (range, values) tuples and dispatch a single `spreadsheets.values.batchUpdate` per tab. Tracked for follow-up after the starter 5 fixtures are done.
+
+---
+
+## #16 — TODO (next, last of starter batch)
 
