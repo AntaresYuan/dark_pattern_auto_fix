@@ -105,28 +105,6 @@
       font-size: 14px; color: #1c1e21; margin: 12px 0 0 0; font-weight: 600;
     }
 
-    /* --- Fake retention stat (DP-7) --- */
-    .retention-stat {
-      background: #fff8e1; border: 1px solid #f4d56a; padding: 10px 14px;
-      border-radius: 6px; margin: 12px 0; font-size: 13px; color: #5a4500;
-    }
-    .retention-stat strong { color: #332700; }
-
-    /* --- Reason picker (DP-8 forced action) --- */
-    .reason-row { padding: 10px 0; }
-    .reason-row label { display: flex; gap: 8px; cursor: pointer; align-items: flex-start; padding: 4px 0; font-size: 14px; }
-    .reason-row textarea {
-      width: 100%; min-height: 80px; padding: 10px; border: 1px solid #dadde1;
-      border-radius: 6px; font-family: inherit; font-size: 14px; resize: vertical;
-      margin-top: 8px;
-    }
-    .required-tag {
-      color: #fa3e3e; font-size: 12px; margin-left: 4px;
-    }
-    .reason-blocker-msg {
-      font-size: 12px; color: #fa3e3e; margin-top: 6px; font-style: italic;
-    }
-
     /* --- Deactivate vs Delete radio (DP-2 preselection) --- */
     .deact-option {
       border: 1px solid #dadde1; border-radius: 6px;
@@ -144,18 +122,6 @@
     .deact-option label input { margin-top: 4px; }
     .deact-option .opt-name { font-weight: 700; font-size: 15px; display: block; }
     .deact-option .opt-desc { color: #65676b; font-size: 13px; margin-top: 4px; }
-
-    /* --- Hidden data terms (DP-5) --- */
-    details.data-terms summary {
-      cursor: pointer; color: #999; font-size: 12px;
-      list-style: none; padding: 4px 0;
-    }
-    details.data-terms summary::-webkit-details-marker { display: none; }
-    details.data-terms summary::before { content: "› "; color: #ccc; }
-    details.data-terms[open] summary::before { content: "⌄ "; }
-    details.data-terms div {
-      margin-top: 6px; font-size: 11px; color: #999; line-height: 1.5;
-    }
 
     /* --- Email confirmation (CE) --- */
     .email-receipt {
@@ -274,16 +240,6 @@
           <p class="miss-you">You'll be missed.</p>
         </div>
 
-        <!-- [DP-2] FAKE SOCIAL PROOF — unverifiable retention statistic with
-             no source or methodology, used to pressure the user away from
-             deactivation. The "98% reactivate within 30 days" claim has no
-             cited source and the user cannot audit it. Same shape as Netflix's
-             dp-fake-retention-stats ("9 out of 10 paused members return within
-             30 days") and NYT's dp-fake-readers ("96% of our readers choose
-             to subscribe"). -->
-        <div class="retention-stat" data-gt-id="dp-fake-stats">
-          ⓘ <strong>98% of users who deactivated reactivated within 30 days.</strong> Why not just take a break instead?
-        </div>
       </div>
 
       <!-- ---- Deactivation type panel ---- -->
@@ -321,47 +277,11 @@
           </label>
         </div>
 
-        <!-- [DP-4] HIDDEN INFORMATION — decision-critical post-deactivation
-             details (a 30-day grace period during which logging in AUTOMATICALLY
-             restores the full account; messages sent to the user remain visible
-             to friends; the user is still subscribable in 3rd-party FB-Login
-             integrations) are concealed in a collapsed low-contrast disclosure.
-             A user who deactivates without expanding it doesn't learn they're
-             still discoverable / will be silently restored on accidental login.
-             Same harm-test fingerprint as Booking/NYT/Netflix collapse-the-fees. -->
-        <details class="data-terms" data-gt-id="dp-hidden-data-terms">
-          <summary>What happens to your data when you deactivate</summary>
-          <div>
-            Deactivation hides your profile, timeline, photos, and posts from other users. <strong>Logging back in within 30 days automatically restores the full account</strong> — there is no separate confirmation step, so an accidental login on any device (or a shared device used by family / coworkers) will silently restore your account. <strong>Messages you sent to friends will remain visible to those friends</strong> — they cannot be retracted. Your data continues to be retained on Facebook's servers for the duration of the deactivation. Third-party apps using Facebook Login that you previously connected to <strong>will continue to be able to look up your account</strong> via the API and may display you as available; you must revoke each integration separately. Permanent deletion (the other option above) initiates a 30-day grace period before data is removed; logging in during that window cancels the deletion request.
-          </div>
-        </details>
       </div>
 
-      <!-- ---- Reason panel (DP-8 forced action) ---- -->
+      <!-- ---- Confirmation panel ---- -->
       <div class="panel">
-        <h2>Tell us why you're leaving<span class="required-tag">* required</span></h2>
-
-        <!-- [DP-5] FORCED ACTION — the user is required to provide a reason
-             (radio group + a free-text field if "Other") in order to complete
-             the deactivation. The user is entitled to deactivate (it's their
-             account); requiring them to JUSTIFY the request to the platform
-             is coercion to a UNRELATED demand (Facebook does not need the
-             reason to perform the deactivation; the form exists only for
-             Facebook's product-research benefit, at the user's friction cost).
-             Distinct from a re-auth password prompt (which would be intrinsic
-             to the security of an account-state change). The "required" tag +
-             "* you must select a reason to continue" blocker make the gating
-             explicit. -->
-        <div class="reason-row" data-gt-id="dp-forced-reason">
-          <label><input type="radio" name="reason"> This is temporary, I'll be back</label>
-          <label><input type="radio" name="reason"> I have privacy concerns</label>
-          <label><input type="radio" name="reason"> I spend too much time on Facebook</label>
-          <label><input type="radio" name="reason"> I get too many emails / notifications</label>
-          <label><input type="radio" name="reason"> I don't find Facebook useful</label>
-          <label><input type="radio" name="reason"> Other (please explain)</label>
-          <textarea placeholder="Optional unless you selected 'Other' — but you must select at least one reason above to continue."></textarea>
-          <div class="reason-blocker-msg">* You must select a reason before you can continue.</div>
-        </div>
+        <h2>Confirm</h2>
 
         <!-- [CE-2] Pre-checked "Email me a confirmation" checkbox. Looks like
              Preselection (a default is checked), but the option is a sensible
