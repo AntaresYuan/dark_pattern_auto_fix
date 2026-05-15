@@ -73,3 +73,30 @@ Queue: milestone `benchmark-pipeline` (issues #8–#16). Stop after #16.
 - **Follow-ups for fixtures 6+**: injection-mapping underlaps Tranco top 100 outside e-commerce; future fixtures will either need to source sites outside top 100 or invest in extending the index with new entries for top-100 brands.
 
 ---
+
+## #12 — build fixture booking-hotel-checkout
+
+- **Branch**: `feat/benchmark-fixture-booking-checkout` (deleted post-merge)
+- **PR**: [#21](https://github.com/AntaresYuan/dark_pattern_auto_fix/pull/21) — squash-merged as `8494d14`
+- **What was done**: full replica of Booking.com hotel-property page (Royal Park Hotel Iconic Tokyo Shiodome). 522-line self-contained HTML + 147-line ground-truth.json. 8 dark patterns covering 8 of 9 schema types (only Forced Action absent — doesn't fit a hotel checkout where guest checkout is supported). 6 counterexamples for FP measurement.
+- **What was tested**: served via `python3 -m http.server`, returns 200 (26KB). All 14 gt-ids cross-reference between HTML and JSON. Each gt-id matches exactly 1 element. JSON valid. No external resource URLs except deliberate affiliate stub for DP-8.
+- **Reviewer verdict**: **OK to merge after 1 fix**. Caught dead-code in `ce-real-reserve` selector (`#ce-real-reserve` referenced an id that didn't exist in HTML). Fixed in `1851883`: added `id="reserve-button"` to the real reserve `<a>`, matching Amazon fixture's `#add-to-cart-button` / `#buy-now-button` convention. Now selector resolves.
+- **Convention propagated to fixtures #13-#16**: real-CTA CEs get a meaningful element id (e.g. `#cancel-button`, `#signin-button`) AND the data-gt-id attribute. Ground-truth selector lists both as alternatives.
+- **Friction**: 1 reviewer cycle (selector dead-code). Schema deviation from issue body documented in PR — kept Amazon's flat `selector` + combined `why` instead of nested `html_evidence_locator` + split `realism_rationale`/`harm_rationale`.
+- **Follow-ups**: none on this fixture. **PIPELINE CHANGE pending**: user is adding a Google Sheet sync step (per-fixture ground-truth.json → sheet rows). Devloop paused at #13 awaiting sheet link + schema agreement, then implementing as GitHub Actions workflow.
+
+---
+
+## ⏸ Devloop paused (mid-queue, after #12)
+
+Reason: user requested adding Google Sheet sync as a new pipeline step before continuing fixture builds (#13-#16). Booking fixture (#12) merged; remaining queue is #13 nytimes-article-paywall → #14 netflix-cancel-flow → #15 facebook-deactivation → #16 paypal-account-close.
+
+Plan:
+1. User shares Google Sheet draft link
+2. Agree on row schema (probably one row per DP/CE with fixture_slug + gt_id + kind + type + selector + why columns)
+3. Build `benchmark/scripts/sync-to-sheet.cjs` + GitHub Actions workflow that runs on PR merge to main (gated on changes under `benchmark/fixtures/*/ground-truth.json`)
+4. Backfill: sync booking + amazon fixtures retroactively
+5. Update fixture-build issue acceptance criteria (#13-#16) to include "verify sheet sync ran"
+6. Resume queue with #13
+
+---
