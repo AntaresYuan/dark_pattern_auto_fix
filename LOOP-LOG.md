@@ -60,3 +60,16 @@ Queue: milestone `benchmark-pipeline` (issues #8–#16). Stop after #16.
 - **Follow-ups**: none.
 
 ---
+
+## #11 — pick 5 starter fixtures + write PLAN.md
+
+- **Branch**: `feat/benchmark-pick-5-starter-fixtures` (deleted post-merge)
+- **PR**: [#20](https://github.com/AntaresYuan/dark_pattern_auto_fix/pull/20) — squash-merged as `6fb09e9`
+- **What was done**: `benchmark/fixtures/PLAN.md` with 5 rows (booking-hotel-checkout, nytimes-article-paywall, netflix-cancel-flow, facebook-deactivation, paypal-account-close). Marker script `benchmark/scripts/mark-planned-fixtures.cjs` flips fixture_status to "planned" for the 5 in sites.json.
+- **Coverage**: 5 distinct categories (Travel/News/Streaming/Social/Finance) + 5 distinct page types — exceeds 4/4 minimum.
+- **Reference signal**: only 5 sites overlap between top 100 and the injection-mapping (amazon, apple, ebay, nytimes, booking). 2 of my 5 picks have direct snippets (booking, nytimes); the other 3 (netflix, facebook, paypal) are adaptation-heavy. Documented per row in PLAN.md.
+- **Reviewer verdict**: **OK to merge**. Cited reference keys all verified present in injection-mapping-index. One non-blocking flag: paypal row conflates "account-close" + "signup-marketing-preselect" — to be resolved when building fixture #16 (pick one, demote the other to counterexample).
+- **Friction**: none.
+- **Follow-ups for fixtures 6+**: injection-mapping underlaps Tranco top 100 outside e-commerce; future fixtures will either need to source sites outside top 100 or invest in extending the index with new entries for top-100 brands.
+
+---
