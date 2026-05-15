@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<!--
+  Dark Pattern Detection Benchmark — Netflix Cancel-Subscription Flow (replica)
+
+  CONTROLLED TEST FIXTURE. Mimics a Netflix account-cancellation page (the user
+  has clicked "Cancel Membership" and is on the retention/confirmation step).
+  Deliberately embeds a known set of dark patterns + counterexamples (look-alikes
+  that pass the harm test, used to measure false positives).
+
+  Ground truth (which element is which) lives in ./ground-truth.json.
+  Every benchmarked element carries a data-gt-id attribute and an HTML comment.
+
+  Notation:
+    [DP-x] = injected dark pattern (the model SHOULD flag this)
+    [CE-x] = counterexample (the model should NOT flag this; tests false positives)
+
+  Run: serve via `python3 -m http.server 8000` from the benchmark/ root, then
+  visit http://localhost:8000/fixtures/netflix-cancel-flow/netflix-cancel-flow.html
+-->
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cancel Membership - Netflix</title>
+  <meta property="og:type" content="website" />
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Netflix Sans", "Helvetica", "Arial", sans-serif;
+      color: #221f1f; background: #f3f3f3; font-size: 15px;
+    }
+    a { color: #0080ff; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* --- Top nav (Netflix white-background account-area style) --- */
+    .nav-top {
+      background: #fff; border-bottom: 1px solid #ddd; padding: 14px 24px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .nav-logo {
+      color: #e50914; font-size: 30px; font-weight: 900; letter-spacing: -1px;
+      font-family: "Netflix Sans", "Bebas Neue", "Helvetica", sans-serif;
+    }
+    .nav-right { display: flex; align-items: center; gap: 14px; font-size: 13px; }
+    .nav-right .profile-pill {
+      width: 32px; height: 32px; background: linear-gradient(135deg, #f4b400, #e50914);
+      border-radius: 4px; display: flex; align-items: center; justify-content: center;
+      color: #fff; font-weight: 700;
+    }
+
+    /* --- Layout --- */
+    .page-wrap { max-width: 760px; margin: 0 auto; padding: 24px; }
+    h1.page-title {
+      font-size: 28px; font-weight: 700; margin: 0 0 8px 0; color: #221f1f;
+    }
+    .page-subtitle { color: #555; margin: 0 0 24px 0; font-size: 15px; }
+
+    .card {
+      background: #fff; border-radius: 4px; border: 1px solid #ddd;
+      padding: 22px; margin-bottom: 16px;
+    }
+    .card h2 { font-size: 18px; font-weight: 700; margin: 0 0 12px 0; }
+    .card .meta { color: #666; font-size: 13px; }
+
+    /* --- Plan summary (CE) --- */
+    .plan-summary-row {
+      display: flex; justify-content: space-between; padding: 6px 0;
+      border-bottom: 1px solid #f0f0f0; font-size: 14px;
+    }
+    .plan-summary-row:last-child { border-bottom: none; }
+    .plan-summary-row span:last-child { color: #221f1f; font-weight: 600; }
+
+    /* --- Retention option cards --- */
+    .retention-option {
+      border: 1px solid #ddd; border-radius: 4px;
+      padding: 16px; margin-bottom: 10px; cursor: pointer; position: relative;
+    }
+    .retention-option.preselected {
+      border: 2px solid #e50914; background: #fff5f5;
+    }
+    .retention-option .pill-tag {
+      position: absolute; top: -8px; right: 14px;
+      background: #e50914; color: #fff; padding: 2px 10px; font-size: 10px;
+      text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700;
+    }
+    .retention-option label { display: flex; align-items: flex-start; gap: 10px; cursor: pointer; }
+    .retention-option label input { margin-top: 4px; }
+    .retention-option .opt-name { font-weight: 700; font-size: 15px; display: block; }
+    .retention-option .opt-desc { color: #666; font-size: 13px; margin-top: 4px; }
+    .retention-option .opt-price { color: #221f1f; font-weight: 600; font-size: 13px; margin-top: 4px; }
+
+    /* --- Social proof banner (DP-fake-social) --- */
+    .social-proof-banner {
+      background: #fff8e1; border: 1px solid #f4d56a; padding: 12px 14px;
+      border-radius: 4px; margin: 12px 0; font-size: 13px; color: #5a4500;
+    }
+    .social-proof-banner strong { color: #332700; }
+
+    /* --- Disguised partner ad (DP-disguised-ad) --- */
+    .partner-card {
+      border: 1px solid #ddd; border-radius: 4px; padding: 14px;
+      margin: 10px 0; background: #fff5f5;
+    }
+    .partner-card .partner-label {
+      font-size: 9px; color: #ccc; text-transform: uppercase; letter-spacing: 1px;
+    }
+    .partner-card h3 {
+      font-size: 16px; margin: 4px 0; color: #221f1f;
+    }
+    .partner-card .partner-cta {
+      display: inline-block; background: #e50914; color: #fff;
+      padding: 8px 14px; font-size: 13px; font-weight: 700;
+      text-decoration: none; border-radius: 2px; margin-top: 8px;
+      border: none; cursor: pointer;
+    }
+
+    /* --- Hidden information (DP-hidden-info) --- */
+    details.cancel-terms summary {
+      cursor: pointer; color: #999; font-size: 12px;
+      list-style: none; padding: 4px 0;
+    }
+    details.cancel-terms summary::-webkit-details-marker { display: none; }
+    details.cancel-terms summary::before { content: "› "; color: #ccc; }
+    details.cancel-terms[open] summary::before { content: "⌄ "; }
+    details.cancel-terms div {
+      margin-top: 6px; font-size: 11px; color: #999; line-height: 1.5;
+    }
+
+    /* --- Email-receipt checkbox (CE) --- */
+    .email-receipt {
+      font-size: 13px; color: #444; padding: 12px 0; display: flex; gap: 8px;
+      align-items: center;
+    }
+
+    /* --- Trick-wording button row (DP-trick-wording) --- */
+    .trick-wording-row {
+      margin: 14px 0; padding: 14px; background: #fafafa; border-radius: 4px;
+      border: 1px dashed #ddd;
+    }
+    .trick-wording-row .label-text {
+      font-size: 13px; color: #555; margin-bottom: 8px; display: block;
+    }
+    .trick-wording-row .twr-buttons { display: flex; gap: 10px; }
+    .trick-wording-row .twr-buttons button {
+      flex: 1; padding: 10px; border: 1px solid #ddd; background: #fff;
+      cursor: pointer; font-size: 13px; border-radius: 4px;
+    }
+
+    /* --- Action row (Pause pill + Cancel link) --- */
+    .action-row {
+      margin-top: 24px; padding: 18px; background: #fff;
+      border-radius: 4px; border: 1px solid #ddd;
+    }
+    .pause-pill {
+      display: block; width: 100%; padding: 16px;
+      background: #e50914; color: #fff;
+      font-size: 17px; font-weight: 700; text-align: center;
+      border: none; border-radius: 4px; cursor: pointer;
+      text-transform: uppercase; letter-spacing: 0.5px;
+    }
+    .cancel-link {
+      display: block; text-align: center; margin-top: 14px;
+      color: #999; font-size: 11px; text-decoration: underline;
+      font-weight: 300;
+    }
+
+    /* --- Real cancel CTA (CE-real-cancel) — visible alternative path --- */
+    .real-cancel-row { margin-top: 14px; }
+    .real-cancel-btn {
+      display: block; width: 100%; padding: 12px; text-align: center;
+      background: #fff; color: #221f1f;
+      border: 1px solid #221f1f; border-radius: 4px;
+      font-size: 14px; font-weight: 600; cursor: pointer;
+      text-decoration: none;
+    }
+    .real-cancel-btn:hover {
+      background: #221f1f; color: #fff; text-decoration: none;
+    }
+
+    /* --- Help footer link (CE-help-link) --- */
+    .footer-help {
+      text-align: center; padding: 24px 0; font-size: 12px; color: #999;
+    }
+
+    /* --- Pop-up promo (DP-popup-ad) --- */
+    .promo-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+      z-index: 9000; display: flex; align-items: center; justify-content: center;
+    }
+    .promo-modal {
+      background: #fff; width: 460px; max-width: 92%; border-radius: 6px;
+      padding: 28px; position: relative;
+      box-shadow: 0 6px 24px rgba(0,0,0,0.3);
+      text-align: center;
+    }
+    .promo-modal .game-banner {
+      height: 140px;
+      background: linear-gradient(135deg, #6610f2, #e50914);
+      border-radius: 4px; display: flex; align-items: center; justify-content: center;
+      color: rgba(255,255,255,0.9); font-size: 12px; margin-bottom: 16px;
+    }
+    .promo-modal h2 { margin: 0 0 8px 0; font-size: 22px; color: #221f1f; }
+    .promo-modal p { margin: 0 0 18px 0; font-size: 14px; color: #555; line-height: 1.5; }
+    .promo-modal .promo-cta {
+      display: block; width: 100%; padding: 14px;
+      background: #e50914; color: #fff; border: none; border-radius: 4px;
+      font-size: 15px; font-weight: 700; cursor: pointer;
+      text-transform: uppercase; letter-spacing: 0.5px;
+    }
+    .promo-close-x {
+      position: absolute; bottom: 4px; right: 6px;
+      width: 14px; height: 14px; line-height: 14px; text-align: center;
+      color: #999; opacity: 0.18; font-size: 12px; background: none; border: none; cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ---- Top nav ---- -->
+  <nav class="nav-top">
+    <div class="nav-logo">NETFLIX</div>
+    <div class="nav-right">
+      <span style="color:#666;">Account</span>
+
+      <!-- [CE-1] Plain "Sign out" link in the top nav. Looks like Forced Action
+           (prominent account-related affordance), but it's just the standard
+           sign-out option present on every account page. Nothing on this page
+           depends on the user clicking it. NOT a DP. -->
+      <a href="/signout" data-gt-id="ce-signout-link" style="color:#666;">Sign out</a>
+
+      <div class="profile-pill">A</div>
+    </div>
+  </nav>
+
+  <main class="page-wrap">
+    <h1 class="page-title">We're sorry to see you go, Antares</h1>
+    <p class="page-subtitle">Your membership will end on <strong>June 14, 2026</strong> if you cancel today. Pick what you'd like to do below.</p>
+
+    <!-- ---- Plan summary card (CE) ---- -->
+    <div class="card" data-gt-id="ce-plan-summary">
+      <h2>Your current plan</h2>
+      <div class="plan-summary-row"><span>Plan</span><span>Premium (4K Ultra HD, 4 screens)</span></div>
+      <div class="plan-summary-row"><span>Monthly cost</span><span>US$22.99/month</span></div>
+      <div class="plan-summary-row"><span>Next billing date</span><span>June 14, 2026</span></div>
+      <div class="plan-summary-row"><span>Member since</span><span>March 2019</span></div>
+    </div>
+
+    <!-- ---- Retention options ---- -->
+    <div class="card">
+      <h2>Before you cancel, would you consider…</h2>
+
+      <!-- [DP-1] PRESELECTION — the "Pause" retention option is pre-selected by
+           default (radio checked), pushing the user to keep paying after a 3-month
+           wait rather than cancel. The user came to CANCEL; the pre-selection
+           reverses what the user actively asked for. Pre-selecting a paid-retention
+           outcome inside a cancel flow benefits Netflix (continued revenue) at the
+           user's cost (continued billing after pause expires). Same harm test as
+           Booking's dp-preselect-insurance and NYT's dp-preselect-annual — paid
+           pre-check inside a focused flow. -->
+      <div class="retention-option preselected" data-gt-id="dp-preselect-pause">
+        <span class="pill-tag">Most Popular</span>
+        <label>
+          <input type="radio" name="retention" id="retention-pause" checked>
+          <span>
+            <span class="opt-name">Pause your membership</span>
+            <span class="opt-desc">Take a break for up to 3 months. We'll keep your watchlist and resume billing at your current rate when you return.</span>
+            <span class="opt-price">Resumes at US$22.99/month after 3 months</span>
+          </span>
+        </label>
+      </div>
+
+      <div class="retention-option">
+        <label>
+          <input type="radio" name="retention">
+          <span>
+            <span class="opt-name">Switch to a cheaper plan</span>
+            <span class="opt-desc">Standard with ads — same shows, lower price.</span>
+            <span class="opt-price">US$6.99/month</span>
+          </span>
+        </label>
+      </div>
+
+      <div class="retention-option">
+        <label>
+          <input type="radio" name="retention" id="retention-cancel">
+          <span>
+            <span class="opt-name">Cancel my membership</span>
+            <span class="opt-desc">End your subscription and stop billing on June 14, 2026.</span>
+          </span>
+        </label>
+      </div>
+
+      <!-- [DP-4] FAKE SOCIAL PROOF — unverifiable retention statistics with no
+           source or methodology, used to pressure the user away from cancellation.
+           The "9 out of 10" pause-return rate is uncited; the "12 friends in your
+           area watching tonight" claim implies social-graph awareness Netflix
+           cannot share. Same shape as NYT's dp-fake-readers and Amazon's
+           dp-fake-social-proof — unverifiable urgency/popularity claims at a
+           decision moment. -->
+      <div class="social-proof-banner" data-gt-id="dp-fake-retention-stats">
+        ★ <strong>9 out of 10 paused members return within 30 days.</strong> Right now <strong>12 friends in your area</strong> are watching Netflix.
+      </div>
+
+      <!-- [DP-2] DISGUISED AD — a "retention option" card visually styled
+           identically to the legitimate retention options above, but its content
+           is an EXTERNAL partner offer (a Spotify-Netflix bundle from an
+           "affiliate" — Spotify Premium isn't a Netflix product). The "Try this
+           offer" CTA links to an external partner URL (netflix-partner-offers.example),
+           NOT to a Netflix retention path. Mimics the native "consider this"
+           retention card while actually serving as a partner promotion. The 9px
+           "Partner offer" label is too small + low-contrast (#ccc) to defeat
+           the impersonation. Same harm test as Booking's dp-disguised-ad-reserve. -->
+      <div class="partner-card" data-gt-id="dp-disguised-partner-ad">
+        <div class="partner-label">Partner offer</div>
+        <h3>Get 6 months of Spotify Premium with your Netflix membership</h3>
+        <div style="font-size:13px;color:#666;">Stay on Netflix and get music ad-free. Members who add Spotify save US$60/year on average.</div>
+        <a class="partner-cta" href="https://netflix-partner-offers.example/spotify?cid=cancel-flow"
+           onclick="window.location.href='https://netflix-partner-offers.example/spotify?cid=cancel-flow'; return false;">
+          Try this offer →
+        </a>
+      </div>
+    </div>
+
+    <!-- ---- Trick-wording row (DP-trick-wording) ---- -->
+    <div class="card">
+      <h2>Confirm your choice</h2>
+
+      <!-- [DP-5] TRICK WORDING — two equally-styled buttons with semantically
+           inverted labels. "I do not want to not keep my membership" semantically
+           = "I want to keep my membership" — but a hurried user reads the second
+           button's "do not… not" stack as "I don't want to keep" and clicks it,
+           thinking they're cancelling, when in fact they're STAYING. The semantic
+           inversion is in the button label itself; the button-meaning maps to the
+           opposite of the surface reading. Adapted from injection-mapping
+           stm_double_negative and Amazon's dp-trick-wording-notif pattern. -->
+      <div class="trick-wording-row" data-gt-id="dp-trick-wording-confirm">
+        <span class="label-text">Pick the option that matches your decision:</span>
+        <div class="twr-buttons">
+          <button>I want to keep my membership</button>
+          <button>I do not want to not keep my membership</button>
+        </div>
+      </div>
+
+      <!-- [DP-6] HIDDEN INFORMATION — decision-critical post-cancellation
+           details (no prorated refunds for the partial month, ALL viewing history
+           and watchlist permanently deleted after 30 days even if the user
+           re-subscribes, downloaded titles inaccessible after the billing date)
+           are concealed in a collapsed low-contrast disclosure (10px gray).
+           A user who clicks Cancel without expanding it loses recoverable state
+           they didn't visibly consent to losing. Same harm-test fingerprint as
+           Booking's dp-hidden-fees: decision-critical info hidden at the moment
+           of commitment. -->
+      <details class="cancel-terms" data-gt-id="dp-hidden-cancel-terms">
+        <summary>What happens after you cancel</summary>
+        <div>
+          You will continue to have access until your current billing period ends on June 14, 2026 — <strong>no prorated refund is provided</strong> for the unused portion of the month. After cancellation, your viewing history, watchlist, and continue-watching state will be retained for 10 months and then <strong>permanently deleted</strong>. If you re-subscribe within 10 months, your data is restored automatically. <strong>Downloaded titles on the Netflix app become inaccessible the day after your billing date.</strong> Cancellation cannot be undone after the billing date passes; you will need to start a new membership.
+        </div>
+      </details>
+
+      <!-- [CE-3] Pre-checked "Email me a confirmation" checkbox. Looks like
+           Preselection (a default is checked), but the option is a sensible
+           transactional default — sending the user a record of their cancellation
+           — not a paid add-on, not marketing, not data extraction. The user is
+           overwhelmingly likely to want a written record of what they just did.
+           Compare DP-1 (paid-retention plan pre-selected) — same surface shape,
+           opposite harm-test answer. -->
+      <label class="email-receipt" data-gt-id="ce-email-receipt-default">
+        <input type="checkbox" checked>
+        Email me a confirmation receipt of this change
+      </label>
+    </div>
+
+    <!-- ---- Action row (false hierarchy + confirm shaming) ---- -->
+    <div class="action-row">
+      <!-- [DP-3] FALSE HIERARCHY — the "Pause my membership" CTA is presented as
+           a giant red full-width pill button (17px bold, uppercase, the visually
+           dominant action), while the option that matches the user's actual
+           intent (cancel — that's why they're on this page) is a tiny 11px gray
+           no-underline link below it. Prominence misaligned with revealed user
+           intent. Same architectural shape as Amazon's "3-Year Protection",
+           Booking's Cancel-Anytime, and NYT's "Add Sunday Print" pills — the
+           false-hierarchy fingerprint, not just the styling. -->
+      <button class="pause-pill" data-gt-id="dp-false-hierarchy-pause">PAUSE MY MEMBERSHIP</button>
+
+      <!-- [DP-7] CONFIRM SHAMING — the cancel-completion link's LABEL frames the
+           user's choice as a self-inflicted loss enumerated in concrete terms
+           ("watchlist", "recommendations", "continue-watching progress",
+           "downloaded titles"). The user can cancel (the link is functional),
+           but the decline option itself shames the user for declining by listing
+           every personalization artifact they will lose. Manipulation is in the
+           wording of the action control, not the action it performs. Adapted
+           from injection-mapping stm_confirm_shaming ("Say no, and you're
+           choosing to fall behind while everyone else levels up.") and
+           Booking's bki_confirm_shaming pattern. -->
+      <a href="#cancel-confirmed" class="cancel-link" data-gt-id="dp-confirm-shaming-cancel">
+        Yes, cancel anyway and lose my watchlist, recommendations, continue-watching progress, and downloaded titles
+      </a>
+
+      <!-- [CE-2] The REAL "End my membership now" button — a clearly-labeled,
+           reasonably-prominent secondary action that does what its label
+           promises: completes the cancellation. Visually less prominent than
+           the pause pill (DP-3) but NOT hidden — full-width, dark-bordered,
+           clearly clickable. The harm test for False hierarchy requires the
+           legitimate option be VISUALLY BURIED against the user's intent;
+           this button is visible and clickable. NOT a DP. -->
+      <div class="real-cancel-row" data-gt-id="ce-real-cancel-button">
+        <a id="cancel-button" class="real-cancel-btn" href="/account/cancel/confirm">End my membership now</a>
+      </div>
+    </div>
+
+    <!-- [CE-4] "Help center" link in the page footer. Looks like Forced Action
+         (taking the user away from the cancel page might be perceived as
+         friction), but it's a standard utility link present on every Netflix
+         page. Doesn't gate or coerce; the user can complete cancellation without
+         clicking it. NOT a DP. -->
+    <div class="footer-help" data-gt-id="ce-help-link">
+      Need a hand? Visit our <a href="/help">Help Center</a> or call 1-800-585-7265.
+    </div>
+  </main>
+
+  <!-- [DP-8] POP-UP AD — modal overlay shown on page load promoting Netflix
+       Games (an entirely separate product surface from the cancellation flow
+       the user came to). Cross-promotion: the user is trying to CANCEL, NOT
+       trying to discover new product features. The dismiss control is a
+       near-invisible × in the bottom-right corner (opacity 0.18) — degraded
+       dismiss path while the "BROWSE GAMES" CTA is full-width and bright red.
+       Same canonical shape as Booking's bki_pop_up and NYT's dp-cooking-popup. -->
+  <div class="promo-overlay" data-gt-id="dp-popup-games">
+    <div class="promo-modal">
+      <div class="game-banner">[Netflix Games hero image]</div>
+      <h2>Wait — did you know about Netflix Games?</h2>
+      <p>Your membership includes 80+ premium mobile games at no extra cost. Try them before you decide.</p>
+      <button class="promo-cta">BROWSE GAMES</button>
+      <button class="promo-close-x" aria-label="Close">×</button>
+    </div>
+  </div>
+
+</body>
+</html>

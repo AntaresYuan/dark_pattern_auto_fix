@@ -1,0 +1,145 @@
+{
+  "fixture": "netflix-cancel-flow.html",
+  "description": "Replica Netflix account-cancellation page (the user has clicked Cancel Membership and is on the retention/confirmation step). Deliberately injected dark patterns and counterexamples. Used to measure the identification prompt's true-positive, false-positive, and false-negative rates on a Streaming & entertainment fixture where the dominant DP signature is RETENTION friction.",
+  "page_url_when_served": "http://localhost:8000/fixtures/netflix-cancel-flow/netflix-cancel-flow.html (or any http:// host; the extension rejects file:// URLs)",
+
+  "mimicked_site": "netflix.com",
+  "category": "Streaming & entertainment",
+  "category_id": 7,
+  "page_type": "cancel-subscription-flow",
+  "fixture_plan_row": 3,
+
+  "expected_page_evaluation": {
+    "page_type": "cancellation",
+    "user_primary_intent_acceptable": [
+      "cancel my Netflix membership",
+      "end my Netflix subscription",
+      "stop being billed by Netflix"
+    ],
+    "scoring_note": "Mark page_evaluation correct if page_type ∈ {cancellation, settings, account_management} AND user_primary_intent is a reasonable paraphrase of 'cancel my Netflix membership'. Vague intents ('manage my account', 'browse Netflix') or wrong ones ('subscribe', 'pause') are incorrect — the user came to cancel, the page is trying to talk them out of it. Every downstream harm test depends on this being correctly identified as a cancellation flow with cancel intent (not a retention/upsell flow with subscribe intent)."
+  },
+
+  "dark_patterns": [
+    {
+      "gt_id": "dp-preselect-pause",
+      "type": "Preselection",
+      "selector": "[data-gt-id='dp-preselect-pause'] #retention-pause",
+      "element": "Pre-selected 'Pause your membership' radio (the costliest-to-the-user retention option) with a 'Most Popular' pill tag, marked as the highlighted card",
+      "why": "The user came to CANCEL. The Pause option is pre-selected (radio checked, card highlighted with red border + tinted background + 'Most Popular' pill), reversing the user's revealed intent. Pre-selecting a paid-retention outcome (continued billing after the 3-month pause expires at the same US$22.99/month) inside a cancel flow benefits Netflix (recovered revenue) at the user's cost. Same harm test as Booking's dp-preselect-insurance and NYT's dp-preselect-annual — paid pre-check inside a focused flow that reverses what the user actively chose to do.",
+      "accepts_types": ["Preselection"]
+    },
+    {
+      "gt_id": "dp-disguised-partner-ad",
+      "type": "Disguised ad",
+      "selector": "[data-gt-id='dp-disguised-partner-ad']",
+      "element": "Card styled identically to the legitimate retention options ('Get 6 months of Spotify Premium with your Netflix membership') with a 9px low-contrast 'Partner offer' label, hosting an external partner CTA",
+      "why": "The card is visually styled like the retention options above it (same border, padding, color palette — even uses Netflix red for the CTA), but the content is an EXTERNAL partner offer (Spotify Premium isn't a Netflix product, nor is it a Netflix retention path). The 'Try this offer' CTA navigates to an external partner URL (netflix-partner-offers.example), NOT to a Netflix retention path. The 9px low-contrast 'Partner offer' label is too small to defeat the impersonation — it disclaims the relationship in a way the user is unlikely to read. Same harm test as Booking's dp-disguised-ad-reserve and Amazon's dp-disguised-ad-cta — destination mismatch + impersonation of native primary action.",
+      "accepts_types": ["Disguised ad"]
+    },
+    {
+      "gt_id": "dp-false-hierarchy-pause",
+      "type": "False hierarchy",
+      "selector": "[data-gt-id='dp-false-hierarchy-pause']",
+      "element": "Giant red 'PAUSE MY MEMBERSHIP' pill button (full-width, 17px bold uppercase) — vs the cancel-completion link below it (DP-7) which is 11px gray no-underline",
+      "why": "The user came to cancel. The visually dominant action is the PAUSE pill (full-width, bright Netflix red, 17px bold, uppercase, prominent border-radius), while the option that matches the user's revealed intent (cancel — see DP-7's link, which is 11px gray, no-underline, lowercase, light font-weight) is visually buried directly below it. Prominence misaligned with revealed user intent — not a feature suggestion, a deliberate visual demotion. Same architectural shape as Amazon's '3-Year Protection', Booking's Cancel-Anytime, and NYT's 'Add Sunday Print' pills — the false-hierarchy fingerprint, not just the styling. Distinct from CE-2 (the 'End my membership now' button, which is also visible but secondary).",
+      "accepts_types": ["False hierarchy"]
+    },
+    {
+      "gt_id": "dp-fake-retention-stats",
+      "type": "Fake social proof",
+      "selector": "[data-gt-id='dp-fake-retention-stats']",
+      "element": "Inline banner: '9 out of 10 paused members return within 30 days' + '12 friends in your area are watching Netflix right now'",
+      "why": "Two unverifiable claims used to pressure the user away from cancellation: (a) a retention statistic ('9 out of 10 return') with no source or methodology the user can audit, and (b) a fabricated proximity claim ('12 friends in your area watching tonight') that implies social-graph awareness Netflix cannot share with this user. Same shape as NYT's dp-fake-readers, Amazon's dp-fake-social-proof, and Booking's dp-fake-urgency — unverifiable popularity/scarcity at a decision moment.",
+      "accepts_types": ["Fake social proof"]
+    },
+    {
+      "gt_id": "dp-trick-wording-confirm",
+      "type": "Trick wording",
+      "selector": "[data-gt-id='dp-trick-wording-confirm']",
+      "element": "Pair of equally-styled buttons: 'I want to keep my membership' and 'I do not want to not keep my membership'",
+      "why": "Two equally-styled buttons whose semantic effects are IDENTICAL (both keep the membership) but whose surface readings invert. A hurried user reads the second button's stacked double negative ('do not… not keep') as 'I want to cancel' and clicks it — but the button-meaning, properly parsed, is 'I want to keep my membership'. The harm: the user believes they cancelled and walks away thinking the membership is over, but the membership stays active and continues billing on June 14. Same shape as Amazon's dp-trick-wording-notif (where 'I do not want no notifications' opts the user IN — the harm is missed expectation, identical structure). Adapted from injection-mapping stm_double_negative.",
+      "accepts_types": ["Trick wording"]
+    },
+    {
+      "gt_id": "dp-hidden-cancel-terms",
+      "type": "Hidden information",
+      "selector": "[data-gt-id='dp-hidden-cancel-terms']",
+      "element": "'What happens after you cancel' collapsed disclosure that hides decision-critical post-cancellation terms",
+      "why": "Decision-critical information about what the user loses by cancelling — no prorated refund, viewing history & watchlist permanently deleted after 10 months, downloaded titles inaccessible the day after billing date — is concealed in a collapsed, low-contrast disclosure (10px gray, no chevron icon, summary reads '›'). A user who clicks Cancel without expanding it loses recoverable state they didn't visibly consent to losing. Same harm-test fingerprint as Booking's dp-hidden-fees and NYT's dp-hidden-renewal-terms: decision-critical info hidden at the moment of commitment.",
+      "accepts_types": ["Hidden information"]
+    },
+    {
+      "gt_id": "dp-confirm-shaming-cancel",
+      "type": "Confirm shaming",
+      "selector": "[data-gt-id='dp-confirm-shaming-cancel']",
+      "element": "Tiny gray cancellation link below the pause pill: 'Yes, cancel anyway and lose my watchlist, recommendations, continue-watching progress, and downloaded titles'",
+      "why": "The cancel-completion link's LABEL frames the user's choice as a self-inflicted loss enumerated in concrete terms (watchlist, recommendations, continue-watching, downloaded titles). The user can cancel (the link is functional), but the decline option itself shames the user for declining by listing every personalization artifact they will lose. Manipulation is in the wording of the action control, not the action it performs. Adapted from injection-mapping stm_confirm_shaming ('Say no, and you're choosing to fall behind while everyone else levels up.'), Booking's bki_confirm_shaming, and Amazon's Prime decline link. NOTE: this same element is also the visually-buried half of the False hierarchy pair with DP-3 (the PAUSE pill) — a model that flags this link with type=False hierarchy is making a defensible call grounded in the same harm test, hence the dual accepts_types.",
+      "accepts_types": ["Confirm shaming", "False hierarchy"]
+    },
+    {
+      "gt_id": "dp-popup-games",
+      "type": "Pop-up ad",
+      "selector": ".promo-overlay[data-gt-id='dp-popup-games']",
+      "element": "Full-overlay modal pushing Netflix Games on page load, with a near-invisible × dismiss",
+      "why": "Promotional content for an entirely separate product surface (Netflix Games — a games discovery feature, NOT part of the cancellation flow the user came to). Unrelated cross-promotion: the user is trying to CANCEL, NOT browsing for new product features. The dismiss control is a near-invisible × in the bottom-right corner (opacity 0.18) — degraded dismiss path while the 'BROWSE GAMES' CTA is full-width and bright Netflix red. Same canonical shape as Booking's bki_pop_up, NYT's dp-cooking-popup, and Amazon's dp-popup-ad — unrelated promotion + degraded dismiss.",
+      "accepts_types": ["Pop-up ad"]
+    }
+  ],
+
+  "counterexamples": [
+    {
+      "gt_id": "ce-signout-link",
+      "looks_like": "Forced Action",
+      "selector": "[data-gt-id='ce-signout-link']",
+      "element": "'Sign out' link in the top nav header",
+      "why_not": "A standard navigation link present on every Netflix account page. Nothing on this cancellation page depends on the user signing out, and the link doesn't gate or coerce. Account-management nav affordances are routine."
+    },
+    {
+      "gt_id": "ce-real-cancel-button",
+      "looks_like": "False hierarchy / Disguised ad",
+      "selector": "#cancel-button, [data-gt-id='ce-real-cancel-button'] .real-cancel-btn",
+      "element": "The 'End my membership now' button — full-width, dark-bordered, secondary visual prominence below the pause pill",
+      "why_not": "This IS the legitimate cancel CTA — it does what its label promises (navigates to the cancel-confirmation page). Visually less prominent than the pause pill (DP-3) but NOT visually buried: full-width, clearly bordered, easily clickable, label exactly matches the action. The harm test for False hierarchy requires the legitimate option be visually buried against user intent (e.g., 11px gray no-underline link); this button doesn't meet that test. The actually-buried cancel option is DP-7 (the confirm-shaming link) — the model should distinguish them. Compare DP-3 (the pause pill) which IS the visually-dominant misaligned-with-intent CTA."
+    },
+    {
+      "gt_id": "ce-plan-summary",
+      "looks_like": "Hidden information",
+      "selector": "[data-gt-id='ce-plan-summary']",
+      "element": "'Your current plan' summary card listing plan tier, monthly cost, next billing date, member-since date",
+      "why_not": "All decision-critical billing info is visible up front — plan tier, US$22.99/month, June 14 billing date, member-since date. Nothing is collapsed, hidden, or buried. This is the OPPOSITE pattern of DP-6 (which hides post-cancellation terms in a collapsed disclosure). Compare directly: DP-6 = mandatory info hidden at commitment moment (DP); CE-3 = decision-relevant info displayed openly (CE)."
+    },
+    {
+      "gt_id": "ce-email-receipt-default",
+      "looks_like": "Preselection",
+      "selector": "[data-gt-id='ce-email-receipt-default']",
+      "element": "Pre-checked 'Email me a confirmation receipt of this change' checkbox",
+      "why_not": "A pre-checked checkbox inside a settings flow — visually adjacent to DP-1 (the pre-selected pause radio) — but the option is a sensible transactional default: sending the user a record of an account-state change they just made. Not a paid add-on, not marketing, not data extraction. Users overwhelmingly want a written confirmation of a cancellation. Compare DP-1 (paid retention pre-selected) — same surface shape (a default checkmark), opposite harm-test answer."
+    },
+    {
+      "gt_id": "ce-help-link",
+      "looks_like": "Forced Action",
+      "selector": "[data-gt-id='ce-help-link']",
+      "element": "'Need a hand? Visit our Help Center or call …' link in the page footer",
+      "why_not": "A footer help link is not coercive friction — it's an optional support affordance that the user can ignore entirely while completing cancellation. The harm test for Forced Action requires the user be FORCED to take an action; this link doesn't force anything. Compare a hypothetical 'You must visit Help Center before cancelling' gate which WOULD be Forced Action."
+    }
+  ],
+
+  "fixture_notes": [
+    "Only 5 CEs (vs the booking/nytimes convention of 6) — the cancel flow doesn't naturally surface a 'real Subscribe CTA' counterexample because the user is already a paying member, so the nytimes/booking 'real subscribe button' convention doesn't apply. 5 CEs still meets the 4-8 acceptance range; balance is OK for FP measurement on the 8 DPs.",
+    "First fixture without Forced Action — this fixture deliberately skips it (was used in #13 for the paywall). Cancel flows could plausibly use Forced Action (e.g., 'verify your identity to cancel' interstitial), but here we test the more common Streaming-vertical retention shape: friction via Preselection + False hierarchy + Confirm shaming + Trick wording rather than gating."
+  ],
+
+  "scoring": {
+    "true_positive": "Model output contains an entry whose target element matches a `dark_patterns` gt_id (by selector / html_evidence overlap) AND whose dark_pattern_type is in that entry's `accepts_types`.",
+    "false_negative": "A `dark_patterns` gt_id has no matching entry in the model output.",
+    "false_positive": "Model output contains an entry whose target element matches a `counterexamples` gt_id, OR an entry whose target element matches no gt_id at all.",
+    "wrong_type": "Model flags the right element (a `dark_patterns` gt_id) but with a dark_pattern_type NOT in `accepts_types`. Count separately from TP/FP — found something real but mislabeled it.",
+    "page_eval": "Separately, score expected_page_evaluation as correct/incorrect per its scoring_note.",
+    "headline_metrics": [
+      "precision = TP / (TP + FP)",
+      "recall = TP / (TP + FN)   [TP + FN = 8, the count of injected dark patterns]",
+      "false_positive_rate = FP / (number of counterexamples + extraneous flags) — this is the metric the recent prompt rewrite targets",
+      "Note: maxItems is 3 in the schema, so the model can report at most 3 patterns per run. Recall is bounded at 3/8 in a single pass — run the page multiple times, or accept that 'top 3' coverage is the realistic ceiling. Track WHICH 3 it picks and whether they are all real."
+    ]
+  }
+}

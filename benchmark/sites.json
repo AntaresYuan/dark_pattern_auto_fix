@@ -154,7 +154,7 @@
       "domain": "netflix.com",
       "category": 7,
       "category_rationale": "Video streaming; plan preselects, cancel-flow.",
-      "fixture_status": "planned"
+      "fixture_status": "built"
     },
     {
       "rank": 42,
