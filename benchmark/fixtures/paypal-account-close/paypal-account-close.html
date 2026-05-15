@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<!--
+  Dark Pattern Detection Benchmark — PayPal Close-Account Flow (replica)
+
+  CONTROLLED TEST FIXTURE. Mimics a PayPal account-closure page: the user has
+  navigated to Settings → Profile → Close My Account, and lands on the
+  retention/confirmation step. Deliberately injected dark patterns + counterexamples.
+
+  Ground truth (which element is which) lives in ./ground-truth.json.
+  Every benchmarked element carries a data-gt-id attribute and an HTML comment.
+
+  Notation:
+    [DP-x] = injected dark pattern (the model SHOULD flag this)
+    [CE-x] = counterexample (the model should NOT flag this; tests false positives)
+
+  Realism-first design: 6 DPs are all canonical PayPal close-account patterns
+  (forced reason picker, hidden balance/transaction terms, pre-checked
+  "mailing-list disguised as fraud alerts", PayPal Credit retention card,
+  KEEP pill vs CLOSE link hierarchy, shame-laden close link).
+  Trick wording, Pop-up ad, Fake social proof DPs deliberately omitted — not
+  canonical for this surface.
+
+  Run: serve via `python3 -m http.server 8000` from the benchmark/ root, then
+  visit http://localhost:8000/fixtures/paypal-account-close/paypal-account-close.html
+-->
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Close Account | PayPal</title>
+  <meta property="og:type" content="website" />
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "PayPalOpen", "Helvetica Neue", "Helvetica", "Arial", sans-serif;
+      color: #2c2e2f; background: #faf8f5; font-size: 15px;
+    }
+    a { color: #0070ba; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* --- Top nav (PayPal blue header) --- */
+    .nav-top {
+      background: #003087; color: #fff; padding: 14px 24px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .nav-logo {
+      font-size: 22px; font-weight: 700; letter-spacing: -0.5px;
+      color: #fff; font-family: "PayPalOpen", "Helvetica", sans-serif;
+    }
+    .nav-logo .pay { color: #fff; }
+    .nav-logo .pal { color: #009cde; }
+    .nav-right { display: flex; align-items: center; gap: 16px; font-size: 13px; }
+    .nav-right a { color: #fff; }
+    .nav-right .user-pill {
+      width: 32px; height: 32px; background: #009cde;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      color: #fff; font-weight: 700;
+    }
+
+    /* --- Sub-nav strip --- */
+    .nav-secondary {
+      background: #fff; border-bottom: 1px solid #e3e0dc; padding: 8px 24px;
+      display: flex; gap: 24px; font-size: 13px; color: #2c2e2f;
+    }
+    .nav-secondary a { color: #2c2e2f; }
+    .nav-secondary .active { color: #0070ba; font-weight: 700; border-bottom: 2px solid #0070ba; padding-bottom: 6px; }
+
+    /* --- Layout --- */
+    .page-grid {
+      display: grid; grid-template-columns: 230px minmax(0, 1fr);
+      gap: 20px; max-width: 980px; margin: 16px auto; padding: 0 16px;
+    }
+    .settings-side {
+      background: #fff; border-radius: 8px; border: 1px solid #e3e0dc;
+      padding: 12px 0; height: fit-content;
+    }
+    .settings-side .side-title {
+      font-size: 17px; font-weight: 700; padding: 6px 16px 12px;
+    }
+    .settings-side ul { list-style: none; padding: 0; margin: 0; }
+    .settings-side li { padding: 8px 16px; font-size: 14px; cursor: pointer; }
+    .settings-side li:hover { background: #f5f3ee; }
+    .settings-side li.active { background: #e6f4fa; color: #0070ba; font-weight: 600; border-left: 3px solid #0070ba; padding-left: 13px; }
+
+    .panel {
+      background: #fff; border-radius: 8px; border: 1px solid #e3e0dc;
+      padding: 24px; margin-bottom: 16px;
+    }
+    .panel h1 { font-size: 22px; font-weight: 700; margin: 0 0 8px 0; }
+    .panel h2 { font-size: 17px; font-weight: 700; margin: 0 0 12px 0; }
+    .panel .meta { color: #6c7378; font-size: 14px; }
+
+    /* --- Balance summary (CE) --- */
+    .balance-row {
+      display: flex; justify-content: space-between; padding: 8px 0;
+      border-bottom: 1px solid #f5f3ee; font-size: 14px;
+    }
+    .balance-row:last-child { border-bottom: none; }
+    .balance-row span:last-child { color: #2c2e2f; font-weight: 600; }
+    .balance-headline {
+      font-size: 22px; font-weight: 700; color: #0070ba; padding: 6px 0;
+    }
+
+    /* --- Reason picker (DP forced action) --- */
+    .reason-row { padding: 6px 0; }
+    .reason-row label { display: flex; gap: 8px; cursor: pointer; align-items: flex-start; padding: 5px 0; font-size: 14px; }
+    .reason-row textarea {
+      width: 100%; min-height: 80px; padding: 10px; border: 1px solid #cbcdcf;
+      border-radius: 6px; font-family: inherit; font-size: 14px; resize: vertical;
+      margin-top: 8px;
+    }
+    .required-tag {
+      color: #d20000; font-size: 12px; margin-left: 4px; font-weight: 700;
+    }
+    .reason-blocker-msg {
+      font-size: 12px; color: #d20000; margin-top: 6px; font-style: italic;
+    }
+
+    /* --- PayPal Credit promo card (DP disguised ad) --- */
+    .credit-card-promo {
+      border: 1px solid #e3e0dc; border-radius: 8px; padding: 14px;
+      margin: 12px 0; background: #f5f9fc; display: flex; gap: 14px; align-items: flex-start;
+    }
+    .credit-card-promo .credit-tile {
+      width: 60px; height: 40px; border-radius: 4px; flex-shrink: 0;
+      background: linear-gradient(135deg, #003087, #009cde);
+      display: flex; align-items: center; justify-content: center;
+      color: #fff; font-size: 9px; font-weight: 700;
+    }
+    .credit-card-promo h3 {
+      font-size: 15px; margin: 0 0 4px 0; color: #2c2e2f;
+    }
+    .credit-card-promo .promo-source-tag {
+      font-size: 9px; color: #ccc; text-transform: uppercase; letter-spacing: 1px;
+    }
+    .credit-card-promo .credit-cta {
+      display: inline-block; background: #ffc439; color: #2c2e2f;
+      padding: 7px 14px; font-size: 13px; font-weight: 700;
+      text-decoration: none; border-radius: 18px; margin-top: 8px;
+      border: none; cursor: pointer;
+    }
+
+    /* --- Hidden info (DP) --- */
+    details.close-terms summary {
+      cursor: pointer; color: #6c7378; font-size: 12px;
+      list-style: none; padding: 4px 0;
+    }
+    details.close-terms summary::-webkit-details-marker { display: none; }
+    details.close-terms summary::before { content: "› "; color: #cbcdcf; }
+    details.close-terms[open] summary::before { content: "⌄ "; }
+    details.close-terms div {
+      margin-top: 6px; font-size: 11px; color: #888; line-height: 1.55;
+    }
+
+    /* --- Newsletter checkbox (DP preselect) --- */
+    .newsletter-row {
+      padding: 14px; margin: 12px 0; background: #f5f9fc;
+      border: 1px solid #cfe0fa; border-radius: 6px; display: flex; gap: 10px;
+      align-items: flex-start; font-size: 13px;
+    }
+    .newsletter-row strong { font-weight: 700; }
+
+    /* --- Email receipt (CE) --- */
+    .email-receipt {
+      font-size: 13px; color: #6c7378; padding: 12px 0;
+      display: flex; gap: 8px; align-items: center;
+    }
+
+    /* --- Action area (Keep pill + Close link) --- */
+    .action-row { padding: 14px 0; }
+    .keep-pill {
+      display: block; width: 100%; padding: 14px;
+      background: #0070ba; color: #fff;
+      font-size: 16px; font-weight: 700; text-align: center;
+      border: none; border-radius: 24px; cursor: pointer;
+    }
+    .keep-pill:hover { background: #005f9e; }
+    .close-link {
+      display: block; text-align: center; margin-top: 14px;
+      color: #6c7378; font-size: 11px; text-decoration: underline;
+      font-weight: 300;
+    }
+
+    .footer-help {
+      text-align: center; padding: 24px 0; font-size: 12px; color: #6c7378;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ---- Top nav ---- -->
+  <nav class="nav-top">
+    <div class="nav-logo"><span class="pay">Pay</span><span class="pal">Pal</span></div>
+    <div class="nav-right">
+      <span style="font-size:13px;color:rgba(255,255,255,0.85);">Activity</span>
+      <span style="font-size:13px;color:rgba(255,255,255,0.85);">Help</span>
+
+      <!-- [CE-1] Plain "Log Out" link in the top nav. Looks like Forced Action
+           because it's an account-related affordance, but it's just the standard
+           sign-out option present on every PayPal page. Nothing on this close-
+           account page depends on it. NOT a DP. -->
+      <a href="/logout" data-gt-id="ce-logout-link">Log Out</a>
+
+      <div class="user-pill">A</div>
+    </div>
+  </nav>
+
+  <nav class="nav-secondary">
+    <a href="/home">Summary</a>
+    <a href="/wallet">Wallet</a>
+    <a href="/activity">Activity</a>
+    <a href="/send">Send &amp; Request</a>
+    <a href="/settings" class="active">Settings</a>
+  </nav>
+
+  <main class="page-grid">
+
+    <!-- ---- Settings sidebar ---- -->
+    <aside class="settings-side">
+      <div class="side-title">Settings</div>
+      <ul>
+        <li>Account</li>
+        <li>Login &amp; Security</li>
+        <li>Payments</li>
+        <li>Notifications</li>
+        <li>Data &amp; Privacy</li>
+        <li class="active">Close Account</li>
+      </ul>
+    </aside>
+
+    <!-- ---- Main column ---- -->
+    <section>
+      <div class="panel">
+        <h1>Close your PayPal account</h1>
+        <p class="meta">Closing your account is permanent and cannot be undone. Once your account is closed, you won't be able to send or receive money, and your transaction history will become read-only for 7 years (regulatory requirement) before being deleted.</p>
+
+        <!-- [CE-2] Account balance + recent-transaction summary. Looks like
+             Hidden information (financial details that COULD be concealed) but
+             everything is shown openly in this card: current balance, last
+             transaction date, member-since year, pending count. Nothing
+             collapsed. This is the OPPOSITE pattern from DP-2 (which collapses
+             post-closure terms). Genuine state disclosure, not deception. -->
+        <div data-gt-id="ce-balance-summary" style="background:#f5f9fc;border-radius:6px;padding:14px;margin-top:14px;">
+          <div class="balance-row"><span>Current balance</span><span class="balance-headline">US$184.27</span></div>
+          <div class="balance-row"><span>Pending transactions</span><span>2</span></div>
+          <div class="balance-row"><span>Last transaction</span><span>May 13, 2026 · Etsy purchase</span></div>
+          <div class="balance-row"><span>Member since</span><span>March 2012 (14 years)</span></div>
+        </div>
+      </div>
+
+      <!-- ---- Reason panel (DP-1 forced action) ---- -->
+      <div class="panel">
+        <h2>Tell us why you're closing<span class="required-tag">* required</span></h2>
+
+        <!-- [DP-1] FORCED ACTION — the user is REQUIRED to select a reason
+             (radio + optional textarea) before the close-account action can
+             complete. Explicit blocker message: "You must select a reason
+             before you can continue". The user is entitled to close their own
+             account (it's a financial product they signed up for and can
+             leave); requiring them to JUSTIFY the request to PayPal is
+             coercion to an UNRELATED demand — PayPal does not need the reason
+             to perform the closure; the form exists only for PayPal's
+             product-research benefit, at the user's friction cost. Distinct
+             from a re-auth password prompt (which would be intrinsic to the
+             security of a financial-account-state change). Adapted from
+             facebook-deactivation dp-forced-reason — same canonical Forced
+             Action pattern, different surface. -->
+        <div class="reason-row" data-gt-id="dp-forced-reason">
+          <label><input type="radio" name="reason"> I'm using a different payment service</label>
+          <label><input type="radio" name="reason"> I don't use PayPal enough</label>
+          <label><input type="radio" name="reason"> I have privacy concerns</label>
+          <label><input type="radio" name="reason"> I had a problem with a transaction</label>
+          <label><input type="radio" name="reason"> Too many emails / notifications</label>
+          <label><input type="radio" name="reason"> Other (please explain)</label>
+          <textarea placeholder="Optional unless 'Other' selected — but you must select at least one reason above to continue."></textarea>
+          <div class="reason-blocker-msg">* You must select a reason before you can continue.</div>
+        </div>
+      </div>
+
+      <!-- ---- Cross-product card ---- -->
+      <div class="panel">
+        <h2>Before you go…</h2>
+
+        <!-- [DP-2] DISGUISED AD — a "Before you go" card styled identically to
+             the legitimate retention/info cards on this page (same panel
+             chrome, same border, same color tokens, same CTA pill style), but
+             the content is an EXTERNAL paid financial product (PayPal Credit
+             is a separate revolving-credit product with its own fees, not the
+             user's PayPal balance/account that's being closed). The 9px low-
+             contrast "PROMOTION" label is too small to defeat the
+             impersonation of a native retention option. Cross-promoting a
+             credit product to a user actively trying to LEAVE the platform
+             (and who is signaling reduced financial engagement) is the harm:
+             the user reads it as "consider this PayPal option instead of
+             leaving" but it's a wholly different financial commitment.
+             Same harm test as netflix dp-disguised-partner-ad and booking
+             dp-disguised-ad-reserve — destination/product mismatch + visual
+             impersonation. -->
+        <div class="credit-card-promo" data-gt-id="dp-disguised-credit-promo">
+          <div class="credit-tile">PayPal<br>CREDIT</div>
+          <div>
+            <span class="promo-source-tag">Promotion</span>
+            <h3>Get 6 months 0% APR with PayPal Credit</h3>
+            <div style="font-size:13px;color:#6c7378;">Pay over time on purchases over $99. Members who use PayPal Credit make 31% more transactions a year on average.</div>
+            <button class="credit-cta">Apply in 60 seconds →</button>
+          </div>
+        </div>
+
+        <!-- [DP-3] HIDDEN INFORMATION — decision-critical post-closure terms
+             buried in a collapsed, low-contrast disclosure (11px gray, no
+             chevron icon). What's hidden: (a) the 2 pending transactions
+             will be force-closed and may be flagged as merchant disputes,
+             potentially affecting credit; (b) automatic recurring payments
+             linked to merchants (subscriptions, bills) will start failing
+             without notice to those merchants, who may then send the user to
+             collections; (c) any open buyer/seller dispute the user has
+             filed will be CANCELLED with no refund; (d) the US$184.27 balance
+             must be drained before closure — if not drained, PayPal mails a
+             check after 60 days, but only to the address on file (not
+             forwardable). A user who closes without expanding this loses
+             material money + may incur knock-on consequences. Decision-
+             critical financial info hidden at moment of commitment. Same
+             harm-test fingerprint as netflix/facebook/booking hidden-fees /
+             hidden-cancel-terms. -->
+        <details class="close-terms" data-gt-id="dp-hidden-residuals">
+          <summary>What happens to your money and transactions</summary>
+          <div>
+            Your <strong>2 pending transactions</strong> will be force-closed at the time of account closure; merchants on the receiving side may flag these as disputes, which can be reported to credit-monitoring agencies. Any <strong>recurring payment authorizations</strong> linked to merchants (subscriptions, utilities, recurring billing) will begin failing silently — PayPal does not notify those merchants on your behalf, and they may forward unpaid invoices to collections. Any open <strong>buyer or seller dispute</strong> you have filed will be cancelled with no refund. Your current balance of <strong>US$184.27 must be drained before closure</strong>; if not drained, PayPal will mail a paper check to the address on file 60 days after closure (not forwardable, not reissuable if lost). Closure is <strong>permanent and cannot be undone</strong>; you cannot reopen this account under the same email + tax ID combination for 12 months.
+          </div>
+        </details>
+
+        <!-- [DP-4] PRESELECTION — pre-checked "Keep me on the PayPal mailing
+             list" checkbox disguised as a security/fraud-alert feature. The
+             label fronts a legitimate-sounding benefit ("fraud alerts on your
+             linked cards") to make the pre-check feel like protection, but
+             the SAME box also opts the user into the broader PayPal
+             marketing newsletter ("product updates, partner offers") that
+             provides PayPal's marketing benefit. After account closure, the
+             user has no PayPal account to defraud — so the "fraud alerts"
+             framing is a fig leaf; the genuine value of the subscription is
+             0 for a closed account, and the genuine purpose is to retain
+             the user's email for marketing. Pre-checked marketing opt-in
+             disguised as a transactional benefit. Adapted shape from Amazon
+             dp-preselect-marketing and the eco_preselect pattern (preselect
+             of company-favoring outcome). -->
+        <div class="newsletter-row" data-gt-id="dp-preselect-mailing-list">
+          <input type="checkbox" id="mailing-keep" checked>
+          <label for="mailing-keep">
+            <strong>Keep me on PayPal's mailing list</strong> for fraud alerts on my linked cards, product updates, and partner offers.
+          </label>
+        </div>
+
+        <!-- [CE-3] Pre-checked "Email me a confirmation when this completes"
+             checkbox. Looks like Preselection (a default is checked),
+             visually adjacent to DP-4 (the disguised mailing-list opt-in) —
+             but the option is a sensible transactional default: sending the
+             user a record of an account-state change they just initiated.
+             Not a paid add-on, not marketing, not data extraction. The
+             receipt is one-shot and ends with closure. Compare DP-4 (a
+             continuing marketing-list subscription disguised as security) —
+             same surface shape, opposite harm-test answer. -->
+        <label class="email-receipt" data-gt-id="ce-email-receipt-default">
+          <input type="checkbox" checked>
+          Email me a confirmation when this completes
+        </label>
+
+        <!-- ---- Action area ---- -->
+        <div class="action-row">
+          <!-- [DP-5] FALSE HIERARCHY — the "Keep My Account" CTA is the
+               visually dominant action: full-width, bright PayPal blue
+               (#0070ba), 16px bold, 24px border-radius pill, padding 14px.
+               The legitimate action that matches the user's revealed intent
+               (close the account — they navigated through 4 settings
+               screens to GET here) is a small 11px gray underlined link
+               immediately below (DP-6). Prominence dramatically misaligned
+               with user intent — the user came to perform the closure; the
+               page shoves them back to keeping. Same architectural shape as
+               Amazon's "3-Year Protection", Booking's Cancel-Anytime, NYT's
+               "Add Sunday Print", Netflix's PAUSE pill, and Facebook's
+               Cancel-Deactivation pill — false-hierarchy fingerprint. -->
+          <button class="keep-pill" data-gt-id="dp-keep-pill-dominant">Keep My Account</button>
+
+          <!-- [DP-6] CONFIRM SHAMING (also visually buried half of DP-5's
+               False hierarchy pair) — the close-account link's LABEL frames
+               the user's choice as a self-inflicted loss enumerated in
+               concrete terms ("14 years of transaction history", "dispute
+               protection", "1,247 verified Send-Money transactions"). The
+               user can close (the link is functional), but the action
+               option itself shames the user for the action by reciting
+               every artifact they will lose. Manipulation is in the wording
+               of the action control, not the action it performs. Multi-
+               class accepts_types because this same element is also the
+               buried half of the False-hierarchy pair with DP-5. Adapted
+               from injection-mapping eco_confirm_shaming + netflix
+               dp-confirm-shaming-cancel pattern. -->
+          <a id="close-button" href="#close-confirmed" class="close-link" data-gt-id="dp-confirm-shaming-close">
+            Yes, close my account anyway and lose 14 years of transaction history, dispute protection, and my 1,247 verified Send-Money transactions
+          </a>
+        </div>
+      </div>
+
+      <!-- [CE-4] "Customer Service" link in the page footer. Looks like
+           Forced Action (taking the user away from the close-account page
+           might be perceived as friction), but it's a standard utility link
+           present on every PayPal page. Doesn't gate or coerce; the user
+           can complete closure without clicking it. Compare DP-1 (the
+           required reason picker, which DOES gate). -->
+      <div class="footer-help" data-gt-id="ce-help-link">
+        Need help? Visit our <a href="/help/close-account">Customer Service center</a> or call (888) 221-1161.
+      </div>
+
+    </section>
+  </main>
+
+</body>
+</html>

@@ -1,0 +1,125 @@
+{
+  "fixture": "paypal-account-close.html",
+  "description": "Replica PayPal account-closure page (the user has navigated to Settings → Profile → Close My Account). Deliberately injected dark patterns and counterexamples. Used to measure the identification prompt's true-positive, false-positive, and false-negative rates on a Finance & fintech fixture where the dominant DP signature is friction + hidden financial consequences + cross-promotion to other PayPal financial products.",
+  "page_url_when_served": "http://localhost:8000/fixtures/paypal-account-close/paypal-account-close.html (or any http:// host; the extension rejects file:// URLs)",
+
+  "mimicked_site": "paypal.com",
+  "category": "Finance & fintech",
+  "category_id": 5,
+  "page_type": "account-close-flow",
+  "fixture_plan_row": 5,
+
+  "expected_page_evaluation": {
+    "page_type": "cancellation",
+    "user_primary_intent_acceptable": [
+      "close my PayPal account",
+      "delete my PayPal account",
+      "terminate my PayPal membership"
+    ],
+    "scoring_note": "Mark page_evaluation correct if page_type ∈ {cancellation, settings, account_management} AND user_primary_intent is a reasonable paraphrase of 'close my PayPal account'. Vague intents ('manage my account', 'view settings') or wrong ones ('open new account', 'transfer money') are incorrect. The user came to close, the page is trying to talk them out of it + extract a marketing-list opt-in + cross-promote PayPal Credit. Every downstream harm test depends on this being correctly identified as a closure flow with close intent."
+  },
+
+  "dark_patterns": [
+    {
+      "gt_id": "dp-forced-reason",
+      "type": "Forced Action",
+      "selector": "[data-gt-id='dp-forced-reason']",
+      "element": "Required reason picker (radio group + textarea) with explicit '* You must select a reason before you can continue' blocker message",
+      "why": "The user is required to provide a reason for closing (radio selection mandatory; explicit blocker message says 'You must select a reason before you can continue') in order to complete the closure. The user is entitled to close their own financial-product account; requiring them to JUSTIFY the request to PayPal is coercion to an UNRELATED demand — PayPal does not need the reason to perform the closure; the form exists only for PayPal's product-research benefit at the user's friction cost. Distinct from a re-auth password prompt (which would be intrinsic to the security of a financial-account-state change). Adapted from facebook-deactivation dp-forced-reason — same canonical Forced Action pattern, different financial surface. NOTE: this is the contested 'unrelated demand' edge case also flagged on facebook #15 and nytimes paywall #13 — treat as deliberate stress test on the prompt's Forced Action carve-out.",
+      "accepts_types": ["Forced Action"]
+    },
+    {
+      "gt_id": "dp-disguised-credit-promo",
+      "type": "Disguised ad",
+      "selector": "[data-gt-id='dp-disguised-credit-promo']",
+      "element": "'Get 6 months 0% APR with PayPal Credit — Apply in 60 seconds' promotional card visually styled like the legitimate retention/info cards on this page",
+      "why": "Card uses the same panel chrome, border tokens, and CTA pill style as the surrounding retention cards. The 9px low-contrast 'PROMOTION' label is too small to defeat the impersonation of a native retention option. PayPal Credit is a SEPARATE revolving-credit financial product with its own fees and credit-pull, not the account being closed. The harm is two-fold: (a) visual impersonation of a native retention path, and (b) cross-promoting a debt product to a user who is actively signaling reduced financial engagement (closing their PayPal account). Same harm test as netflix dp-disguised-partner-ad (Spotify card on cancel page) and booking dp-disguised-ad-reserve — destination/product mismatch + visual impersonation.",
+      "accepts_types": ["Disguised ad"]
+    },
+    {
+      "gt_id": "dp-hidden-residuals",
+      "type": "Hidden information",
+      "selector": "[data-gt-id='dp-hidden-residuals']",
+      "element": "'What happens to your money and transactions' collapsed disclosure hiding pending-transaction force-close, recurring-payment failure cascade, dispute cancellation, balance-check mailing terms, 12-month reopen-blackout",
+      "why": "Decision-critical financial information buried in a collapsed, low-contrast disclosure (11px gray, no chevron): (a) pending transactions force-close with merchant-dispute risk to user's credit; (b) recurring payment authorizations to merchants begin failing silently — PayPal does not notify those merchants, who may forward unpaid invoices to collections; (c) any open buyer/seller dispute is cancelled with no refund; (d) the US$184.27 balance must be drained or PayPal mails a paper check (non-forwardable); (e) reopening the same email + tax ID combination is blocked for 12 months. A user who clicks close without expanding this loses material money + may incur knock-on financial consequences (credit impact, collections). Decision-critical financial info hidden at the moment of commitment. Same harm-test fingerprint as booking dp-hidden-fees, nytimes dp-hidden-renewal-terms, netflix dp-hidden-cancel-terms, facebook dp-hidden-data-terms — but financial stakes make it the most concrete harm so far.",
+      "accepts_types": ["Hidden information"]
+    },
+    {
+      "gt_id": "dp-preselect-mailing-list",
+      "type": "Preselection",
+      "selector": "[data-gt-id='dp-preselect-mailing-list'] #mailing-keep",
+      "element": "Pre-checked 'Keep me on PayPal's mailing list for fraud alerts on my linked cards, product updates, and partner offers' checkbox",
+      "why": "Pre-checked marketing-list opt-in disguised behind a legitimate-sounding security framing ('fraud alerts on your linked cards'). After account closure the user has no PayPal account or linked-cards relationship for PayPal to defraud — so the 'fraud alerts' framing is a fig leaf; the actual value of the subscription is 0 for a closed account, and the actual purpose is to retain the user's email address for marketing ('product updates, partner offers'). Pre-selecting a marketing opt-in that benefits PayPal at the user's cost, framed deceptively as a security benefit. Adapted shape from Amazon dp-preselect-marketing and the eco_preselect pattern (preselect of company-favoring outcome at decision moment).",
+      "accepts_types": ["Preselection"]
+    },
+    {
+      "gt_id": "dp-keep-pill-dominant",
+      "type": "False hierarchy",
+      "selector": "[data-gt-id='dp-keep-pill-dominant']",
+      "element": "'Keep My Account' giant blue pill button (full-width, 16px bold, PayPal brand blue #0070ba, 24px border-radius)",
+      "why": "The user navigated through 4 settings screens to GET to the close-account page. The visually dominant action in the action row is the KEEP pill (full-width, PayPal brand blue #0070ba, 16px bold, prominent pill border-radius), while the option that matches the user's revealed intent (close — see DP-6) is a tiny 11px gray underlined link below. Prominence misaligned with revealed user intent — the user already navigated through retention friction to get here; the dominant CTA reverses their action. Same architectural shape as Amazon/Booking/NYT/Netflix/Facebook pill-vs-buried pairs.",
+      "accepts_types": ["False hierarchy"]
+    },
+    {
+      "gt_id": "dp-confirm-shaming-close",
+      "type": "Confirm shaming",
+      "selector": "#close-button, [data-gt-id='dp-confirm-shaming-close']",
+      "element": "Tiny gray close-account link below the Keep pill: 'Yes, close my account anyway and lose 14 years of transaction history, dispute protection, and my 1,247 verified Send-Money transactions'",
+      "why": "The close-account link's LABEL frames the user's choice as a self-inflicted loss enumerated in concrete personalized terms (14 years of history, dispute protection, 1,247 transactions — specific numbers fabricated for the fixture but the PATTERN of enumerating personalized losses is canonical PayPal/financial-account language). The user can close (the link is functional), but the action option itself shames the user for the action by reciting every artifact they will lose. Manipulation is in the wording of the action control, not the action it performs. NOTE: this same element is also the visually-buried half of the False hierarchy pair with DP-5 (the KEEP pill) — a model that flags this link with type=False hierarchy is making a defensible call grounded in the same architectural pattern, hence the dual accepts_types. Adapted from netflix dp-confirm-shaming-cancel (which used the same multi-class accepts_types convention).",
+      "accepts_types": ["Confirm shaming", "False hierarchy"]
+    }
+  ],
+
+  "counterexamples": [
+    {
+      "gt_id": "ce-logout-link",
+      "looks_like": "Forced Action",
+      "selector": "[data-gt-id='ce-logout-link']",
+      "element": "'Log Out' link in the top nav header",
+      "why_not": "A standard navigation link present on every PayPal page. Nothing on this close-account page depends on the user logging out, and the link doesn't gate or coerce. Account-management nav affordances are routine."
+    },
+    {
+      "gt_id": "ce-balance-summary",
+      "looks_like": "Hidden information",
+      "selector": "[data-gt-id='ce-balance-summary']",
+      "element": "Account summary card: current balance, pending count, last transaction, member-since date — all displayed openly",
+      "why_not": "All decision-relevant account state (balance $184.27, 2 pending transactions, last activity date, account age) is visible up front in this card. Nothing collapsed, hidden, or buried. This is the OPPOSITE pattern of DP-3 (which hides post-closure financial consequences in a collapsed disclosure). The contrast pair (CE-2 vs DP-3) is a strong test of the model's harm-test reasoning: same financial-information surface, opposite harm-test answer based on what's revealed vs concealed at the decision moment."
+    },
+    {
+      "gt_id": "ce-email-receipt-default",
+      "looks_like": "Preselection",
+      "selector": "[data-gt-id='ce-email-receipt-default']",
+      "element": "Pre-checked 'Email me a confirmation when this completes' checkbox, visually adjacent to DP-4",
+      "why_not": "A pre-checked checkbox right next to DP-4 (the disguised mailing-list opt-in) — but the option is a sensible one-shot transactional default: sending the user a record of an account-state change they just initiated. The receipt is one email, ends with closure, and provides a clear regulatory/financial paper trail (helpful for a banking-adjacent product). Not marketing, not a continuing subscription, not data extraction. Compare DP-4 (a continuing marketing-list subscription disguised as a security benefit) — same surface shape, opposite harm-test answer. The DP-4 vs CE-3 adjacency is the most useful harm-test discrimination test on this fixture."
+    },
+    {
+      "gt_id": "ce-help-link",
+      "looks_like": "Forced Action",
+      "selector": "[data-gt-id='ce-help-link']",
+      "element": "'Need help? Visit our Customer Service center or call (888) 221-1161' link in the page footer",
+      "why_not": "A footer help link is not coercive friction — it's an optional support affordance that the user can ignore entirely while completing closure. The harm test for Forced Action requires the user be FORCED to take an action; this link doesn't force anything. Compare DP-1 (the required reason picker, which DOES gate)."
+    }
+  ],
+
+  "fixture_notes": [
+    "6 DPs + 4 CEs — applies the realism-first principle established in facebook #15. Trick wording, Pop-up ad, Fake social proof DPs deliberately omitted as not canonical for PayPal's close-account surface. PayPal doesn't use double-negative button labels here, doesn't show overlay popups on the close page, and doesn't run 'X% of users return' retention statistics on financial-account closures (different vertical norms vs streaming/social).",
+    "4 CEs (vs facebook's 5) — no 'real Close button' CE because the close path on this fixture IS the buried shame-link (DP-6); having a separate visible-close-button CE would be unrealistic (PayPal really does present the close path as a small link below a giant Keep pill, per DP-5 + DP-6).",
+    "DP-3 (hidden financial consequences) and CE-2 (balance summary shown openly) are the most useful contrast pair on this fixture — same financial-information surface, opposite harm-test answer based on what's revealed vs concealed at the decision moment. Similar shape to facebook DP-1 vs CE-4 (friend-photo UI used to shame vs inform).",
+    "DP-6 (shame-link close) uses multi-class accepts_types [Confirm shaming, False hierarchy] — same architectural element appears in both DP-5 (the pill-vs-link false-hierarchy pair) and DP-6 (the shame-label CS pattern). Convention established in netflix #14.",
+    "dp-forced-reason carries the same 'unrelated demand' edge-case caveat documented on facebook #15 and nytimes #13 — treat as deliberate stress test on the prompt's Forced Action carve-out (src/shared/prompt.ts ~391-432). Three of five starter fixtures now include a Forced Action stress test; aggregate model-response data across all three should inform whether the prompt needs an explicit account-management-flow sub-case."
+  ],
+
+  "scoring": {
+    "true_positive": "Model output contains an entry whose target element matches a `dark_patterns` gt_id (by selector / html_evidence overlap) AND whose dark_pattern_type is in that entry's `accepts_types`.",
+    "false_negative": "A `dark_patterns` gt_id has no matching entry in the model output.",
+    "false_positive": "Model output contains an entry whose target element matches a `counterexamples` gt_id, OR an entry whose target element matches no gt_id at all.",
+    "wrong_type": "Model flags the right element (a `dark_patterns` gt_id) but with a dark_pattern_type NOT in `accepts_types`. Count separately from TP/FP — found something real but mislabeled it.",
+    "page_eval": "Separately, score expected_page_evaluation as correct/incorrect per its scoring_note.",
+    "headline_metrics": [
+      "precision = TP / (TP + FP)",
+      "recall = TP / (TP + FN)   [TP + FN = 6, the count of injected dark patterns on this fixture]",
+      "false_positive_rate = FP / (number of counterexamples + extraneous flags) — this is the metric the recent prompt rewrite targets",
+      "Note: maxItems is 3 in the schema, so the model can report at most 3 patterns per run. Recall is bounded at 3/6 in a single pass — run the page multiple times, or accept that 'top 3' coverage is the realistic ceiling. Track WHICH 3 it picks and whether they are all real."
+    ]
+  }
+}
