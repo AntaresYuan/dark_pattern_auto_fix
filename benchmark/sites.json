@@ -455,7 +455,7 @@
       "domain": "paypal.com",
       "category": 5,
       "category_rationale": "Payments; account-close friction, hidden conversion fees.",
-      "fixture_status": "planned"
+      "fixture_status": "built"
     },
     {
       "rank": 163,
