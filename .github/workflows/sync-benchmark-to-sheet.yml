@@ -1,0 +1,33 @@
+name: Sync benchmark fixtures to Google Sheet
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'benchmark/fixtures/**/ground-truth.json'
+      - 'benchmark/scripts/sync-to-sheet.cjs'
+      - '.github/workflows/sync-benchmark-to-sheet.yml'
+  workflow_dispatch: {}  # also allow manual triggers from the Actions UI
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      # Install only what we need to run the sync (googleapis). Avoids invoking
+      # the full extension build which has its own dependency footprint.
+      - name: Install sync deps
+        run: npm install --no-save googleapis
+
+      - name: Run sync
+        env:
+          GOOGLE_SHEET_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SHEET_SERVICE_ACCOUNT_JSON }}
+          GOOGLE_SHEET_ID: ${{ secrets.GOOGLE_SHEET_ID }}
+        run: node benchmark/scripts/sync-to-sheet.cjs
