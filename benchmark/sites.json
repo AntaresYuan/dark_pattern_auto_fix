@@ -42,7 +42,7 @@
       "domain": "facebook.com",
       "category": 3,
       "category_rationale": "Social network; privacy preselects, deactivation friction, growth nudges.",
-      "fixture_status": "not_started"
+      "fixture_status": "planned"
     },
     {
       "rank": 6,
@@ -154,7 +154,7 @@
       "domain": "netflix.com",
       "category": 7,
       "category_rationale": "Video streaming; plan preselects, cancel-flow.",
-      "fixture_status": "not_started"
+      "fixture_status": "planned"
     },
     {
       "rank": 42,
@@ -448,14 +448,14 @@
       "domain": "nytimes.com",
       "category": 2,
       "category_rationale": "Paywalled news; subscription preselects, confirm-shaming decline link.",
-      "fixture_status": "not_started"
+      "fixture_status": "planned"
     },
     {
       "rank": 158,
       "domain": "paypal.com",
       "category": 5,
       "category_rationale": "Payments; account-close friction, hidden conversion fees.",
-      "fixture_status": "not_started"
+      "fixture_status": "planned"
     },
     {
       "rank": 163,
@@ -707,7 +707,7 @@
       "domain": "booking.com",
       "category": 4,
       "category_rationale": "Hotel booking; classic DP-dense surface — urgency banners, scarcity messaging, preselected insurance, hidden resort fees.",
-      "fixture_status": "not_started"
+      "fixture_status": "planned"
     },
     {
       "rank": 265,
