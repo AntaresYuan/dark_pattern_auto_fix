@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<!--
+  Dark Pattern Detection Benchmark — NYTimes Article + Paywall (replica)
+
+  CONTROLLED TEST FIXTURE. Mimics a New York Times article page where the user
+  has read the free preview and now hits the paywall. Deliberately embeds a
+  known set of dark patterns + counterexamples (look-alikes that pass the harm
+  test, used to measure false positives).
+
+  Ground truth (which element is which) lives in ./ground-truth.json.
+  Every benchmarked element carries a data-gt-id attribute and an HTML comment.
+
+  Notation:
+    [DP-x] = injected dark pattern (the model SHOULD flag this)
+    [CE-x] = counterexample (the model should NOT flag this; tests false positives)
+
+  Run: serve via `python3 -m http.server 8000` from the benchmark/ root, then
+  visit http://localhost:8000/fixtures/nytimes-article-paywall/nytimes-article-paywall.html
+-->
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>The Quiet Restructuring of the Tech Hiring Pipeline - The New York Times</title>
+  <meta property="og:type" content="article" />
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Cheltenham", "Cheltenham STD", "Times New Roman", "Times", serif;
+      color: #121212;
+      background: #fff;
+      font-size: 16px;
+      line-height: 1.5;
+    }
+    a { color: #326891; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* --- Top nav (NYT black bar style) --- */
+    .nav-top {
+      border-bottom: 1px solid #e2e2e2; padding: 8px 24px;
+      display: flex; align-items: center; justify-content: space-between;
+      font-family: "Helvetica", "Arial", sans-serif; font-size: 13px;
+    }
+    .nav-left, .nav-right { display: flex; align-items: center; gap: 16px; }
+    .nav-logo { font-family: "Cheltenham", serif; font-weight: 700; font-size: 32px; letter-spacing: -1px; color: #000; padding: 0 8px; }
+    .nav-secondary {
+      border-bottom: 1px solid #e2e2e2; padding: 6px 24px;
+      display: flex; gap: 18px; font-family: "Helvetica", "Arial", sans-serif; font-size: 13px;
+      color: #444; overflow-x: auto;
+    }
+    .nav-secondary a { color: #444; }
+    .nav-secondary a.active { color: #000; font-weight: 700; }
+    .subscribe-cta {
+      background: #567B95; color: #fff; padding: 6px 14px;
+      font-weight: 600; font-size: 12px; text-transform: uppercase;
+      letter-spacing: 0.5px; border-radius: 2px; border: none; cursor: pointer;
+    }
+
+    /* --- Article layout --- */
+    .article-grid {
+      display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 40px;
+      padding: 24px 24px 40px; max-width: 1100px; margin: 0 auto;
+    }
+    .col-article { padding-right: 0; }
+    .article-section { font-family: "Helvetica", sans-serif; font-size: 12px; color: #999; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+    .article-headline {
+      font-family: "Cheltenham", serif; font-size: 38px; font-weight: 700;
+      line-height: 1.15; margin: 0 0 12px 0; color: #121212;
+    }
+    .article-summary {
+      font-family: "Cheltenham", serif; font-style: italic; font-size: 19px;
+      line-height: 1.45; color: #333; margin: 0 0 16px 0; font-weight: 300;
+    }
+    .article-byline {
+      font-family: "Helvetica", sans-serif; font-size: 13px; color: #444;
+      padding: 14px 0; border-top: 1px solid #e2e2e2; border-bottom: 1px solid #e2e2e2;
+    }
+    .article-byline .byline-name { color: #000; font-weight: 600; }
+    .article-byline .byline-meta { color: #999; margin-top: 4px; }
+    .article-body { padding: 20px 0; max-width: 600px; }
+    .article-body p {
+      font-family: "Cheltenham", serif; font-size: 18px; line-height: 1.65;
+      margin: 0 0 18px 0; color: #333;
+    }
+    .article-body .lead {
+      font-family: "Cheltenham", serif; font-size: 22px; line-height: 1.45;
+      font-weight: 600; color: #121212;
+    }
+
+    /* --- Article fade-out approaching the paywall --- */
+    .fade-out {
+      position: relative; padding-bottom: 80px;
+    }
+    .fade-out::after {
+      content: ""; position: absolute; bottom: 0; left: 0; right: 0; height: 200px;
+      background: linear-gradient(180deg, rgba(255,255,255,0) 0%, #fff 80%);
+      pointer-events: none;
+    }
+
+    /* --- Right sidebar --- */
+    .col-side { display: flex; flex-direction: column; gap: 24px; }
+    .side-block { border-top: 1px solid #000; padding-top: 12px; }
+    .side-block h3 {
+      font-family: "Cheltenham", serif; font-size: 14px; font-weight: 700;
+      letter-spacing: 0.5px; text-transform: uppercase; margin: 0 0 12px 0;
+    }
+    .most-read-item {
+      font-family: "Cheltenham", serif; font-size: 14px; line-height: 1.4;
+      padding: 10px 0; border-bottom: 1px solid #e2e2e2; display: flex; gap: 12px;
+    }
+    .most-read-item .num {
+      font-family: "Cheltenham", serif; font-size: 22px; font-weight: 700;
+      color: #999; min-width: 24px;
+    }
+    .most-read-item a { color: #121212; }
+    .paid-post-card {
+      background: #f7f7f7; padding: 14px; font-family: "Helvetica", sans-serif;
+      font-size: 13px; border-left: 3px solid #999;
+    }
+    .paid-post-card .label {
+      font-size: 10px; text-transform: uppercase; letter-spacing: 1px;
+      color: #999; font-weight: 700; margin-bottom: 8px;
+    }
+    .paid-post-card a { color: #121212; font-weight: 600; }
+
+    /* --- NYT Cooking cross-promo pop-up (DP-1) --- */
+    .cooking-promo {
+      position: fixed; bottom: 24px; right: 24px; width: 320px;
+      background: #fff; border: 1px solid #ddd; box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+      padding: 16px 18px; z-index: 9000; font-family: "Helvetica", sans-serif;
+    }
+    .cooking-promo .label {
+      font-size: 10px; text-transform: uppercase; letter-spacing: 1px;
+      color: #b08533; font-weight: 700; margin-bottom: 6px;
+    }
+    .cooking-promo h4 {
+      font-family: "Cheltenham", serif; font-size: 18px; margin: 0 0 6px 0; color: #121212;
+    }
+    .cooking-promo p { font-size: 13px; color: #444; margin: 0 0 10px 0; line-height: 1.4; }
+    .cooking-promo .cooking-cta {
+      display: inline-block; background: #b08533; color: #fff;
+      padding: 8px 14px; font-size: 12px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.5px; border-radius: 2px; border: none; cursor: pointer;
+    }
+    .cooking-close-x {
+      position: absolute; bottom: 4px; right: 6px;
+      width: 14px; height: 14px; line-height: 14px; text-align: center;
+      color: #999; opacity: 0.2; font-size: 12px; background: none; border: none; cursor: pointer;
+    }
+
+    /* --- Cookie consent banner (DP-trick-wording) --- */
+    .cookie-banner {
+      background: #f5f5f5; border-top: 1px solid #ddd; padding: 14px 24px;
+      display: flex; align-items: center; gap: 16px;
+      font-family: "Helvetica", sans-serif; font-size: 13px; color: #333;
+    }
+    .cookie-banner label { cursor: pointer; }
+    .cookie-banner button {
+      background: #121212; color: #fff; padding: 6px 14px; font-size: 12px;
+      font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;
+      border: none; border-radius: 2px; cursor: pointer;
+    }
+
+    /* --- Paywall modal (DP-paywall = Forced Action) --- */
+    .paywall-overlay {
+      position: fixed; inset: 0; background: rgba(255,255,255,0.95);
+      z-index: 9500; display: flex; align-items: center; justify-content: center;
+      backdrop-filter: blur(2px);
+    }
+    .paywall-modal {
+      width: 720px; max-width: 95%; background: #fff;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.2); border: 1px solid #e2e2e2;
+      padding: 32px 36px; max-height: 90vh; overflow-y: auto;
+      font-family: "Helvetica", sans-serif;
+    }
+    .paywall-modal h2 {
+      font-family: "Cheltenham", serif; font-size: 32px; line-height: 1.2;
+      margin: 0 0 8px 0; color: #121212; text-align: center;
+    }
+    .paywall-modal .pw-tagline {
+      font-family: "Cheltenham", serif; font-size: 16px; color: #555;
+      text-align: center; margin: 0 0 18px 0;
+    }
+    .pw-social-proof {
+      background: #fff8e1; border: 1px solid #f4d56a; padding: 8px 12px;
+      font-size: 13px; color: #5a4500; text-align: center; margin: 0 0 20px 0;
+      border-radius: 3px;
+    }
+    .pw-social-proof strong { color: #332700; }
+    .pw-tier-grid {
+      display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin: 0 0 18px 0;
+    }
+    .pw-tier {
+      border: 1px solid #ddd; padding: 14px; font-size: 13px;
+      cursor: pointer; position: relative;
+    }
+    .pw-tier.preselected {
+      border: 2px solid #567B95; background: #f5f9fb;
+    }
+    .pw-tier .tier-name { font-weight: 700; font-size: 14px; margin-bottom: 4px; }
+    .pw-tier .tier-tag {
+      position: absolute; top: -8px; right: 10px;
+      background: #567B95; color: #fff; padding: 2px 8px; font-size: 10px;
+      text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700;
+    }
+    .pw-tier .tier-price-line { color: #121212; }
+    .pw-tier .tier-price-headline { font-size: 22px; font-weight: 700; color: #121212; }
+    .pw-tier label input { margin-right: 6px; }
+
+    details.pw-renewal-disclosure summary {
+      cursor: pointer; color: #999; font-size: 11px; text-decoration: none;
+      list-style: none; padding: 4px 0;
+    }
+    details.pw-renewal-disclosure summary::-webkit-details-marker { display: none; }
+    details.pw-renewal-disclosure summary::before { content: "› "; color: #ccc; }
+    details.pw-renewal-disclosure[open] summary::before { content: "⌄ "; }
+    details.pw-renewal-disclosure div { margin: 6px 0 0 0; font-size: 11px; color: #999; line-height: 1.45; }
+
+    /* --- Print upsell (DP-false-hierarchy) --- */
+    .print-upsell {
+      margin: 16px 0; padding: 14px; border: 1px solid #e2e2e2; background: #fafafa;
+    }
+    .print-upsell strong { display: block; font-size: 13px; margin-bottom: 4px; color: #121212; }
+    .print-upsell .print-pill {
+      display: block; width: 100%; margin-top: 10px;
+      background: #6a3a8a; color: #fff;
+      padding: 12px 18px; font-size: 15px; font-weight: 700; text-align: center;
+      border-radius: 24px; border: none; cursor: pointer;
+    }
+    .print-upsell .print-skip {
+      display: block; text-align: center; margin-top: 8px;
+      color: #ccc; font-size: 9px; font-weight: 300; text-decoration: none;
+    }
+
+    /* --- Stay signed in (CE) --- */
+    .stay-signed {
+      font-size: 12px; color: #555; margin: 14px 0 8px 0;
+      font-family: "Helvetica", sans-serif;
+    }
+
+    /* --- Real subscribe button (CE) --- */
+    .pw-subscribe-row { margin-top: 16px; }
+    .pw-subscribe-btn {
+      display: block; width: 100%; padding: 14px; text-align: center;
+      background: #567B95; color: #fff; font-size: 16px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.5px;
+      border: none; border-radius: 2px; cursor: pointer;
+      text-decoration: none;
+    }
+
+    /* --- Decline link (DP-confirm-shaming) --- */
+    .pw-decline {
+      display: block; text-align: center; margin-top: 14px;
+      color: #999; font-size: 11px; text-decoration: underline;
+      font-family: "Helvetica", sans-serif;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ---- Top nav ---- -->
+  <header class="nav-top">
+    <div class="nav-left">
+      <span style="font-size:13px;color:#444;">☰ Sections</span>
+      <span style="font-size:13px;color:#444;">🔍 Search</span>
+    </div>
+    <div class="nav-logo">The New York Times</div>
+    <div class="nav-right">
+      <!-- [CE-1] Plain "Sign in" link in the top nav. Looks like Forced Action because
+           it's a prominent account-related affordance, but most of the article is
+           readable without signing in (the paywall blocks the rest, but that's a
+           separate DP — DP-paywall-modal — not this nav link). NOT a DP. -->
+      <a href="/sso/signin" data-gt-id="ce-signin-link" style="color:#444;font-size:13px;">Sign in</a>
+
+      <!-- [CE-2] The real subscribe CTA in the nav header. Looks like Disguised ad
+           or False hierarchy (prominent colored button), but it does exactly what
+           its label promises: navigates to the subscription flow. Visual prominence
+           on a "subscribe" CTA matches a publisher's expected revenue UX. NOT a DP. -->
+      <a id="subscribe-button-nav" data-gt-id="ce-real-subscribe-nav" class="subscribe-cta" href="/subscriptions">Subscribe</a>
+    </div>
+  </header>
+
+  <nav class="nav-secondary">
+    <a href="#" class="active">U.S.</a>
+    <a href="#">World</a>
+    <a href="#">Business</a>
+    <a href="#">Arts</a>
+    <a href="#">Lifestyle</a>
+    <a href="#">Opinion</a>
+    <a href="#">Audio</a>
+    <a href="#">Games</a>
+    <a href="#">Cooking</a>
+    <a href="#">Wirecutter</a>
+    <a href="#">The Athletic</a>
+  </nav>
+
+  <main class="article-grid">
+    <article class="col-article">
+      <div class="article-section">Business · Workforce</div>
+      <h1 class="article-headline">The Quiet Restructuring of the Tech Hiring Pipeline</h1>
+      <p class="article-summary">
+        After a decade of growth-at-all-costs recruitment, large technology employers are rebuilding how they evaluate candidates — and shifting the cost of evaluation onto applicants in ways the industry has rarely confronted.
+      </p>
+      <div class="article-byline">
+        <div><span class="byline-name">By Jane Almeida</span> and <span class="byline-name">Daniel Reyes</span></div>
+        <div class="byline-meta">May 15, 2026 · 8 min read</div>
+      </div>
+      <div class="article-body fade-out">
+        <p class="lead">
+          For most of the past decade, the standard playbook for hiring software engineers ran something like this: a recruiter sourced you from LinkedIn, a phone screen with a hiring manager followed within the week, and a one-day on-site loop closed out the loop two weeks later. The candidate's time investment, before any decision was made, rarely exceeded ten hours.
+        </p>
+        <p>
+          That arrangement is now visibly under strain. Across more than two dozen interviews with hiring leaders at large U.S. technology employers conducted by The New York Times over the past four months, a consistent picture emerges: total candidate time-to-decision has roughly doubled, while the proportion of that time spent on unpaid take-home assignments has gone from a rounding error to, in some cases, a majority.
+        </p>
+        <p>
+          "We started asking for a small project — maybe four hours — in 2022 when the market shifted," said one director of engineering at a publicly traded enterprise-software company, speaking on condition of anonymity because the company has not made the change public. "By late 2024 the industry consensus was that you needed at least one substantial deliverable to filter on. Now we're routinely asking for twenty hours of work, distributed across two assignments, before we'll bring someone on-site."
+        </p>
+        <p>
+          Workers' rights advocates and a small but growing number of senior engineers say the practice has crossed an ethical line. The argument is straightforward: a take-home assignment is, in effect, free contract labor — labor that benefits the employer (in screening signal) at a cost borne entirely by candidates, most of whom will be rejected and receive no compensation for the hours.
+        </p>
+      </div>
+    </article>
+
+    <aside class="col-side">
+
+      <!-- [CE-3] "Most read" article list. Looks like Fake social proof (numbered
+           ranking suggesting popularity), but it's an actual editorial measurement
+           (article view counts) with links to the underlying articles, the standard
+           journalistic "most-read" feature. Informs rather than pressures purchase
+           or commitment. NOT a DP. -->
+      <div class="side-block" data-gt-id="ce-most-read-list">
+        <h3>Most Read</h3>
+        <div class="most-read-item">
+          <div class="num">1</div>
+          <a href="#">A Federal Reserve Board Member Quietly Floats a New Inflation Target</a>
+        </div>
+        <div class="most-read-item">
+          <div class="num">2</div>
+          <a href="#">Inside the Quiet Spread of Privately-Owned Lifeboats on the New England Coast</a>
+        </div>
+        <div class="most-read-item">
+          <div class="num">3</div>
+          <a href="#">Opinion: I Sold My Voice Rights to an A.I. Company. Here's What Happened.</a>
+        </div>
+        <div class="most-read-item">
+          <div class="num">4</div>
+          <a href="#">A 70-Year-Old Cookbook Is Quietly Becoming the Most-Photographed Page on TikTok</a>
+        </div>
+        <div class="most-read-item">
+          <div class="num">5</div>
+          <a href="#">After a Decade of Decline, Local News in the Mountain West Finds an Unlikely Sponsor</a>
+        </div>
+      </div>
+
+      <!-- [CE-4] An honestly-labeled "Paid Post" card from a brand sponsor. Looks
+           like Disguised ad because it's promotional content next to editorial, but
+           it carries the explicit "Paid Post" label (uppercase, contrasting,
+           visually distinct from article cards above) — no impersonation of NYT
+           editorial. Honestly labeled native ad on a news page is not a dark
+           pattern. NOT a DP. -->
+      <div data-gt-id="ce-paid-post-tag">
+        <div class="paid-post-card">
+          <div class="label">Paid Post · IBM</div>
+          <a href="#">Why this enterprise CIO swears by hybrid-cloud governance</a>
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <!-- [DP-1] POP-UP AD — small floating modal in the bottom-right promoting NYT
+       Cooking, an entirely separate product from the article being read. Unrelated
+       cross-promotion: the user is reading a Business article about hiring, NOT
+       looking for recipes. The dismiss control is a near-invisible × in the
+       bottom-right corner (opacity 0.2, gray on white) — degraded dismiss path
+       while the "TRY 4 WEEKS FREE" CTA is a full prominent gold button. Same
+       canonical shape as Booking's bki_pop_up. -->
+  <div class="cooking-promo" data-gt-id="dp-cooking-popup">
+    <div class="label">NYT Cooking</div>
+    <h4>Make this week's most-saved recipe</h4>
+    <p>Browse 22,000+ recipes from NYT food editors. New subscribers get 4 weeks free.</p>
+    <button class="cooking-cta">TRY 4 WEEKS FREE</button>
+    <button class="cooking-close-x" aria-label="Close">×</button>
+  </div>
+
+  <!-- [DP-7] TRICK WORDING — cookie consent banner with a stacked double negative
+       in the consent label. A hurried user reads "do you NOT want to NOT share..."
+       as "I don't want to share data" and ticks the box, but ticking actually OPTS
+       THEM IN to data sharing. Adapted from injection-mapping eco_double_negative
+       and Amazon's _double_neg_notif pattern; semantic inversion in the label
+       itself. -->
+  <div class="cookie-banner" data-gt-id="dp-trick-wording-cookies">
+    <label>
+      <input type="checkbox" id="cookie-optin">
+      Do you not want to not share your reading data with our advertising partners? (Tick to confirm.)
+    </label>
+    <span style="flex:1;"></span>
+    <button>Save preferences</button>
+  </div>
+
+  <!-- [DP-2] FORCED ACTION — full-page paywall modal that BLOCKS access to the
+       remainder of the article the user came to read. To proceed (read the rest),
+       the user MUST perform a paid action — subscribe — or sign in to an existing
+       paid account. There is no "no thanks, just let me finish this article" path.
+       Distinct from Pop-up ad (DP-1) because the modal IS related to the user's
+       task (reading) — the harm test is coercion to a paid action, not unrelated
+       promotion. -->
+  <div class="paywall-overlay" data-gt-id="dp-paywall-modal">
+    <div class="paywall-modal">
+      <h2>Stay informed with The Times.</h2>
+      <p class="pw-tagline">Continue reading this article and unlock The Times in full.</p>
+
+      <!-- [DP-4] FAKE SOCIAL PROOF — unverifiable popularity claim ("96% of our
+           readers choose to subscribe") paired with a fabricated proximity claim
+           ("5 friends in your city are reading this article right now"). Neither
+           number cites a methodology or a source the user can audit; both are used
+           to pressure an immediate paid commitment. Adapted directly from
+           injection-mapping nyt_social. -->
+      <div class="pw-social-proof" data-gt-id="dp-fake-readers">
+        ★ <strong>96% of our readers choose to subscribe</strong> for full access. <strong>5 friends in your city</strong> are reading this article right now.
+      </div>
+
+      <!-- [DP-5] PRESELECTION — the middle pricing tier ("All Access — Annual")
+           is pre-selected by default. The annual plan charges US$168 upfront vs
+           the Standard monthly intro of US$1/week (US$4/mo). Pre-checking the
+           more expensive plan extracts more from a user who clicks Subscribe
+           without revisiting the radio. Adapted from injection-mapping
+           eco_preselect (Economist's auto-selecting the costlier offer card). -->
+      <div class="pw-tier-grid">
+        <div class="pw-tier">
+          <label>
+            <input type="radio" name="tier"> <span class="tier-name">Standard</span>
+          </label>
+          <div class="tier-price-line"><span class="tier-price-headline">$1</span>/week (intro)</div>
+          <div style="font-size:11px;color:#999;margin-top:6px;">For 1 year, then standard rates apply.</div>
+        </div>
+        <div class="pw-tier preselected" data-gt-id="dp-preselect-annual">
+          <span class="tier-tag">Best Value</span>
+          <label>
+            <input type="radio" name="tier" id="tier-annual" checked> <span class="tier-name">All Access — Annual</span>
+          </label>
+          <div class="tier-price-line"><span class="tier-price-headline">$168</span> billed annually</div>
+          <div style="font-size:11px;color:#999;margin-top:6px;">Includes Cooking, Games, Wirecutter, The Athletic.</div>
+        </div>
+        <div class="pw-tier">
+          <label>
+            <input type="radio" name="tier"> <span class="tier-name">All Access + Print</span>
+          </label>
+          <div class="tier-price-line"><span class="tier-price-headline">$25</span>/week</div>
+          <div style="font-size:11px;color:#999;margin-top:6px;">Sunday + daily home delivery.</div>
+        </div>
+      </div>
+
+      <!-- [DP-3] HIDDEN INFORMATION — the renewal terms (auto-renewal at the
+           full $17/week rate after the 12-week intro period, ~17× the $1/week
+           teaser; auto-charged unless cancelled with 7 days' notice) are
+           concealed inside a collapsed, low-contrast disclosure (10px gray text,
+           no chevron, summary reads "›"). A user who clicks Subscribe without
+           expanding it commits to a 17× price increase they never visibly
+           consented to. Decision-critical cost hidden at the moment of
+           commitment. Same harm-test fingerprint as Booking's dp-hidden-fees. -->
+      <details class="pw-renewal-disclosure" data-gt-id="dp-hidden-renewal-terms">
+        <summary>See full pricing terms</summary>
+        <div>
+          The introductory rate of US$1/week applies for the first 12 weeks. After the introductory period, your subscription will automatically renew at the standard rate of <strong>US$17/week</strong> (US$884/year for All Access — Annual at the standard rate) unless cancelled at least 7 days before the renewal date. To cancel, you must call our subscriber-services line during business hours (Monday–Friday, 9 a.m.–5 p.m. ET); cancellations are not accepted via the online account portal during the introductory period. Pricing applies to the U.S. only; international rates differ.
+        </div>
+      </details>
+
+      <!-- [DP-6] FALSE HIERARCHY — the print add-on upsell is presented as a
+           large bright purple pill button (the visually dominant action), while
+           the option that matches the user's revealed intent (reading the
+           article online, no print) is a tiny 9px light-gray no-underline link.
+           Prominence misaligned with the user's intent (read this article).
+           Same architectural shape as Amazon's "3-Year Protection" and Booking's
+           cancel-anytime upsell — the false-hierarchy fingerprint, not just the
+           styling. -->
+      <div class="print-upsell" data-gt-id="dp-false-hierarchy-print">
+        <strong>Add the Sunday Print Edition</strong>
+        Have the Sunday Times delivered every weekend.
+        <button class="print-pill">+ Add Sunday Print — $25/week</button>
+        <a href="#" class="print-skip">no print, please</a>
+      </div>
+
+      <!-- [CE-5] Pre-checked "Stay signed in on this device" checkbox. Looks
+           like Preselection (a default is checked), but the option is a
+           well-understood UX convention that benefits the user (avoids
+           re-authentication on the same device) — not a paid add-on, not
+           hidden cost, not data extraction. Sensible default. NOT a DP. -->
+      <label class="stay-signed" data-gt-id="ce-stay-signed-default">
+        <input type="checkbox" checked> Stay signed in on this device
+      </label>
+
+      <div class="pw-subscribe-row" data-gt-id="ce-real-subscribe-modal">
+        <!-- [CE-6] The REAL subscribe button inside the paywall modal. Prominent
+             colored CTA — same visual prominence as the disguised-style buttons
+             elsewhere — but its href goes to the actual subscription flow with
+             the selected tier. Prominence matches the modal's stated purpose
+             (subscribe). Visual prominence alone is never sufficient evidence
+             of a DP. NOT a DP. -->
+        <a id="subscribe-button-modal" class="pw-subscribe-btn" href="/subscriptions/checkout?tier=annual">Subscribe Now</a>
+      </div>
+
+      <!-- [DP-8] CONFIRM SHAMING — the decline link's LABEL frames the user's
+           choice to back out as a self-inflicted moral failure ("miss out on
+           award-winning journalism", "settle for", "uninformed"). The user can
+           decline, but the decline option itself shames the user for declining.
+           Manipulation is in the wording, not the action. Adapted from
+           injection-mapping eco_confirm_shaming and Amazon's Prime decline-link
+           pattern. -->
+      <a href="/" class="pw-decline" data-gt-id="dp-confirm-shaming-decline">
+        No thanks, I'd rather miss out on award-winning journalism and stay uninformed
+      </a>
+    </div>
+  </div>
+
+</body>
+</html>
