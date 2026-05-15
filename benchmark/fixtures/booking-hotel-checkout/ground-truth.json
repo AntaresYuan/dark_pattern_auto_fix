@@ -97,7 +97,7 @@
     {
       "gt_id": "ce-real-reserve",
       "looks_like": "False hierarchy / Disguised ad",
-      "selector": "#ce-real-reserve, [data-gt-id='ce-real-reserve'] .reserve-btn",
+      "selector": "#reserve-button, [data-gt-id='ce-real-reserve'] .reserve-btn",
       "element": "The real blue 'I'll reserve' button (full-width, prominent)",
       "why_not": "A prominent blue CTA — same visual weight asymmetry vs surrounding text as the disguised fake above (DP-8) — but it does exactly what its label promises: navigates to the reservation flow for THIS hotel with THIS room rate on THESE dates. Prominence matches the user's intent on a hotel-checkout page. Visual prominence alone is never sufficient evidence of a DP."
     },
