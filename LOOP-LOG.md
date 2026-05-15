@@ -199,5 +199,46 @@ Each sync run does individual `values.update` per existing row + 1 batch append.
 
 ---
 
-## #16 — TODO (next, last of starter batch)
+## #16 — build fixture paypal-account-close (LAST OF STARTER BATCH)
+
+- **Branch**: `feat/benchmark-fixture-paypal-close` (deleted post-merge)
+- **PR**: [#26](https://github.com/AntaresYuan/dark_pattern_auto_fix/pull/26) — squash-merged as `d97c406`
+- **What was done**: Replica PayPal close-account page. **6 DPs + 4 CEs** (realism-first; trick wording / pop-up ad / fake social proof omitted as not canonical for financial-account-close surfaces).
+- **DPs covered**: Forced Action (required reason picker — same stress-test caveat as #13/#15), Disguised ad (PayPal Credit cross-promo card with explicit destination-mismatch href to a separate-product application flow), Hidden information (pending-transaction force-close + recurring-payment failure cascade + dispute cancellation + balance-mailing terms + 12-month reopen blackout — buried), Preselection (mailing list disguised as fraud alerts), False hierarchy (Keep pill dominant), Confirm shaming (close link with enumerate-the-loss text — multi-class [CS, FH] per netflix convention).
+- **Reviewer verdict**: **OK to merge after 1 fix**. Caught DP-2 destination-mismatch gap (the "Apply in 60 seconds" was a bare `<button>` with no destination, but Disguised ad harm test requires destination mismatch). Fixed in `9a775e3`: changed to `<a href="https://www.paypal.com/credit/apply?from=close-account-flow&cid=retention">` — separate credit-application flow. Restores parity with booking/netflix disguised-ad fixtures.
+- **Most useful contrast pair**: DP-3 (hidden financial consequences) vs CE-2 (open balance summary) — same financial-info surface, opposite reveal/conceal posture.
+- **Sheet sync state at queue close**:
+  - Section 2: **6/6 fixture summary rows present** (amazon + 5 new — all counts correct).
+  - Detail tab: **68/78 detail rows present**. Missing 10 paypal rows (6 DPs + 4 CEs) due to Sheets API write-quota window depletion from prior retries on the facebook + paypal merges. Script is idempotent — a manual retry after ~5min cooldown will fill the gap.
+- **Forced Action stress-test aggregation**: 3 of 5 starter fixtures (nytimes #13, facebook #15, paypal #16) ship a deliberate Forced Action stress test on the prompt's "unrelated demand" carve-out. Aggregate model-response data across these three should inform whether the prompt needs an account-management-flow sub-case for Forced Action.
+
+---
+
+## ▶ Loop complete
+
+**5 starter fixtures built**, all merged to main, 6 PRs (#21, #23, #24, #25, #26 + #22 sheet-sync infra). Realism-first principle established mid-loop (after #15) and consistently applied to #15-#16. Pause-for-review checkpoint per the original plan from issue #11.
+
+### Final tally per fixture
+
+| Slug | Category | Page type | DPs | CEs | PR |
+|---|---|---|---|---|---|
+| amazon-product-page | E-commerce | product_detail | 8 | 8 | (pre-existing) |
+| booking-hotel-checkout | Travel | hotel-checkout | 8 | 6 | #21 |
+| nytimes-article-paywall | News | article-paywall | 8 | 6 | #23 |
+| netflix-cancel-flow | Streaming | cancel-flow | 8 | 5 | #24 |
+| facebook-deactivation | Social | account-deactivation | 6 | 5 | #25 |
+| paypal-account-close | Finance | account-close | 6 | 4 | #26 |
+| **TOTAL** | 6 categories | 6 page-types | **44** | **34** | |
+
+### Known issues / follow-ups for user
+
+1. **Sheets API write-quota** — the sync script issues one `values.update` per existing row + 1 append. With 6+ fixtures × ~12 detail rows = 72+ writes/run, exceeds the 60/min/user limit. **Permanent fix**: refactor `writeRow` / `writeRowsAt` to batch via `spreadsheets.values.batchUpdate`. Tracked as the highest-priority tech-debt follow-up.
+2. **Detail tab missing 10 paypal rows** — quota will reset within minutes. Run `gh workflow run sync-benchmark-to-sheet.yml --ref main` to fill the gap.
+3. **Forced Action / paywall stress tests** — three fixtures (nytimes #13, facebook #15, paypal #16) ship known-contested Forced Action classifications. If the model's responses suggest the prompt needs an "account-management gating" sub-case, prompt.ts can be updated as a separate PR (do not modify mid-benchmark to avoid confounding the eval).
+
+### Devloop stopped per instruction
+
+No ScheduleWakeup after #16. No issues auto-created for fixtures 6+. Ready for user review.
+
+---
 
