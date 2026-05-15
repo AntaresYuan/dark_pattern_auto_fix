@@ -157,20 +157,6 @@
       margin-top: 6px; font-size: 11px; color: #999; line-height: 1.5;
     }
 
-    /* --- Trick wording row (DP-4) --- */
-    .trick-wording-row {
-      margin: 14px 0; padding: 14px; background: #fafafa; border-radius: 4px;
-      border: 1px dashed #dadde1;
-    }
-    .trick-wording-row .label-text {
-      font-size: 13px; color: #65676b; margin-bottom: 8px; display: block;
-    }
-    .trick-wording-row .twr-buttons { display: flex; gap: 10px; }
-    .trick-wording-row .twr-buttons button {
-      flex: 1; padding: 10px; border: 1px solid #dadde1; background: #fff;
-      cursor: pointer; font-size: 13px; border-radius: 6px;
-    }
-
     /* --- Email confirmation (CE) --- */
     .email-receipt {
       font-size: 13px; color: #65676b; padding: 12px 0;
@@ -218,37 +204,6 @@
 
     .footer-help {
       text-align: center; padding: 24px 0; font-size: 12px; color: #65676b;
-    }
-
-    /* --- Marketplace pop-up (DP-6) --- */
-    .promo-overlay {
-      position: fixed; inset: 0; background: rgba(0,0,0,0.6);
-      z-index: 9000; display: flex; align-items: center; justify-content: center;
-    }
-    .promo-modal {
-      background: #fff; width: 460px; max-width: 92%; border-radius: 12px;
-      padding: 24px; position: relative;
-      box-shadow: 0 6px 24px rgba(0,0,0,0.3);
-      text-align: center;
-    }
-    .promo-modal .marketplace-banner {
-      height: 140px;
-      background: linear-gradient(135deg, #1877f2, #45bd62);
-      border-radius: 8px; display: flex; align-items: center; justify-content: center;
-      color: rgba(255,255,255,0.9); font-size: 12px; margin-bottom: 16px;
-    }
-    .promo-modal h2 { margin: 0 0 8px 0; font-size: 22px; color: #1c1e21; }
-    .promo-modal p { margin: 0 0 18px 0; font-size: 14px; color: #65676b; line-height: 1.5; }
-    .promo-modal .promo-cta {
-      display: block; width: 100%; padding: 14px;
-      background: #1877f2; color: #fff; border: none; border-radius: 6px;
-      font-size: 15px; font-weight: 700; cursor: pointer;
-    }
-    .promo-close-x {
-      position: absolute; bottom: 4px; right: 6px;
-      width: 14px; height: 14px; line-height: 14px; text-align: center;
-      color: #65676b; opacity: 0.18; font-size: 12px;
-      background: none; border: none; cursor: pointer;
     }
   </style>
 </head>
@@ -319,7 +274,7 @@
           <p class="miss-you">You'll be missed.</p>
         </div>
 
-        <!-- [DP-7] FAKE SOCIAL PROOF — unverifiable retention statistic with
+        <!-- [DP-2] FAKE SOCIAL PROOF — unverifiable retention statistic with
              no source or methodology, used to pressure the user away from
              deactivation. The "98% reactivate within 30 days" claim has no
              cited source and the user cannot audit it. Same shape as Netflix's
@@ -335,7 +290,7 @@
       <div class="panel">
         <h2>What would you like to do?</h2>
 
-        <!-- [DP-2] PRESELECTION — "Deactivate temporarily" is pre-selected
+        <!-- [DP-3] PRESELECTION — "Deactivate temporarily" is pre-selected
              with a "Recommended" tag, pushing the user toward the easier-to-
              reverse path even though the user navigated here to perform the
              stronger action (deactivation already implies deletion-curious).
@@ -366,7 +321,7 @@
           </label>
         </div>
 
-        <!-- [DP-5] HIDDEN INFORMATION — decision-critical post-deactivation
+        <!-- [DP-4] HIDDEN INFORMATION — decision-critical post-deactivation
              details (a 30-day grace period during which logging in AUTOMATICALLY
              restores the full account; messages sent to the user remain visible
              to friends; the user is still subscribable in 3rd-party FB-Login
@@ -386,7 +341,7 @@
       <div class="panel">
         <h2>Tell us why you're leaving<span class="required-tag">* required</span></h2>
 
-        <!-- [DP-8] FORCED ACTION — the user is required to provide a reason
+        <!-- [DP-5] FORCED ACTION — the user is required to provide a reason
              (radio group + a free-text field if "Other") in order to complete
              the deactivation. The user is entitled to deactivate (it's their
              account); requiring them to JUSTIFY the request to the platform
@@ -408,7 +363,7 @@
           <div class="reason-blocker-msg">* You must select a reason before you can continue.</div>
         </div>
 
-        <!-- [CE-3] Pre-checked "Email me a confirmation" checkbox. Looks like
+        <!-- [CE-2] Pre-checked "Email me a confirmation" checkbox. Looks like
              Preselection (a default is checked), but the option is a sensible
              transactional default — sending the user a record of an
              account-state change they just initiated. Not a paid add-on, not
@@ -422,7 +377,7 @@
 
         <!-- ---- Action area ---- -->
         <div class="action-row">
-          <!-- [DP-3] FALSE HIERARCHY — the "Cancel Deactivation" CTA is the
+          <!-- [DP-6] FALSE HIERARCHY — the "Cancel Deactivation" CTA is the
                visually dominant action: full-width, bright Facebook blue
                (#1877f2), 16px bold, the primary visual focus of the action
                row. The legitimate action that matches the user's actual intent
@@ -435,7 +390,7 @@
                and Netflix's PAUSE pill — false-hierarchy fingerprint. -->
           <button class="cancel-pill" data-gt-id="dp-cancel-pill-dominant">Cancel Deactivation — Keep My Account</button>
 
-          <!-- [CE-2] The REAL "Continue with Deactivation" button — clearly
+          <!-- [CE-3] The REAL "Continue with Deactivation" button — clearly
                labeled, visible, secondary visual prominence. Bordered white
                button below the Cancel pill (DP-3). The harm test for False
                hierarchy requires the legitimate option be visually BURIED
