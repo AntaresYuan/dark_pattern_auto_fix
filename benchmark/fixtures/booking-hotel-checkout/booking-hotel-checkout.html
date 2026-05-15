@@ -124,36 +124,6 @@
     .addon-row label { font-size: 13px; line-height: 1.4; }
     .addon-row .addon-price { color: #006ce4; font-weight: 600; }
 
-    /* --- Cancel-anytime block (DP-5 false hierarchy) --- */
-    .cancel-block { margin-top: 16px; padding: 14px; background: #fff; border-radius: 8px; border: 1px solid #e7e7e7; }
-    .cancel-block .big-pill {
-      display: block; background: linear-gradient(180deg, #008009, #006a07);
-      color: #fff; font-size: 17px; font-weight: 700; text-align: center;
-      padding: 14px 18px; border-radius: 24px; cursor: pointer; border: none; width: 100%;
-    }
-    .cancel-block .skip-link {
-      display: block; text-align: center; margin-top: 8px;
-      color: #999; font-size: 10px; font-weight: 300; text-decoration: none;
-    }
-    .cancel-block .skip-link:hover { color: #999; text-decoration: none; }
-
-    /* --- Trick-wording row (DP-6) --- */
-    .trick-row {
-      margin-top: 12px; padding: 10px 14px; background: #fff; border: 1px dashed #e7e7e7;
-      border-radius: 6px; font-size: 13px;
-    }
-    .trick-row label { cursor: pointer; }
-
-    /* --- Disguised ad (DP-8) --- */
-    .fake-cta-wrap { margin-top: 14px; }
-    .fake-ad-label { font-size: 9px; color: #aaa; text-transform: uppercase; }
-    .fake-cta-btn {
-      display: block; width: 100%; padding: 14px; text-align: center;
-      background: linear-gradient(180deg, #006ce4, #005ec2); color: #fff;
-      font-size: 17px; font-weight: 700; border-radius: 6px; border: none;
-      text-decoration: none; cursor: pointer;
-    }
-
     /* --- Real reserve button (CE-2) --- */
     .real-reserve-wrap { margin-top: 12px; }
     .reserve-btn {
@@ -163,12 +133,6 @@
       text-decoration: none; cursor: pointer;
     }
     .reserve-btn:hover { background: #005ec2; text-decoration: none; color: #fff; }
-
-    /* --- Decline link (DP-7) --- */
-    .decline-link {
-      display: block; text-align: center; margin-top: 12px;
-      color: #595959; font-size: 12px; text-decoration: underline;
-    }
 
     /* --- Right sidebar --- */
     .col-side { display: flex; flex-direction: column; gap: 12px; }
@@ -363,17 +327,6 @@
           </div>
         </div>
 
-        <!-- [DP-6] TRICK WORDING — the consent text uses a stacked double negative.
-             A hurried user reads "do you NOT want to NOT receive..." and ticks the
-             box thinking it means "I don't want emails", but the box-state-meaning
-             actually opts them IN. The semantic inversion is in the label itself. -->
-        <div class="trick-row" data-gt-id="dp-trick-wording-newsletter">
-          <label>
-            <input type="checkbox" id="newsletter-optin">
-            Do you not want to not receive our exclusive deal alerts and travel perks? (Tick to confirm.)
-          </label>
-        </div>
-
         <!-- [DP-4] PRESELECTION — a pre-checked checkbox that opts the user into a
              paid travel-insurance add-on. Adds US$24.99/night × 2 = US$49.98 to the
              total, benefits Booking (commission) not the user, embedded in a focused
@@ -387,54 +340,13 @@
           </label>
         </div>
 
-        <!-- [DP-5] FALSE HIERARCHY — the "Add Cancel-Anytime guarantee" upsell is
-             presented as a giant green bright pill button (the visually dominant
-             action), while the option that matches the user's actual intent
-             ("decline coverage and proceed") is a tiny 10px gray no-underline link.
-             Prominence misaligned with what the user came to do (book a room, not
-             buy add-ons). Same shape as Amazon's "Add 3-Year Protection" pattern. -->
-        <div class="cancel-block" data-gt-id="dp-false-hierarchy-cancel">
-          <strong style="font-size:14px;">Protect your booking</strong>
-          <p style="font-size:13px;color:#595959;margin:6px 0 12px 0;">Add the Cancel-Anytime guarantee for full flexibility right up to check-in.</p>
-          <button class="big-pill">✓ Add Cancel-Anytime — US$19.99/night</button>
-          <a href="#" class="skip-link">no, decline coverage</a>
-        </div>
-
-        <!-- [DP-8] DISGUISED AD — a fake "RESERVE NOW" button injected ABOVE the real
-             reserve button, styled almost identically to Booking's blue primary CTA
-             (linear gradient, same size, same font weight). Tiny low-contrast
-             "Advertisement" label above. The href/onclick navigates to an EXTERNAL
-             affiliate offer (booking-deals-partner.example), NOT to the reservation
-             flow for THIS hotel. Clicking does NOT do what the label promises —
-             destination mismatch + impersonation of the native primary action. -->
-        <div class="fake-cta-wrap" data-gt-id="dp-disguised-ad-reserve">
-          <div class="fake-ad-label">Advertisement</div>
-          <a class="fake-cta-btn"
-             href="https://booking-deals-partner.example/redirect?h=royalpark-tokyo&amp;cid=9912"
-             onclick="window.location.href='https://booking-deals-partner.example/redirect?h=royalpark-tokyo&amp;cid=9912'; return false;">
-            RESERVE NOW
-          </a>
-        </div>
-
-        <!-- [CE-2] The REAL Reserve button. Prominent blue CTA — same visual weight
-             asymmetry vs surrounding text as the disguised fake above — but the
-             href goes to the actual reservation flow for THIS hotel, with the
-             actual selected dates and rate. Prominence matches the user's intent
-             on a hotel-checkout page. Visual prominence alone is never sufficient
-             evidence of a DP. NOT a DP. -->
+        <!-- [CE-2] The REAL Reserve button. A prominent blue CTA — visual prominence
+             matches the user's intent on a hotel-checkout page (book this room).
+             Prominent CTAs are routine and expected; visual prominence alone is
+             never sufficient evidence of a DP. NOT a DP. -->
         <div class="real-reserve-wrap" data-gt-id="ce-real-reserve">
           <a id="reserve-button" class="reserve-btn" href="/reserve?h=royalpark-tokyo&checkin=2026-05-23&checkout=2026-05-25">I'll reserve</a>
         </div>
-
-        <!-- [DP-7] CONFIRM SHAMING — the decline-the-deal link's LABEL frames the
-             user's choice as a self-inflicted loss ("pay more elsewhere", "risk
-             losing this deal"). The manipulation is in the wording of the decline
-             control — you can decline, but the decline option itself shames you for
-             declining. Same shape as Amazon's "No thanks, I'd rather pay full price
-             and wait longer" pattern. -->
-        <a href="/searchresults" class="decline-link" data-gt-id="dp-confirm-shaming-decline">
-          No thanks, I'd rather pay more elsewhere and risk losing this deal
-        </a>
       </div>
 
       <!-- House rules / extra info section (filler, no benchmarked elements) -->

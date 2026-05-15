@@ -82,7 +82,6 @@
     details { margin: 8px 0; }
     details > summary { cursor: pointer; color: #565959; font-size: 12px; }
     details[open] > summary { margin-bottom: 6px; }
-    .fee-list { font-size: 12px; color: #333; margin: 0; padding-left: 18px; }
     .about-list { font-size: 13px; padding-left: 18px; line-height: 1.6; }
     .shipping-opts { font-size: 13px; margin: 12px 0; }
     .shipping-opts label { display: block; margin: 4px 0; }
@@ -105,16 +104,6 @@
     .save-link-row a { font-size: 12px; }
     .buy-checkbox-row { margin: 12px 0; font-size: 12px; color: #565959; display: flex; gap: 6px; align-items: flex-start; }
 
-    /* --- Disguised fake CTA --- */
-    .fake-ad-wrap { margin-bottom: 12px; }
-    .fake-ad-label { font-size: 9px; color: #8c8c8c; margin-bottom: 2px; }
-    .fake-ad-btn {
-      display: block; width: 100%; padding: 18px 10px; font-size: 22px; font-weight: 700;
-      color: #0F1111; background: linear-gradient(to bottom, #f7dfa5, #f0c14b);
-      border: 1px solid; border-color: #a88734 #9c7e31 #846a29; border-radius: 8px;
-      text-align: center; cursor: pointer; box-shadow: 0 1px 0 rgba(255,255,255,.4) inset;
-    }
-
     /* --- Prime upsell card (confirm shaming) --- */
     .prime-card { border: 1px solid #d5d9d9; border-radius: 8px; padding: 12px; margin-top: 12px; font-size: 13px; }
     .prime-card h4 { margin: 0 0 6px; font-size: 14px; }
@@ -132,16 +121,6 @@
     .link-protect-no {
       display: inline-block; margin-left: 28px; font-size: 11px; color: #b9b9b9;
       text-decoration: none; font-weight: 300;
-    }
-
-    /* --- Notification permission banner (trick wording) --- */
-    .notif-banner {
-      background: #f0f2f2; border-bottom: 1px solid #d5d9d9; padding: 10px 24px;
-      display: flex; align-items: center; gap: 14px; font-size: 13px;
-    }
-    .notif-banner .notif-btn {
-      background: linear-gradient(to bottom, #f7f8fa, #e7e9ec); border: 1px solid #adb1b8;
-      border-radius: 8px; padding: 6px 14px; font-size: 13px; cursor: pointer;
     }
 
     /* --- Sponsored carousel (counterexample) --- */
@@ -162,28 +141,6 @@
     /* --- Footer --- */
     .footer { background: #232f3e; color: #ddd; text-align: center; padding: 20px; font-size: 12px; margin-top: 30px; }
 
-    /* --- Pop-up ad modal --- */
-    .popup-overlay {
-      position: fixed; inset: 0; background: rgba(15,17,17,0.55); z-index: 9998;
-      display: flex; align-items: center; justify-content: center;
-    }
-    .popup-card {
-      background: #fff; width: 460px; max-width: 92%; border-radius: 12px; padding: 22px;
-      box-shadow: 0 8px 28px rgba(0,0,0,0.35); position: relative; z-index: 9999;
-      font-family: "Amazon Ember", Arial, sans-serif;
-    }
-    .popup-card h2 { margin: 8px 0 6px; font-size: 22px; }
-    .popup-card .popup-img { background: #f7f7f7; border: 1px solid #ddd; height: 150px; display: flex; align-items: center; justify-content: center; color: #999; margin-bottom: 12px; }
-    .popup-card .popup-cta {
-      display: block; width: 100%; padding: 14px; background: #FFD814; border: 1px solid #FCD200;
-      border-radius: 8px; font-size: 18px; font-weight: 700; color: #0F1111; cursor: pointer; margin-top: 14px;
-    }
-    /* near-invisible close button, off in the page corner */
-    .popup-close-x {
-      position: fixed; top: 8px; right: 12px; z-index: 10000;
-      background: transparent; border: none; color: #ffffff; font-size: 14px; font-weight: 300;
-      opacity: 0.12; cursor: pointer; padding: 2px 4px; line-height: 1;
-    }
   </style>
 </head>
 <body>
@@ -206,16 +163,6 @@
     <a href="#">All</a><a href="#">Today's Deals</a><a href="#">Electronics</a>
     <a href="#">Customer Service</a><a href="#">Registry</a><a href="#">Gift Cards</a>
   </nav>
-
-  <!-- ===================== [DP-7] TRICK WORDING ===================== -->
-  <!-- [DP-7] Notification permission prompt with DOUBLE-NEGATIVE button labels.
-       "I do not want no notifications" reads like "I don't want notifications"
-       to a hurried user but actually OPTS THEM IN. -->
-  <div class="notif-banner" data-gt-id="dp-trick-wording-notif">
-    <span>🔔 Amazon would like to send you notifications about orders and deals.</span>
-    <button type="button" class="notif-btn">I want no notifications</button>
-    <button type="button" class="notif-btn">I do not want no notifications</button>
-  </div>
 
   <div class="breadcrumb">
     Electronics &rsaquo; Computers &amp; Accessories &rsaquo; Mice &rsaquo; Logitech
@@ -252,10 +199,11 @@
         <a href="#reviews">2,108 answered questions</a>
       </div>
 
-      <!-- [DP-3] FAKE SOCIAL PROOF — unverifiable urgency / scarcity / popularity
-           signals with no source or methodology, used to pressure an immediate buy. -->
+      <!-- [DP] FAKE SOCIAL PROOF — unverifiable scarcity + popularity badges with
+           no source or methodology, used to pressure an immediate buy. The "Only N
+           left" + "Bought X+ times" framing is canonical Amazon UX; the harm is the
+           unverifiable nature of the claims at the decision moment. -->
       <div class="urgency-row" data-gt-id="dp-fake-social-proof">
-        <span class="urgency-badge">🔥 17 people are viewing this right now</span>
         <span class="urgency-badge">Only 2 left in stock — order soon!</span>
         <span class="urgency-badge">Bought 340+ times in the past month</span>
       </div>
@@ -264,19 +212,6 @@
         <span class="price-symbol">$</span><span class="price-whole">99</span><span class="price-fraction">99</span>
         &nbsp;<a class="price-detail-link" href="#" title="See estimated tax">Price details</a>
 
-        <!-- [DP-2] HIDDEN INFORMATION — mandatory, unavoidable fees totaling $21.49
-             are concealed inside a collapsed <details> disclosure styled as low-contrast
-             text. A user who clicks Add to Cart without expanding never sees the true price. -->
-        <div data-gt-id="dp-hidden-fees">
-          <details>
-            <summary>See additional fees for this item</summary>
-            <ul class="fee-list">
-              <li>Handling fee: $12.99 (applied to all orders of this item — not optional)</li>
-              <li>Protective packaging fee: $8.50 (mandatory for fragile electronics)</li>
-              <li><strong>Total at checkout: $121.48</strong></li>
-            </ul>
-          </details>
-        </div>
       </div>
 
       <!-- [CE-3] Shipping options with "Standard Shipping — FREE" pre-selected.
@@ -325,22 +260,10 @@
         <div class="in-stock">In Stock</div>
         <div class="qty-row">Quantity: <select aria-label="Quantity"><option>1</option><option>2</option><option>3</option></select></div>
 
-        <!-- [DP-5] DISGUISED AD — a fake "ADD TO CART" button injected ABOVE the real
-             one, styled like Amazon's native yellow CTA but larger, with a tiny
-             low-contrast "Advertisement" label. Its onclick navigates to an external
-             affiliate offer, NOT to this product's cart. -->
-        <div class="fake-ad-wrap" data-gt-id="dp-disguised-ad-cta">
-          <div class="fake-ad-label">Advertisement</div>
-          <a class="fake-ad-btn" href="https://deals.shopnow-partner.example/offer?ref=mx3s&amp;cid=8841"
-             onclick="window.location.href='https://deals.shopnow-partner.example/offer?ref=mx3s&amp;cid=8841'; return false;">
-            ADD TO CART
-          </a>
-        </div>
-
-        <!-- [CE-5] The REAL Add to Cart button. Prominent yellow CTA — same visual
-             weight asymmetry vs surrounding text as the disguised fake above — but it
-             does exactly what its label promises: adds THIS product to the cart on
-             THIS site. Prominence matches the user's intent. NOT a DP. -->
+        <!-- [CE] The REAL Add to Cart button. A prominent yellow CTA — visual
+             prominence matches the user's intent on a product page (buy this mouse).
+             Prominent CTAs are routine; visual prominence alone is never sufficient
+             evidence of a DP. NOT a DP. -->
         <div id="addToCart_feature_div" data-gt-id="ce-real-add-to-cart">
           <a id="add-to-cart-button" class="a-button a-button-primary" href="/cart/add?asin=B09HM94VDS">Add to Cart</a>
         </div>
@@ -349,16 +272,7 @@
              primary action on a product page. NOT a DP. -->
         <a id="buy-now-button" class="a-button a-button-buynow" data-gt-id="ce-real-buy-now" href="/buy/now?asin=B09HM94VDS">Buy Now</a>
 
-        <!-- [DP-4] PRESELECTION — a pre-checked checkbox inside the buy box that opts
-             the user into marketing email. Benefits Amazon, not the user; embedded in
-             a focused purchase flow where it's easy to miss; reverses what a user
-             explicitly asked would choose. -->
-        <div class="buy-checkbox-row" data-gt-id="dp-preselect-marketing">
-          <input type="checkbox" id="marketing-optin" checked />
-          <label for="marketing-optin">Email me about deals and new releases on Logitech products</label>
-        </div>
-
-        <!-- [CE-7] "Add to List" / save-for-later — a small low-contrast text link
+        <!-- [CE] "Add to List" / save-for-later — a small low-contrast text link
              below the big buttons. Visual asymmetry vs the CTAs exists, but this is a
              legitimate secondary affordance, not a suppressed primary option. NOT a DP. -->
         <div class="save-link-row" data-gt-id="ce-save-for-later">
@@ -436,21 +350,6 @@
     Conditions of Use · Privacy Notice · © 1996–2026, Example Replica for Research, Inc.
   </footer>
 
-  <!-- ===================== [DP-1] POP-UP AD ===================== -->
-  <!-- [DP-1] An overlay modal that appears immediately, promoting an UNRELATED
-       product (a Ninja Air Fryer) with no connection to the user's task (buying a
-       mouse). The promoted "Add to Cart" CTA is full-width and prominent; the only
-       dismiss control is a near-invisible "×" (opacity 0.12, white text, parked in
-       the page's top-right corner away from the modal). -->
-  <div class="popup-overlay" data-gt-id="dp-popup-ad">
-    <div class="popup-card">
-      <div class="popup-img">Ninja 4-in-1 Air Fryer</div>
-      <h2>An Irresistible Offer Just For You!</h2>
-      <p style="font-size:13px;color:#555;">Ninja 4-in-1 Pro Air Fryer (5 QT). Air Fry, Roast, Reheat, and Dehydrate with up to 75% less fat. Don't miss this deal — today only!</p>
-      <a class="popup-cta" href="/cart/add?asin=B0CNINJA999">Add to Cart — $89.99</a>
-    </div>
-  </div>
-  <button type="button" class="popup-close-x" aria-label="Close" onclick="document.querySelector('.popup-overlay').remove()">×</button>
 
 </body>
 </html>

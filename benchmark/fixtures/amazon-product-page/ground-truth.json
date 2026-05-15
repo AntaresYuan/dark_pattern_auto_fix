@@ -1,7 +1,7 @@
 {
   "fixture": "amazon-product-page.html",
   "description": "Replica Amazon product detail page (Logitech MX Master 3S mouse) with deliberately injected dark patterns and counterexamples. Used to measure the identification prompt's true-positive, false-positive, and false-negative rates.",
-  "page_url_when_served": "http://localhost:8000/amazon-product-page.html (or any http:// host; the extension rejects file:// URLs)",
+  "page_url_when_served": "http://localhost:8000/fixtures/amazon-product-page/amazon-product-page.html (or any http:// host; the extension rejects file:// URLs)",
 
   "expected_page_evaluation": {
     "page_type": "product_detail",
@@ -15,44 +15,12 @@
 
   "dark_patterns": [
     {
-      "gt_id": "dp-popup-ad",
-      "type": "Pop-up ad",
-      "selector": ".popup-overlay[data-gt-id='dp-popup-ad']",
-      "element": "Modal overlay promoting a Ninja Air Fryer ('An Irresistible Offer Just For You!')",
-      "why": "Promotional content unrelated to the user's task (buying a mouse); the only dismiss control is a near-invisible '×' (opacity 0.12, white text, parked in the page corner away from the modal) while the modal's 'Add to Cart — $89.99' CTA is full-width and prominent. Unrelated promotion + degraded dismiss path.",
-      "accepts_types": ["Pop-up ad"]
-    },
-    {
-      "gt_id": "dp-hidden-fees",
-      "type": "Hidden information",
-      "selector": "[data-gt-id='dp-hidden-fees']",
-      "element": "'See additional fees for this item' collapsed <details> near the price",
-      "why": "Mandatory, unavoidable fees ($12.99 handling + $8.50 packaging = $21.49, ~21% over the headline $99.99) are concealed inside a collapsed, low-contrast disclosure. A user who clicks Add to Cart without expanding it never sees the true total ($121.48). Decision-critical cost hidden behind a non-default reveal at the moment of commitment.",
-      "accepts_types": ["Hidden information"]
-    },
-    {
       "gt_id": "dp-fake-social-proof",
       "type": "Fake social proof",
       "selector": "[data-gt-id='dp-fake-social-proof']",
-      "element": "Urgency/scarcity badges: '17 people are viewing this right now', 'Only 2 left in stock — order soon!', 'Bought 340+ times in the past month'",
-      "why": "Unverifiable popularity/scarcity claims with no source or methodology, used to pressure an immediate purchase. The viewer count, stock count, and purchase count cannot be audited by the user.",
+      "element": "Urgency/scarcity badges: 'Only 2 left in stock — order soon!', 'Bought 340+ times in the past month'",
+      "why": "Unverifiable scarcity and popularity claims used to pressure an immediate purchase. The stock count and purchase count cannot be audited by the user. The 'Only N left' + 'Bought X+ times' framing is canonical Amazon UX; the harm is the unverifiable nature at the decision moment.",
       "accepts_types": ["Fake social proof"]
-    },
-    {
-      "gt_id": "dp-preselect-marketing",
-      "type": "Preselection",
-      "selector": "#marketing-optin",
-      "element": "Pre-checked checkbox 'Email me about deals and new releases on Logitech products' inside the buy box",
-      "why": "Opts the user into marketing email by default; benefits Amazon, not the user; embedded in a focused checkout flow where it's easy to miss; reverses what a user explicitly asked would choose.",
-      "accepts_types": ["Preselection"]
-    },
-    {
-      "gt_id": "dp-disguised-ad-cta",
-      "type": "Disguised ad",
-      "selector": "[data-gt-id='dp-disguised-ad-cta'] .fake-ad-btn",
-      "element": "A fake 'ADD TO CART' button injected above the real one, styled like Amazon's yellow CTA but larger, with a tiny low-contrast 'Advertisement' label",
-      "why": "Mimics Amazon's native primary CTA but the onclick/href navigates to an external affiliate offer (deals.shopnow-partner.example), not to this product's cart. Clicking does NOT do what the label promises — destination mismatch + impersonation.",
-      "accepts_types": ["Disguised ad"]
     },
     {
       "gt_id": "dp-false-hierarchy-protection",
@@ -61,14 +29,6 @@
       "element": "'Protect your purchase' section: large bright pill button 'Add 3-Year Protection — $19.99' vs a tiny, gray, no-underline, thin-weight 'no thanks' link",
       "why": "The user came to buy a mouse; the visually dominant CTA pushes a paid add-on that benefits Amazon, and the decline option matching the user's intent is visually buried (smallest font, low-contrast gray, no underline). Prominence misaligned with user intent.",
       "accepts_types": ["False hierarchy"]
-    },
-    {
-      "gt_id": "dp-trick-wording-notif",
-      "type": "Trick wording",
-      "selector": "[data-gt-id='dp-trick-wording-notif']",
-      "element": "Notification permission banner with two equally-styled buttons: 'I want no notifications' and 'I do not want no notifications'",
-      "why": "Double-negative labels. A hurried user reads 'I do not want no notifications' as 'I don't want notifications' and clicks it — but it OPTS THEM IN. The semantic inversion is in the button label itself.",
-      "accepts_types": ["Trick wording"]
     },
     {
       "gt_id": "dp-confirm-shaming-prime",
@@ -111,14 +71,14 @@
     },
     {
       "gt_id": "ce-real-add-to-cart",
-      "looks_like": "False hierarchy / Disguised ad",
+      "looks_like": "False hierarchy",
       "selector": "#add-to-cart-button",
       "element": "The real yellow 'Add to Cart' button in the buy box (#addToCart_feature_div)",
-      "why_not": "A prominent yellow CTA — same visual weight asymmetry vs surrounding text as the disguised fake — but it does exactly what its label promises: adds THIS product to the cart on THIS site. Prominence matches the user's intent on a product page. Visual prominence alone is never sufficient evidence."
+      "why_not": "A prominent yellow CTA — but it does exactly what its label promises: adds THIS product to the cart on THIS site. Prominence matches the user's intent on a product page. Visual prominence alone is never sufficient evidence."
     },
     {
       "gt_id": "ce-real-buy-now",
-      "looks_like": "False hierarchy / Disguised ad",
+      "looks_like": "False hierarchy",
       "selector": "#buy-now-button",
       "element": "The real orange 'Buy Now' button in the buy box",
       "why_not": "Legitimate primary action on a product page; the destination is the purchase flow for this product. Colored prominent CTA != dark pattern."
@@ -139,6 +99,12 @@
     }
   ],
 
+  "fixture_notes": [
+    "3 DPs after the 2026-05 realism audit (issue #27). Originally 8 DPs; dropped 5 as not canonical for Amazon PDP: dp-popup-ad (Amazon does not show interstitial popup ads on PDP — more AliExpress/affiliate behavior), dp-hidden-fees ($12.99 handling + $8.50 packaging line items are not Amazon-canonical — Ticketmaster pattern), dp-preselect-marketing (Amazon doesn't pre-check marketing opt-in inside the buy box on PDP — that's at signup), dp-disguised-ad-cta (a fake yellow CTA impersonating Amazon's native button on Amazon's own page is structurally impossible — Amazon owns the platform), dp-trick-wording-notif (Amazon does not use double-negative button labels).",
+    "dp-fake-social-proof was tightened: removed the '17 people viewing right now' claim (eBay/Booking pattern, not Amazon UX). Kept 'Only N left' + 'Bought X+ times' which are canonical Amazon framings.",
+    "Disguised ad and Trick wording have no coverage on this fixture by design — they are not canonical for Amazon PDP. Aggregate coverage of those types across the full 6-fixture set is also intentionally zero post-audit; they live on shadier surfaces (cracked-software pages, ad-supported recipe sites, adversarial cookie banners) which are out of scope for the starter batch."
+  ],
+
   "scoring": {
     "true_positive": "Model output contains an entry whose target element matches a `dark_patterns` gt_id (by css_selector / html_evidence overlap) AND whose dark_pattern_type is in that entry's `accepts_types`.",
     "false_negative": "A `dark_patterns` gt_id has no matching entry in the model output.",
@@ -147,9 +113,9 @@
     "page_eval": "Separately, score expected_page_evaluation as correct/incorrect per its scoring_note.",
     "headline_metrics": [
       "precision = TP / (TP + FP)",
-      "recall = TP / (TP + FN)   [TP + FN = 8, the count of injected dark patterns]",
-      "false_positive_rate = FP / (number of counterexamples + extraneous flags)  — this is the metric the recent prompt rewrite targets",
-      "Note: maxItems is 3 in the schema, so the model can report at most 3 patterns per run. Recall is bounded by 3/8 in a single pass — run the page multiple times, or accept that 'top 3' coverage is the realistic ceiling. Track WHICH 3 it picks and whether they are all real."
+      "recall = TP / (TP + FN)   [TP + FN = 3, the count of injected dark patterns post-audit]",
+      "false_positive_rate = FP / (number of counterexamples + extraneous flags) — this is the metric the recent prompt rewrite targets",
+      "Note: maxItems is 3 in the schema, so the model can report at most 3 patterns per run. Recall is no longer bounded by the schema cap on this fixture."
     ]
   }
 }

@@ -103,45 +103,6 @@
       font-size: 22px; font-weight: 700; color: #0070ba; padding: 6px 0;
     }
 
-    /* --- Reason picker (DP forced action) --- */
-    .reason-row { padding: 6px 0; }
-    .reason-row label { display: flex; gap: 8px; cursor: pointer; align-items: flex-start; padding: 5px 0; font-size: 14px; }
-    .reason-row textarea {
-      width: 100%; min-height: 80px; padding: 10px; border: 1px solid #cbcdcf;
-      border-radius: 6px; font-family: inherit; font-size: 14px; resize: vertical;
-      margin-top: 8px;
-    }
-    .required-tag {
-      color: #d20000; font-size: 12px; margin-left: 4px; font-weight: 700;
-    }
-    .reason-blocker-msg {
-      font-size: 12px; color: #d20000; margin-top: 6px; font-style: italic;
-    }
-
-    /* --- PayPal Credit promo card (DP disguised ad) --- */
-    .credit-card-promo {
-      border: 1px solid #e3e0dc; border-radius: 8px; padding: 14px;
-      margin: 12px 0; background: #f5f9fc; display: flex; gap: 14px; align-items: flex-start;
-    }
-    .credit-card-promo .credit-tile {
-      width: 60px; height: 40px; border-radius: 4px; flex-shrink: 0;
-      background: linear-gradient(135deg, #003087, #009cde);
-      display: flex; align-items: center; justify-content: center;
-      color: #fff; font-size: 9px; font-weight: 700;
-    }
-    .credit-card-promo h3 {
-      font-size: 15px; margin: 0 0 4px 0; color: #2c2e2f;
-    }
-    .credit-card-promo .promo-source-tag {
-      font-size: 9px; color: #ccc; text-transform: uppercase; letter-spacing: 1px;
-    }
-    .credit-card-promo .credit-cta {
-      display: inline-block; background: #ffc439; color: #2c2e2f;
-      padding: 7px 14px; font-size: 13px; font-weight: 700;
-      text-decoration: none; border-radius: 18px; margin-top: 8px;
-      border: none; cursor: pointer;
-    }
-
     /* --- Hidden info (DP) --- */
     details.close-terms summary {
       cursor: pointer; color: #6c7378; font-size: 12px;
@@ -153,14 +114,6 @@
     details.close-terms div {
       margin-top: 6px; font-size: 11px; color: #888; line-height: 1.55;
     }
-
-    /* --- Newsletter checkbox (DP preselect) --- */
-    .newsletter-row {
-      padding: 14px; margin: 12px 0; background: #f5f9fc;
-      border: 1px solid #cfe0fa; border-radius: 6px; display: flex; gap: 10px;
-      align-items: flex-start; font-size: 13px;
-    }
-    .newsletter-row strong { font-weight: 700; }
 
     /* --- Email receipt (CE) --- */
     .email-receipt {
@@ -250,64 +203,9 @@
         </div>
       </div>
 
-      <!-- ---- Reason panel (DP-1 forced action) ---- -->
+      <!-- ---- Closure-consequences panel ---- -->
       <div class="panel">
-        <h2>Tell us why you're closing<span class="required-tag">* required</span></h2>
-
-        <!-- [DP-1] FORCED ACTION — the user is REQUIRED to select a reason
-             (radio + optional textarea) before the close-account action can
-             complete. Explicit blocker message: "You must select a reason
-             before you can continue". The user is entitled to close their own
-             account (it's a financial product they signed up for and can
-             leave); requiring them to JUSTIFY the request to PayPal is
-             coercion to an UNRELATED demand — PayPal does not need the reason
-             to perform the closure; the form exists only for PayPal's
-             product-research benefit, at the user's friction cost. Distinct
-             from a re-auth password prompt (which would be intrinsic to the
-             security of a financial-account-state change). Adapted from
-             facebook-deactivation dp-forced-reason — same canonical Forced
-             Action pattern, different surface. -->
-        <div class="reason-row" data-gt-id="dp-forced-reason">
-          <label><input type="radio" name="reason"> I'm using a different payment service</label>
-          <label><input type="radio" name="reason"> I don't use PayPal enough</label>
-          <label><input type="radio" name="reason"> I have privacy concerns</label>
-          <label><input type="radio" name="reason"> I had a problem with a transaction</label>
-          <label><input type="radio" name="reason"> Too many emails / notifications</label>
-          <label><input type="radio" name="reason"> Other (please explain)</label>
-          <textarea placeholder="Optional unless 'Other' selected — but you must select at least one reason above to continue."></textarea>
-          <div class="reason-blocker-msg">* You must select a reason before you can continue.</div>
-        </div>
-      </div>
-
-      <!-- ---- Cross-product card ---- -->
-      <div class="panel">
-        <h2>Before you go…</h2>
-
-        <!-- [DP-2] DISGUISED AD — a "Before you go" card styled identically to
-             the legitimate retention/info cards on this page (same panel
-             chrome, same border, same color tokens, same CTA pill style), but
-             the content is an EXTERNAL paid financial product (PayPal Credit
-             is a separate revolving-credit product with its own fees, not the
-             user's PayPal balance/account that's being closed). The 9px low-
-             contrast "PROMOTION" label is too small to defeat the
-             impersonation of a native retention option. Cross-promoting a
-             credit product to a user actively trying to LEAVE the platform
-             (and who is signaling reduced financial engagement) is the harm:
-             the user reads it as "consider this PayPal option instead of
-             leaving" but it's a wholly different financial commitment.
-             Same harm test as netflix dp-disguised-partner-ad and booking
-             dp-disguised-ad-reserve — destination/product mismatch + visual
-             impersonation. -->
-        <div class="credit-card-promo" data-gt-id="dp-disguised-credit-promo">
-          <div class="credit-tile">PayPal<br>CREDIT</div>
-          <div>
-            <span class="promo-source-tag">Promotion</span>
-            <h3>Get 6 months 0% APR with PayPal Credit</h3>
-            <div style="font-size:13px;color:#6c7378;">Pay over time on purchases over $99. Members who use PayPal Credit make 31% more transactions a year on average.</div>
-            <a class="credit-cta" href="https://www.paypal.com/credit/apply?from=close-account-flow&amp;cid=retention"
-               onclick="window.location.href='https://www.paypal.com/credit/apply?from=close-account-flow&amp;cid=retention'; return false;">Apply in 60 seconds →</a>
-          </div>
-        </div>
+        <h2>Before you close…</h2>
 
         <!-- [DP-3] HIDDEN INFORMATION — decision-critical post-closure terms
              buried in a collapsed, low-contrast disclosure (11px gray, no
@@ -331,27 +229,6 @@
             Your <strong>2 pending transactions</strong> will be force-closed at the time of account closure; merchants on the receiving side may flag these as disputes, which can be reported to credit-monitoring agencies. Any <strong>recurring payment authorizations</strong> linked to merchants (subscriptions, utilities, recurring billing) will begin failing silently — PayPal does not notify those merchants on your behalf, and they may forward unpaid invoices to collections. Any open <strong>buyer or seller dispute</strong> you have filed will be cancelled with no refund. Your current balance of <strong>US$184.27 must be drained before closure</strong>; if not drained, PayPal will mail a paper check to the address on file 60 days after closure (not forwardable, not reissuable if lost). Closure is <strong>permanent and cannot be undone</strong>; you cannot reopen this account under the same email + tax ID combination for 12 months.
           </div>
         </details>
-
-        <!-- [DP-4] PRESELECTION — pre-checked "Keep me on the PayPal mailing
-             list" checkbox disguised as a security/fraud-alert feature. The
-             label fronts a legitimate-sounding benefit ("fraud alerts on your
-             linked cards") to make the pre-check feel like protection, but
-             the SAME box also opts the user into the broader PayPal
-             marketing newsletter ("product updates, partner offers") that
-             provides PayPal's marketing benefit. After account closure, the
-             user has no PayPal account to defraud — so the "fraud alerts"
-             framing is a fig leaf; the genuine value of the subscription is
-             0 for a closed account, and the genuine purpose is to retain
-             the user's email for marketing. Pre-checked marketing opt-in
-             disguised as a transactional benefit. Adapted shape from Amazon
-             dp-preselect-marketing and the eco_preselect pattern (preselect
-             of company-favoring outcome). -->
-        <div class="newsletter-row" data-gt-id="dp-preselect-mailing-list">
-          <input type="checkbox" id="mailing-keep" checked>
-          <label for="mailing-keep">
-            <strong>Keep me on PayPal's mailing list</strong> for fraud alerts on my linked cards, product updates, and partner offers.
-          </label>
-        </div>
 
         <!-- [CE-3] Pre-checked "Email me a confirmation when this completes"
              checkbox. Looks like Preselection (a default is checked),

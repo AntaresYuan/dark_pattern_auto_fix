@@ -124,44 +124,6 @@
     }
     .paid-post-card a { color: #121212; font-weight: 600; }
 
-    /* --- NYT Cooking cross-promo pop-up (DP-1) --- */
-    .cooking-promo {
-      position: fixed; bottom: 24px; right: 24px; width: 320px;
-      background: #fff; border: 1px solid #ddd; box-shadow: 0 4px 16px rgba(0,0,0,0.15);
-      padding: 16px 18px; z-index: 9000; font-family: "Helvetica", sans-serif;
-    }
-    .cooking-promo .label {
-      font-size: 10px; text-transform: uppercase; letter-spacing: 1px;
-      color: #b08533; font-weight: 700; margin-bottom: 6px;
-    }
-    .cooking-promo h4 {
-      font-family: "Cheltenham", serif; font-size: 18px; margin: 0 0 6px 0; color: #121212;
-    }
-    .cooking-promo p { font-size: 13px; color: #444; margin: 0 0 10px 0; line-height: 1.4; }
-    .cooking-promo .cooking-cta {
-      display: inline-block; background: #b08533; color: #fff;
-      padding: 8px 14px; font-size: 12px; font-weight: 700; text-transform: uppercase;
-      letter-spacing: 0.5px; border-radius: 2px; border: none; cursor: pointer;
-    }
-    .cooking-close-x {
-      position: absolute; bottom: 4px; right: 6px;
-      width: 14px; height: 14px; line-height: 14px; text-align: center;
-      color: #999; opacity: 0.2; font-size: 12px; background: none; border: none; cursor: pointer;
-    }
-
-    /* --- Cookie consent banner (DP-trick-wording) --- */
-    .cookie-banner {
-      background: #f5f5f5; border-top: 1px solid #ddd; padding: 14px 24px;
-      display: flex; align-items: center; gap: 16px;
-      font-family: "Helvetica", sans-serif; font-size: 13px; color: #333;
-    }
-    .cookie-banner label { cursor: pointer; }
-    .cookie-banner button {
-      background: #121212; color: #fff; padding: 6px 14px; font-size: 12px;
-      font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;
-      border: none; border-radius: 2px; cursor: pointer;
-    }
-
     /* --- Paywall modal (DP-paywall = Forced Action) --- */
     .paywall-overlay {
       position: fixed; inset: 0; background: rgba(255,255,255,0.95);
@@ -216,22 +178,6 @@
     details.pw-renewal-disclosure summary::before { content: "› "; color: #ccc; }
     details.pw-renewal-disclosure[open] summary::before { content: "⌄ "; }
     details.pw-renewal-disclosure div { margin: 6px 0 0 0; font-size: 11px; color: #999; line-height: 1.45; }
-
-    /* --- Print upsell (DP-false-hierarchy) --- */
-    .print-upsell {
-      margin: 16px 0; padding: 14px; border: 1px solid #e2e2e2; background: #fafafa;
-    }
-    .print-upsell strong { display: block; font-size: 13px; margin-bottom: 4px; color: #121212; }
-    .print-upsell .print-pill {
-      display: block; width: 100%; margin-top: 10px;
-      background: #6a3a8a; color: #fff;
-      padding: 12px 18px; font-size: 15px; font-weight: 700; text-align: center;
-      border-radius: 24px; border: none; cursor: pointer;
-    }
-    .print-upsell .print-skip {
-      display: block; text-align: center; margin-top: 8px;
-      color: #ccc; font-size: 9px; font-weight: 300; text-decoration: none;
-    }
 
     /* --- Stay signed in (CE) --- */
     .stay-signed {
@@ -368,36 +314,6 @@
     </aside>
   </main>
 
-  <!-- [DP-1] POP-UP AD — small floating modal in the bottom-right promoting NYT
-       Cooking, an entirely separate product from the article being read. Unrelated
-       cross-promotion: the user is reading a Business article about hiring, NOT
-       looking for recipes. The dismiss control is a near-invisible × in the
-       bottom-right corner (opacity 0.2, gray on white) — degraded dismiss path
-       while the "TRY 4 WEEKS FREE" CTA is a full prominent gold button. Same
-       canonical shape as Booking's bki_pop_up. -->
-  <div class="cooking-promo" data-gt-id="dp-cooking-popup">
-    <div class="label">NYT Cooking</div>
-    <h4>Make this week's most-saved recipe</h4>
-    <p>Browse 22,000+ recipes from NYT food editors. New subscribers get 4 weeks free.</p>
-    <button class="cooking-cta">TRY 4 WEEKS FREE</button>
-    <button class="cooking-close-x" aria-label="Close" onclick="document.querySelector('.cooking-promo').remove()">×</button>
-  </div>
-
-  <!-- [DP-7] TRICK WORDING — cookie consent banner with a stacked double negative
-       in the consent label. A hurried user reads "do you NOT want to NOT share..."
-       as "I don't want to share data" and ticks the box, but ticking actually OPTS
-       THEM IN to data sharing. Adapted from injection-mapping eco_double_negative
-       and Amazon's _double_neg_notif pattern; semantic inversion in the label
-       itself. -->
-  <div class="cookie-banner" data-gt-id="dp-trick-wording-cookies">
-    <label>
-      <input type="checkbox" id="cookie-optin">
-      Do you not want to not share your reading data with our advertising partners? (Tick to confirm.)
-    </label>
-    <span style="flex:1;"></span>
-    <button>Save preferences</button>
-  </div>
-
   <!-- [DP-2] FORCED ACTION — full-page paywall modal that BLOCKS access to the
        remainder of the article the user came to read. To proceed (read the rest),
        the user MUST perform a paid action — subscribe — or sign in to an existing
@@ -410,14 +326,12 @@
       <h2>Stay informed with The Times.</h2>
       <p class="pw-tagline">Continue reading this article and unlock The Times in full.</p>
 
-      <!-- [DP-4] FAKE SOCIAL PROOF — unverifiable popularity claim ("96% of our
-           readers choose to subscribe") paired with a fabricated proximity claim
-           ("5 friends in your city are reading this article right now"). Neither
-           number cites a methodology or a source the user can audit; both are used
-           to pressure an immediate paid commitment. Adapted directly from
-           injection-mapping nyt_social. -->
+      <!-- [DP] FAKE SOCIAL PROOF — unverifiable popularity claim ("96% of our
+           readers choose to subscribe") with no methodology or source the user can
+           audit, used to pressure an immediate paid commitment. Adapted directly
+           from injection-mapping nyt_social. Canonical NYT/Economist framing. -->
       <div class="pw-social-proof" data-gt-id="dp-fake-readers">
-        ★ <strong>96% of our readers choose to subscribe</strong> for full access. <strong>5 friends in your city</strong> are reading this article right now.
+        ★ <strong>96% of our readers choose to subscribe</strong> for full access.
       </div>
 
       <!-- [DP-5] PRESELECTION — the middle pricing tier ("All Access — Annual")
@@ -466,21 +380,6 @@
         </div>
       </details>
 
-      <!-- [DP-6] FALSE HIERARCHY — the print add-on upsell is presented as a
-           large bright purple pill button (the visually dominant action), while
-           the option that matches the user's revealed intent (reading the
-           article online, no print) is a tiny 9px light-gray no-underline link.
-           Prominence misaligned with the user's intent (read this article).
-           Same architectural shape as Amazon's "3-Year Protection" and Booking's
-           cancel-anytime upsell — the false-hierarchy fingerprint, not just the
-           styling. -->
-      <div class="print-upsell" data-gt-id="dp-false-hierarchy-print">
-        <strong>Add the Sunday Print Edition</strong>
-        Have the Sunday Times delivered every weekend.
-        <button class="print-pill">+ Add Sunday Print — $25/week</button>
-        <a href="#" class="print-skip">no print, please</a>
-      </div>
-
       <!-- [CE-5] Pre-checked "Stay signed in on this device" checkbox. Looks
            like Preselection (a default is checked), but the option is a
            well-understood UX convention that benefits the user (avoids
@@ -500,15 +399,13 @@
         <a id="subscribe-button-modal" class="pw-subscribe-btn" href="/subscriptions/checkout?tier=annual">Subscribe Now</a>
       </div>
 
-      <!-- [DP-8] CONFIRM SHAMING — the decline link's LABEL frames the user's
-           choice to back out as a self-inflicted moral failure ("miss out on
-           award-winning journalism", "settle for", "uninformed"). The user can
-           decline, but the decline option itself shames the user for declining.
-           Manipulation is in the wording, not the action. Adapted from
-           injection-mapping eco_confirm_shaming and Amazon's Prime decline-link
-           pattern. -->
+      <!-- [DP] CONFIRM SHAMING — the decline link's LABEL frames the user's
+           choice to back out as a self-inflicted loss ("miss out on award-winning
+           journalism"). The user can decline, but the decline option itself shames
+           them for declining. Manipulation is in the wording, not the action.
+           Canonical publishing-paywall pattern (NYT, Slate, Atlantic, Economist). -->
       <a href="/" class="pw-decline" data-gt-id="dp-confirm-shaming-decline">
-        No thanks, I'd rather miss out on award-winning journalism and stay uninformed
+        No thanks, I'd rather miss out on award-winning journalism
       </a>
     </div>
   </div>

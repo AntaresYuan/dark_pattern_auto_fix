@@ -90,61 +90,10 @@
     .retention-option .opt-desc { color: #666; font-size: 13px; margin-top: 4px; }
     .retention-option .opt-price { color: #221f1f; font-weight: 600; font-size: 13px; margin-top: 4px; }
 
-    /* --- Social proof banner (DP-fake-social) --- */
-    .social-proof-banner {
-      background: #fff8e1; border: 1px solid #f4d56a; padding: 12px 14px;
-      border-radius: 4px; margin: 12px 0; font-size: 13px; color: #5a4500;
-    }
-    .social-proof-banner strong { color: #332700; }
-
-    /* --- Disguised partner ad (DP-disguised-ad) --- */
-    .partner-card {
-      border: 1px solid #ddd; border-radius: 4px; padding: 14px;
-      margin: 10px 0; background: #fff5f5;
-    }
-    .partner-card .partner-label {
-      font-size: 9px; color: #ccc; text-transform: uppercase; letter-spacing: 1px;
-    }
-    .partner-card h3 {
-      font-size: 16px; margin: 4px 0; color: #221f1f;
-    }
-    .partner-card .partner-cta {
-      display: inline-block; background: #e50914; color: #fff;
-      padding: 8px 14px; font-size: 13px; font-weight: 700;
-      text-decoration: none; border-radius: 2px; margin-top: 8px;
-      border: none; cursor: pointer;
-    }
-
-    /* --- Hidden information (DP-hidden-info) --- */
-    details.cancel-terms summary {
-      cursor: pointer; color: #999; font-size: 12px;
-      list-style: none; padding: 4px 0;
-    }
-    details.cancel-terms summary::-webkit-details-marker { display: none; }
-    details.cancel-terms summary::before { content: "› "; color: #ccc; }
-    details.cancel-terms[open] summary::before { content: "⌄ "; }
-    details.cancel-terms div {
-      margin-top: 6px; font-size: 11px; color: #999; line-height: 1.5;
-    }
-
     /* --- Email-receipt checkbox (CE) --- */
     .email-receipt {
       font-size: 13px; color: #444; padding: 12px 0; display: flex; gap: 8px;
       align-items: center;
-    }
-
-    /* --- Trick-wording button row (DP-trick-wording) --- */
-    .trick-wording-row {
-      margin: 14px 0; padding: 14px; background: #fafafa; border-radius: 4px;
-      border: 1px dashed #ddd;
-    }
-    .trick-wording-row .label-text {
-      font-size: 13px; color: #555; margin-bottom: 8px; display: block;
-    }
-    .trick-wording-row .twr-buttons { display: flex; gap: 10px; }
-    .trick-wording-row .twr-buttons button {
-      flex: 1; padding: 10px; border: 1px solid #ddd; background: #fff;
-      cursor: pointer; font-size: 13px; border-radius: 4px;
     }
 
     /* --- Action row (Pause pill + Cancel link) --- */
@@ -183,36 +132,6 @@
       text-align: center; padding: 24px 0; font-size: 12px; color: #999;
     }
 
-    /* --- Pop-up promo (DP-popup-ad) --- */
-    .promo-overlay {
-      position: fixed; inset: 0; background: rgba(0,0,0,0.6);
-      z-index: 9000; display: flex; align-items: center; justify-content: center;
-    }
-    .promo-modal {
-      background: #fff; width: 460px; max-width: 92%; border-radius: 6px;
-      padding: 28px; position: relative;
-      box-shadow: 0 6px 24px rgba(0,0,0,0.3);
-      text-align: center;
-    }
-    .promo-modal .game-banner {
-      height: 140px;
-      background: linear-gradient(135deg, #6610f2, #e50914);
-      border-radius: 4px; display: flex; align-items: center; justify-content: center;
-      color: rgba(255,255,255,0.9); font-size: 12px; margin-bottom: 16px;
-    }
-    .promo-modal h2 { margin: 0 0 8px 0; font-size: 22px; color: #221f1f; }
-    .promo-modal p { margin: 0 0 18px 0; font-size: 14px; color: #555; line-height: 1.5; }
-    .promo-modal .promo-cta {
-      display: block; width: 100%; padding: 14px;
-      background: #e50914; color: #fff; border: none; border-radius: 4px;
-      font-size: 15px; font-weight: 700; cursor: pointer;
-      text-transform: uppercase; letter-spacing: 0.5px;
-    }
-    .promo-close-x {
-      position: absolute; bottom: 4px; right: 6px;
-      width: 14px; height: 14px; line-height: 14px; text-align: center;
-      color: #999; opacity: 0.18; font-size: 12px; background: none; border: none; cursor: pointer;
-    }
   </style>
 </head>
 <body>
@@ -291,72 +210,11 @@
         </label>
       </div>
 
-      <!-- [DP-4] FAKE SOCIAL PROOF — unverifiable retention statistics with no
-           source or methodology, used to pressure the user away from cancellation.
-           The "9 out of 10" pause-return rate is uncited; the "12 friends in your
-           area watching tonight" claim implies social-graph awareness Netflix
-           cannot share. Same shape as NYT's dp-fake-readers and Amazon's
-           dp-fake-social-proof — unverifiable urgency/popularity claims at a
-           decision moment. -->
-      <div class="social-proof-banner" data-gt-id="dp-fake-retention-stats">
-        ★ <strong>9 out of 10 paused members return within 30 days.</strong> Right now <strong>12 friends in your area</strong> are watching Netflix.
-      </div>
-
-      <!-- [DP-2] DISGUISED AD — a "retention option" card visually styled
-           identically to the legitimate retention options above, but its content
-           is an EXTERNAL partner offer (a Spotify-Netflix bundle from an
-           "affiliate" — Spotify Premium isn't a Netflix product). The "Try this
-           offer" CTA links to an external partner URL (netflix-partner-offers.example),
-           NOT to a Netflix retention path. Mimics the native "consider this"
-           retention card while actually serving as a partner promotion. The 9px
-           "Partner offer" label is too small + low-contrast (#ccc) to defeat
-           the impersonation. Same harm test as Booking's dp-disguised-ad-reserve. -->
-      <div class="partner-card" data-gt-id="dp-disguised-partner-ad">
-        <div class="partner-label">Partner offer</div>
-        <h3>Get 6 months of Spotify Premium with your Netflix membership</h3>
-        <div style="font-size:13px;color:#666;">Stay on Netflix and get music ad-free. Members who add Spotify save US$60/year on average.</div>
-        <a class="partner-cta" href="https://netflix-partner-offers.example/spotify?cid=cancel-flow"
-           onclick="window.location.href='https://netflix-partner-offers.example/spotify?cid=cancel-flow'; return false;">
-          Try this offer →
-        </a>
-      </div>
     </div>
 
     <!-- ---- Trick-wording row (DP-trick-wording) ---- -->
     <div class="card">
       <h2>Confirm your choice</h2>
-
-      <!-- [DP-5] TRICK WORDING — two equally-styled buttons with semantically
-           inverted labels. "I do not want to not keep my membership" semantically
-           = "I want to keep my membership" — but a hurried user reads the second
-           button's "do not… not" stack as "I don't want to keep" and clicks it,
-           thinking they're cancelling, when in fact they're STAYING. The semantic
-           inversion is in the button label itself; the button-meaning maps to the
-           opposite of the surface reading. Adapted from injection-mapping
-           stm_double_negative and Amazon's dp-trick-wording-notif pattern. -->
-      <div class="trick-wording-row" data-gt-id="dp-trick-wording-confirm">
-        <span class="label-text">Pick the option that matches your decision:</span>
-        <div class="twr-buttons">
-          <button>I want to keep my membership</button>
-          <button>I do not want to not keep my membership</button>
-        </div>
-      </div>
-
-      <!-- [DP-6] HIDDEN INFORMATION — decision-critical post-cancellation
-           details (no prorated refunds for the partial month, ALL viewing history
-           and watchlist permanently deleted after 30 days even if the user
-           re-subscribes, downloaded titles inaccessible after the billing date)
-           are concealed in a collapsed low-contrast disclosure (10px gray).
-           A user who clicks Cancel without expanding it loses recoverable state
-           they didn't visibly consent to losing. Same harm-test fingerprint as
-           Booking's dp-hidden-fees: decision-critical info hidden at the moment
-           of commitment. -->
-      <details class="cancel-terms" data-gt-id="dp-hidden-cancel-terms">
-        <summary>What happens after you cancel</summary>
-        <div>
-          You will continue to have access until your current billing period ends on June 14, 2026 — <strong>no prorated refund is provided</strong> for the unused portion of the month. After cancellation, your viewing history, watchlist, and continue-watching state will be retained for 10 months and then <strong>permanently deleted</strong>. If you re-subscribe within 10 months, your data is restored automatically. <strong>Downloaded titles on the Netflix app become inaccessible the day after your billing date.</strong> Cancellation cannot be undone after the billing date passes; you will need to start a new membership.
-        </div>
-      </details>
 
       <!-- [CE-3] Pre-checked "Email me a confirmation" checkbox. Looks like
            Preselection (a default is checked), but the option is a sensible
@@ -419,22 +277,6 @@
     </div>
   </main>
 
-  <!-- [DP-8] POP-UP AD — modal overlay shown on page load promoting Netflix
-       Games (an entirely separate product surface from the cancellation flow
-       the user came to). Cross-promotion: the user is trying to CANCEL, NOT
-       trying to discover new product features. The dismiss control is a
-       near-invisible × in the bottom-right corner (opacity 0.18) — degraded
-       dismiss path while the "BROWSE GAMES" CTA is full-width and bright red.
-       Same canonical shape as Booking's bki_pop_up and NYT's dp-cooking-popup. -->
-  <div class="promo-overlay" data-gt-id="dp-popup-games">
-    <div class="promo-modal">
-      <div class="game-banner">[Netflix Games hero image]</div>
-      <h2>Wait — did you know about Netflix Games?</h2>
-      <p>Your membership includes 80+ premium mobile games at no extra cost. Try them before you decide.</p>
-      <button class="promo-cta">BROWSE GAMES</button>
-      <button class="promo-close-x" aria-label="Close" onclick="document.querySelector('.promo-overlay').remove()">×</button>
-    </div>
-  </div>
 
 </body>
 </html>
