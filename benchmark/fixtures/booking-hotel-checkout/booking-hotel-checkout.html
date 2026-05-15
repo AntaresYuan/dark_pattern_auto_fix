@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<!--
+  Dark Pattern Detection Benchmark — Booking.com Hotel Checkout (replica)
+
+  CONTROLLED TEST FIXTURE. Mimics a Booking.com hotel-property page at the point
+  the user has selected dates and is about to reserve a room. Deliberately embeds
+  a known set of dark patterns + counterexamples (elements that visually resemble
+  DPs but are NOT, used to measure false positives).
+
+  Ground truth (which element is which) lives in ./ground-truth.json.
+  Every benchmarked element carries a data-gt-id attribute and an HTML comment.
+
+  Notation in comments:
+    [DP-x] = injected dark pattern (the model SHOULD flag this)
+    [CE-x] = counterexample (the model should NOT flag this; tests false positives)
+
+  Run: serve via `python3 -m http.server 8000` from the benchmark/ root, then
+  visit http://localhost:8000/fixtures/booking-hotel-checkout/booking-hotel-checkout.html
+-->
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>The Royal Park Hotel Iconic Tokyo Shiodome — Booking.com</title>
+  <meta property="og:type" content="hotel" />
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "BlinkMacSystemFont", -apple-system, "Segoe UI", "Roboto", "Helvetica", "Arial", sans-serif;
+      color: #1a1a1a;
+      background: #f5f5f5;
+      font-size: 14px;
+    }
+    a { color: #006ce4; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* --- Top nav (Booking blue) --- */
+    .nav-top {
+      background: #003b95; color: #fff; padding: 10px 24px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .nav-logo { font-weight: 700; font-size: 22px; color: #fff; letter-spacing: -0.5px; }
+    .nav-right { display: flex; gap: 16px; align-items: center; font-size: 13px; }
+    .nav-right a { color: #fff; }
+    .nav-right .currency-pill { border: 1px solid #fff; padding: 4px 10px; border-radius: 4px; }
+    .nav-secondary {
+      background: #003b95; color: #fff; padding: 6px 24px 12px; font-size: 13px;
+      display: flex; gap: 18px; border-bottom: 1px solid #2a5fa6;
+    }
+    .nav-secondary .tab { padding: 4px 10px; border-radius: 16px; cursor: pointer; }
+    .nav-secondary .tab.active { background: #fff; color: #003b95; font-weight: 600; }
+
+    /* --- Layout --- */
+    .breadcrumb { padding: 12px 24px; font-size: 12px; color: #595959; background: #fff; border-bottom: 1px solid #e7e7e7; }
+    .breadcrumb a { color: #006ce4; }
+    .pdp-grid {
+      display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 20px;
+      padding: 16px 24px 40px; max-width: 1280px; margin: 0 auto;
+    }
+    .col-main { display: flex; flex-direction: column; gap: 16px; }
+
+    /* --- Hotel header card --- */
+    .hotel-card { background: #fff; border-radius: 8px; border: 1px solid #e7e7e7; padding: 20px; }
+    .hotel-name { font-size: 24px; font-weight: 700; margin: 0 0 4px 0; }
+    .hotel-stars { color: #feba02; font-size: 14px; }
+    .hotel-address { color: #595959; font-size: 13px; margin: 6px 0; }
+    .hotel-images-row {
+      display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 4px; margin-top: 12px;
+      height: 200px;
+    }
+    .hotel-img {
+      background: linear-gradient(135deg, #d6c5a0, #b89c6e);
+      border-radius: 4px; display: flex; align-items: center; justify-content: center;
+      color: rgba(255,255,255,0.7); font-size: 11px;
+    }
+    .hotel-img.alt { background: linear-gradient(135deg, #6b7e8c, #4a5a68); }
+    .hotel-img.alt2 { background: linear-gradient(135deg, #a89077, #876952); }
+
+    /* --- Urgency banners (DP-3 fake social) --- */
+    .urgency-bar {
+      background: #fff8e6; border: 1px solid #fbd35a; border-radius: 6px;
+      padding: 10px 14px; margin-top: 12px; font-size: 13px; color: #663b00;
+    }
+    .urgency-bar strong { color: #b03a00; }
+    .urgency-row { display: flex; gap: 16px; margin-top: 6px; flex-wrap: wrap; }
+    .urgency-pill {
+      background: #fff; border: 1px solid #e0a000; border-radius: 12px;
+      padding: 3px 10px; font-size: 12px; color: #663b00;
+    }
+
+    /* --- Room card --- */
+    .room-card { background: #fff; border-radius: 8px; border: 1px solid #e7e7e7; padding: 18px; }
+    .room-card h2 { font-size: 18px; margin: 0 0 12px 0; }
+    .room-table {
+      border-collapse: collapse; width: 100%; font-size: 13px;
+    }
+    .room-table th, .room-table td {
+      padding: 10px; text-align: left; border-bottom: 1px solid #f0f0f0; vertical-align: top;
+    }
+    .room-table th { background: #f5f5f5; font-weight: 600; }
+    .room-table tr.selected { background: #e7f0ff; }
+    .room-rate-radios label { display: block; padding: 4px 0; cursor: pointer; }
+    .room-rate-radios .price { font-weight: 700; font-size: 15px; color: #006ce4; }
+
+    /* --- Price box --- */
+    .price-block { font-size: 13px; line-height: 1.6; color: #333; }
+    .price-block .total-line { font-size: 22px; font-weight: 700; color: #1a1a1a; }
+    details.fees-disclosure summary {
+      cursor: pointer; color: #595959; font-size: 12px; text-decoration: none;
+      list-style: none; padding: 4px 0;
+    }
+    details.fees-disclosure summary::-webkit-details-marker { display: none; }
+    details.fees-disclosure summary::before { content: "› "; color: #999; }
+    details.fees-disclosure[open] summary::before { content: "⌄ "; }
+    details.fees-disclosure ul { margin: 6px 0 0 0; padding-left: 18px; font-size: 12px; color: #595959; }
+
+    /* --- Add-on rows --- */
+    .addon-row {
+      background: #f5f9ff; border: 1px solid #cfe0fa; border-radius: 6px;
+      padding: 12px 14px; margin-top: 12px; display: flex; gap: 10px; align-items: flex-start;
+    }
+    .addon-row input[type=checkbox] { margin-top: 2px; }
+    .addon-row label { font-size: 13px; line-height: 1.4; }
+    .addon-row .addon-price { color: #006ce4; font-weight: 600; }
+
+    /* --- Cancel-anytime block (DP-5 false hierarchy) --- */
+    .cancel-block { margin-top: 16px; padding: 14px; background: #fff; border-radius: 8px; border: 1px solid #e7e7e7; }
+    .cancel-block .big-pill {
+      display: block; background: linear-gradient(180deg, #008009, #006a07);
+      color: #fff; font-size: 17px; font-weight: 700; text-align: center;
+      padding: 14px 18px; border-radius: 24px; cursor: pointer; border: none; width: 100%;
+    }
+    .cancel-block .skip-link {
+      display: block; text-align: center; margin-top: 8px;
+      color: #999; font-size: 10px; font-weight: 300; text-decoration: none;
+    }
+    .cancel-block .skip-link:hover { color: #999; text-decoration: none; }
+
+    /* --- Trick-wording row (DP-6) --- */
+    .trick-row {
+      margin-top: 12px; padding: 10px 14px; background: #fff; border: 1px dashed #e7e7e7;
+      border-radius: 6px; font-size: 13px;
+    }
+    .trick-row label { cursor: pointer; }
+
+    /* --- Disguised ad (DP-8) --- */
+    .fake-cta-wrap { margin-top: 14px; }
+    .fake-ad-label { font-size: 9px; color: #aaa; text-transform: uppercase; }
+    .fake-cta-btn {
+      display: block; width: 100%; padding: 14px; text-align: center;
+      background: linear-gradient(180deg, #006ce4, #005ec2); color: #fff;
+      font-size: 17px; font-weight: 700; border-radius: 6px; border: none;
+      text-decoration: none; cursor: pointer;
+    }
+
+    /* --- Real reserve button (CE-2) --- */
+    .real-reserve-wrap { margin-top: 12px; }
+    .reserve-btn {
+      display: block; width: 100%; padding: 14px; text-align: center;
+      background: #006ce4; color: #fff;
+      font-size: 17px; font-weight: 700; border-radius: 4px; border: none;
+      text-decoration: none; cursor: pointer;
+    }
+    .reserve-btn:hover { background: #005ec2; text-decoration: none; color: #fff; }
+
+    /* --- Decline link (DP-7) --- */
+    .decline-link {
+      display: block; text-align: center; margin-top: 12px;
+      color: #595959; font-size: 12px; text-decoration: underline;
+    }
+
+    /* --- Right sidebar --- */
+    .col-side { display: flex; flex-direction: column; gap: 12px; }
+    .side-card { background: #fff; border-radius: 8px; border: 1px solid #e7e7e7; padding: 16px; }
+    .rating-aggregate {
+      display: flex; gap: 10px; align-items: center;
+    }
+    .rating-score {
+      background: #003b95; color: #fff; font-weight: 700; font-size: 16px;
+      padding: 4px 10px; border-radius: 6px 6px 6px 0;
+    }
+    .rating-text { font-size: 13px; }
+    .rating-text strong { display: block; font-size: 14px; }
+    .rating-text a { font-size: 12px; }
+    .price-summary .row {
+      display: flex; justify-content: space-between; padding: 4px 0; font-size: 13px;
+    }
+    .price-summary .row.total {
+      border-top: 1px solid #e7e7e7; margin-top: 8px; padding-top: 10px;
+      font-weight: 700; font-size: 16px;
+    }
+    .sponsored-card { background: #fafafa; padding: 12px; border-radius: 6px; border: 1px solid #eee; font-size: 13px; }
+    .sponsored-card .sp-header {
+      font-size: 11px; color: #595959; text-transform: uppercase; letter-spacing: 0.5px;
+      margin-bottom: 8px; font-weight: 600;
+    }
+    .sponsored-card .sp-item { padding: 6px 0; border-top: 1px solid #eee; }
+    .sponsored-card .sp-item:first-of-type { border-top: none; }
+
+    /* --- Pop-up modal (DP-1) --- */
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+      z-index: 9999; display: flex; align-items: center; justify-content: center;
+    }
+    .modal-box {
+      background: #fff; border-radius: 12px; width: 480px; max-width: 90%;
+      box-shadow: 0 6px 24px rgba(0,0,0,0.25); overflow: hidden;
+      position: relative;
+    }
+    .modal-img {
+      height: 180px;
+      background: linear-gradient(135deg, #ff8c42, #d65a1a);
+      display: flex; align-items: center; justify-content: center;
+      color: rgba(255,255,255,0.85); font-size: 12px;
+    }
+    .modal-body { padding: 22px 22px 24px; }
+    .modal-body h2 { margin: 0 0 8px 0; font-size: 22px; color: #1a1a1a; }
+    .modal-body p { margin: 0 0 16px 0; font-size: 14px; color: #444; line-height: 1.5; }
+    .modal-cta {
+      display: block; width: 100%; padding: 14px; text-align: center;
+      background: #006ce4; color: #fff; border: none; border-radius: 6px;
+      font-size: 16px; font-weight: 700; cursor: pointer;
+    }
+    .modal-close-x {
+      position: absolute; bottom: 4px; right: 6px;
+      width: 14px; height: 14px; line-height: 14px; text-align: center;
+      color: #fff; opacity: 0.18; font-size: 12px; background: none; border: none; cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ---- Top nav ---- -->
+  <nav class="nav-top">
+    <div class="nav-logo">Booking.com</div>
+    <div class="nav-right">
+      <span class="currency-pill">USD</span>
+      <a href="/help">Help</a>
+
+      <!-- [CE-1] Plain "Sign in" link in the top nav. Looks like Forced Action because
+           it's a prominent account-related affordance, but nothing on this page is
+           gated behind sign-in: a guest can complete the reservation without an
+           account (Booking supports guest checkout). No coercion. NOT a DP. -->
+      <a href="/sso/signin" data-gt-id="ce-signin-link">Sign in</a>
+
+      <a href="/sso/signup">Register</a>
+    </div>
+  </nav>
+  <div class="nav-secondary">
+    <span class="tab active">Stays</span>
+    <span class="tab">Flights</span>
+    <span class="tab">Cars</span>
+    <span class="tab">Attractions</span>
+  </div>
+
+  <div class="breadcrumb">
+    <a href="/searchresults">Tokyo</a> &nbsp;›&nbsp; <a href="/searchresults?district=shiodome">Shiodome</a> &nbsp;›&nbsp; The Royal Park Hotel Iconic Tokyo Shiodome
+  </div>
+
+  <main class="pdp-grid">
+    <section class="col-main">
+
+      <!-- ---- Hotel header card ---- -->
+      <div class="hotel-card">
+        <h1 class="hotel-name">The Royal Park Hotel Iconic Tokyo Shiodome</h1>
+        <div class="hotel-stars">★★★★★</div>
+        <div class="hotel-address">1-6-3 Higashi-Shimbashi, Minato-ku, Tokyo, 105-0021, Japan · 0.4 km from Shimbashi station</div>
+        <div class="hotel-images-row">
+          <div class="hotel-img">[lobby photo]</div>
+          <div class="hotel-img alt">[room]</div>
+          <div class="hotel-img alt2">[view]</div>
+        </div>
+
+        <!-- [DP-3] FAKE SOCIAL PROOF — unverifiable urgency/scarcity claims (live-viewer
+             count, room count, recent-booking count) used to pressure an immediate
+             reservation. None of the numbers cite a methodology or a source the
+             user can audit. Same shape as the canonical "X people are looking at
+             this right now" pattern documented across travel sites. -->
+        <div class="urgency-bar" data-gt-id="dp-fake-urgency">
+          <strong>⚠ In high demand — likely to sell out soon</strong>
+          <div class="urgency-row">
+            <span class="urgency-pill">37 people are looking at this hotel right now</span>
+            <span class="urgency-pill">Only 2 rooms left at this price!</span>
+            <span class="urgency-pill">Booked 84 times in the past 24 hours</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ---- Room selection ---- -->
+      <div class="room-card">
+        <h2>Choose your room</h2>
+        <table class="room-table">
+          <thead>
+            <tr><th>Room type</th><th>Sleeps</th><th>Price for 2 nights</th><th>Your choice</th></tr>
+          </thead>
+          <tbody>
+            <tr class="selected">
+              <td>
+                <strong>Deluxe King Room — City View</strong><br>
+                <span style="color:#595959;font-size:12px;">38 m² · Free WiFi · Air conditioning</span>
+              </td>
+              <td>2 adults</td>
+              <td>
+                <span style="color:#888;text-decoration:line-through;font-size:12px;">US$420</span><br>
+                <strong style="color:#006ce4;">US$378</strong>
+              </td>
+              <td>
+                <!-- [CE-3] Pre-selected radio for the rate option. Looks like Preselection
+                     because a default is checked, but the pre-selected option is the
+                     CHEAPEST one (Standard Rate, US$378) — a sensible, user-favoring
+                     default. Nothing being extracted from the user. NOT a DP. -->
+                <div class="room-rate-radios" data-gt-id="ce-rate-default">
+                  <label><input type="radio" name="rate" checked> Standard Rate (free cancellation until May 11) <span class="price">US$378</span></label>
+                  <label><input type="radio" name="rate"> Refundable + Breakfast <span class="price">US$432</span></label>
+                  <label><input type="radio" name="rate"> Non-refundable, prepaid <span class="price">US$355</span></label>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div style="margin-top:14px;display:flex;gap:24px;align-items:flex-start;">
+          <div style="flex:1;">
+            <div class="price-block">
+              <div>2 nights × 1 room: <strong>US$378.00</strong></div>
+
+              <!-- [DP-2] HIDDEN INFORMATION — mandatory, unavoidable surcharges (resort
+                   fee + city tax + service charge = US$67.50, ~18% over the headline
+                   price) are concealed inside a collapsed, low-contrast disclosure.
+                   A user who clicks Reserve without expanding it never sees the true
+                   total (US$445.50 vs the displayed US$378). Decision-critical cost
+                   hidden behind a non-default reveal at the moment of commitment. -->
+              <details class="fees-disclosure" data-gt-id="dp-hidden-fees">
+                <summary>See additional charges for this stay</summary>
+                <ul>
+                  <li>Resort fee: US$24.00/night × 2 = US$48.00 (mandatory, paid at property)</li>
+                  <li>Tokyo accommodation tax: US$8.50/night × 2 = US$17.00 (mandatory)</li>
+                  <li>Service charge: US$2.50 (mandatory)</li>
+                  <li><strong>Total additional charges: US$67.50</strong></li>
+                  <li>Final total at checkout: US$445.50</li>
+                </ul>
+              </details>
+            </div>
+          </div>
+
+          <!-- [CE-5] Property amenities collapsed accordion. Looks like Hidden
+               information (collapsed details), but the content inside is general
+               reference info (amenities list — pool, gym, etc.), not material costs
+               or terms affecting the reservation decision. Normal progressive
+               disclosure of supplementary detail. NOT a DP. -->
+          <div data-gt-id="ce-amenities-collapsed" style="flex:1;">
+            <details>
+              <summary style="font-size:13px;font-weight:600;cursor:pointer;">Property amenities</summary>
+              <ul style="font-size:12px;color:#595959;margin-top:6px;">
+                <li>Outdoor pool · Fitness center</li>
+                <li>Free WiFi (lobby + rooms)</li>
+                <li>24-hour front desk · Concierge</li>
+                <li>Restaurant · Bar · Room service</li>
+                <li>Pet-friendly (extra fee on arrival)</li>
+              </ul>
+            </details>
+          </div>
+        </div>
+
+        <!-- [DP-6] TRICK WORDING — the consent text uses a stacked double negative.
+             A hurried user reads "do you NOT want to NOT receive..." and ticks the
+             box thinking it means "I don't want emails", but the box-state-meaning
+             actually opts them IN. The semantic inversion is in the label itself. -->
+        <div class="trick-row" data-gt-id="dp-trick-wording-newsletter">
+          <label>
+            <input type="checkbox" id="newsletter-optin">
+            Do you not want to not receive our exclusive deal alerts and travel perks? (Tick to confirm.)
+          </label>
+        </div>
+
+        <!-- [DP-4] PRESELECTION — a pre-checked checkbox that opts the user into a
+             paid travel-insurance add-on. Adds US$24.99/night × 2 = US$49.98 to the
+             total, benefits Booking (commission) not the user, embedded in a focused
+             reservation flow where it's easy to miss; reverses what most users would
+             actively choose. Pre-checked PAID add-on inside a checkout. -->
+        <div class="addon-row" data-gt-id="dp-preselect-insurance">
+          <input type="checkbox" id="travel-insurance" checked>
+          <label for="travel-insurance">
+            <strong>Add Travel Plus Protection — <span class="addon-price">US$24.99/night</span></strong><br>
+            <span style="color:#595959;">Covers trip cancellation, baggage delay, and medical incidents during your stay.</span>
+          </label>
+        </div>
+
+        <!-- [DP-5] FALSE HIERARCHY — the "Add Cancel-Anytime guarantee" upsell is
+             presented as a giant green bright pill button (the visually dominant
+             action), while the option that matches the user's actual intent
+             ("decline coverage and proceed") is a tiny 10px gray no-underline link.
+             Prominence misaligned with what the user came to do (book a room, not
+             buy add-ons). Same shape as Amazon's "Add 3-Year Protection" pattern. -->
+        <div class="cancel-block" data-gt-id="dp-false-hierarchy-cancel">
+          <strong style="font-size:14px;">Protect your booking</strong>
+          <p style="font-size:13px;color:#595959;margin:6px 0 12px 0;">Add the Cancel-Anytime guarantee for full flexibility right up to check-in.</p>
+          <button class="big-pill">✓ Add Cancel-Anytime — US$19.99/night</button>
+          <a href="#" class="skip-link">no, decline coverage</a>
+        </div>
+
+        <!-- [DP-8] DISGUISED AD — a fake "RESERVE NOW" button injected ABOVE the real
+             reserve button, styled almost identically to Booking's blue primary CTA
+             (linear gradient, same size, same font weight). Tiny low-contrast
+             "Advertisement" label above. The href/onclick navigates to an EXTERNAL
+             affiliate offer (booking-deals-partner.example), NOT to the reservation
+             flow for THIS hotel. Clicking does NOT do what the label promises —
+             destination mismatch + impersonation of the native primary action. -->
+        <div class="fake-cta-wrap" data-gt-id="dp-disguised-ad-reserve">
+          <div class="fake-ad-label">Advertisement</div>
+          <a class="fake-cta-btn"
+             href="https://booking-deals-partner.example/redirect?h=royalpark-tokyo&amp;cid=9912"
+             onclick="window.location.href='https://booking-deals-partner.example/redirect?h=royalpark-tokyo&amp;cid=9912'; return false;">
+            RESERVE NOW
+          </a>
+        </div>
+
+        <!-- [CE-2] The REAL Reserve button. Prominent blue CTA — same visual weight
+             asymmetry vs surrounding text as the disguised fake above — but the
+             href goes to the actual reservation flow for THIS hotel, with the
+             actual selected dates and rate. Prominence matches the user's intent
+             on a hotel-checkout page. Visual prominence alone is never sufficient
+             evidence of a DP. NOT a DP. -->
+        <div class="real-reserve-wrap" data-gt-id="ce-real-reserve">
+          <a class="reserve-btn" href="/reserve?h=royalpark-tokyo&checkin=2026-05-23&checkout=2026-05-25">I'll reserve</a>
+        </div>
+
+        <!-- [DP-7] CONFIRM SHAMING — the decline-the-deal link's LABEL frames the
+             user's choice as a self-inflicted loss ("pay more elsewhere", "risk
+             losing this deal"). The manipulation is in the wording of the decline
+             control — you can decline, but the decline option itself shames you for
+             declining. Same shape as Amazon's "No thanks, I'd rather pay full price
+             and wait longer" pattern. -->
+        <a href="/searchresults" class="decline-link" data-gt-id="dp-confirm-shaming-decline">
+          No thanks, I'd rather pay more elsewhere and risk losing this deal
+        </a>
+      </div>
+
+      <!-- House rules / extra info section (filler, no benchmarked elements) -->
+      <div class="hotel-card">
+        <h3 style="font-size:15px;margin:0 0 10px 0;">House rules</h3>
+        <div style="font-size:13px;color:#595959;line-height:1.6;">
+          <div>Check-in: 15:00–24:00 · Check-out: until 11:00</div>
+          <div>Children of all ages are welcome.</div>
+          <div>One child under 6 stays free of charge in an existing bed.</div>
+          <div>Pets are allowed on request. Charges may be applicable.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ---- Right sidebar ---- -->
+    <aside class="col-side">
+
+      <!-- [CE-4] Genuine review aggregate. Looks like Fake social proof (a
+           prominent number badge), but it's an actual aggregate from a disclosed,
+           auditable source (Booking's verified-stay reviews) and links directly to
+           the underlying review list. Informs rather than pressures; no urgency
+           framing. NOT a DP. -->
+      <div class="side-card" data-gt-id="ce-rating-aggregate">
+        <div class="rating-aggregate">
+          <div class="rating-score">8.9</div>
+          <div class="rating-text">
+            <strong>Excellent</strong>
+            <a href="#reviews">2,847 reviews</a>
+          </div>
+        </div>
+        <div style="font-size:12px;color:#595959;margin-top:8px;">Based on guests who actually stayed at this property.</div>
+      </div>
+
+      <!-- Price summary (no benchmarked elements; supports DP-2 by displaying the
+           DECEPTIVELY-LOW total — the headline US$378, not the true US$445.50). -->
+      <div class="side-card price-summary">
+        <div style="font-weight:700;font-size:14px;margin-bottom:10px;">Your booking</div>
+        <div class="row"><span>Check-in</span><span>Sat, May 23</span></div>
+        <div class="row"><span>Check-out</span><span>Mon, May 25</span></div>
+        <div class="row"><span>2 nights, 1 room</span><span>US$378.00</span></div>
+        <div class="row total"><span>Total</span><span>US$378.00</span></div>
+        <div style="font-size:11px;color:#595959;margin-top:6px;">Includes taxes and fees</div>
+      </div>
+
+      <!-- [CE-6] "Sponsored hotels you might like" carousel with a clear "Sponsored"
+           header. These ARE ads, but honestly labeled and visually distinct from the
+           organic hotel-detail content above — no impersonation of native primary
+           actions. Labeled ads on a page are not a dark pattern. NOT a DP. -->
+      <div class="side-card sponsored-card" data-gt-id="ce-sponsored-carousel">
+        <div class="sp-header">Sponsored — Hotels you might like</div>
+        <div class="sp-item">
+          <strong>Park Hyatt Tokyo</strong><br>
+          <span style="color:#595959;font-size:12px;">5★ · Shinjuku · from US$520/night</span>
+        </div>
+        <div class="sp-item">
+          <strong>Conrad Tokyo</strong><br>
+          <span style="color:#595959;font-size:12px;">5★ · Shiodome · from US$465/night</span>
+        </div>
+        <div class="sp-item">
+          <strong>The Tokyo EDITION, Toranomon</strong><br>
+          <span style="color:#595959;font-size:12px;">5★ · Toranomon · from US$580/night</span>
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <!-- [DP-1] POP-UP AD — modal overlay shown on page load promoting a DIFFERENT
+       hotel deal ("Trending in Shiodome"), unrelated to the user's task (they're
+       trying to reserve THIS hotel). The only dismiss control is a near-invisible
+       "×" parked in the bottom-right corner with opacity 0.18 — degraded dismiss
+       path. Same canonical shape as Booking.com's real interstitial pop-ups. -->
+  <div class="modal-overlay" data-gt-id="dp-popup-ad">
+    <div class="modal-box">
+      <div class="modal-img">[hotel exterior photo]</div>
+      <div class="modal-body">
+        <h2>Trending in Shiodome — limited offer</h2>
+        <p>Travelers like you also booked the <strong>Mesm Tokyo, Autograph Collection</strong> for <strong>US$298/night</strong> — that's <strong>22% off</strong> the usual rate. Reserve now to lock in your weekend.</p>
+        <button class="modal-cta">See availability →</button>
+      </div>
+      <button class="modal-close-x" aria-label="Close">×</button>
+    </div>
+  </div>
+
+</body>
+</html>
