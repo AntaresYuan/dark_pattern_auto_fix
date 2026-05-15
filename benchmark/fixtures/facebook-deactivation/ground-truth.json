@@ -1,0 +1,131 @@
+{
+  "fixture": "facebook-deactivation.html",
+  "description": "Replica Facebook account-deactivation page (the user has navigated through Settings → Your Facebook Information → Deactivation and Deletion → Continue to Account Deactivation). Deliberately injected dark patterns and counterexamples. Used to measure the identification prompt's true-positive, false-positive, and false-negative rates on a Social-media fixture where the dominant DP signature is RETENTION via personalized shaming + privacy preselects.",
+  "page_url_when_served": "http://localhost:8000/fixtures/facebook-deactivation/facebook-deactivation.html (or any http:// host; the extension rejects file:// URLs)",
+
+  "mimicked_site": "facebook.com",
+  "category": "Social media",
+  "category_id": 3,
+  "page_type": "account-deactivation-flow",
+  "fixture_plan_row": 4,
+
+  "expected_page_evaluation": {
+    "page_type": "settings",
+    "user_primary_intent_acceptable": [
+      "deactivate my Facebook account",
+      "leave Facebook",
+      "remove myself from Facebook"
+    ],
+    "scoring_note": "Mark page_evaluation correct if page_type ∈ {settings, cancellation, account_management} AND user_primary_intent is a reasonable paraphrase of 'deactivate / leave Facebook'. Vague intents ('manage account', 'browse settings') or wrong ones ('post', 'find friends') are incorrect — the user came to leave, the page is trying to talk them out of it. Every downstream harm test depends on this being correctly identified as a leaving flow with deactivation intent."
+  },
+
+  "dark_patterns": [
+    {
+      "gt_id": "dp-friend-faces",
+      "type": "Confirm shaming",
+      "selector": "[data-gt-id='dp-friend-faces']",
+      "element": "'Daniel, Maya, and 4 other friends will miss you' banner with friend photo tiles + 'You'll be missed' tagline",
+      "why": "The shaming is in the LABEL/UI of the leaving action — Facebook personalizes the cost of leaving by surfacing specific named friends with their photos. The user can still proceed with deactivation, but the option is wrapped in emotional copy ('miss you', 'won't see your posts', 'won't know how to reach you') designed to make declining the deactivation feel like a betrayal of those specific people. Manipulation is in the framing, not the action. Same harm test as Booking's bki_confirm_shaming ('Wait! Don't miss out … Do you really want to miss out?'), but personalized to the user's social graph — a Facebook-canonical retention DP documented in DP literature (Bösch 2016, Mathur 2019).",
+      "accepts_types": ["Confirm shaming"]
+    },
+    {
+      "gt_id": "dp-fake-stats",
+      "type": "Fake social proof",
+      "selector": "[data-gt-id='dp-fake-stats']",
+      "element": "Inline retention banner: '98% of users who deactivated reactivated within 30 days. Why not just take a break instead?'",
+      "why": "Unverifiable retention statistic with no cited source or methodology, used to pressure the user away from deactivation. The '98% reactivate' claim cannot be audited from this page. Same shape as Netflix's dp-fake-retention-stats ('9 out of 10 paused members return within 30 days'), NYT's dp-fake-readers, and Amazon's dp-fake-social-proof — unverifiable popularity claim at a decision moment.",
+      "accepts_types": ["Fake social proof"]
+    },
+    {
+      "gt_id": "dp-preselect-temp-deactivate",
+      "type": "Preselection",
+      "selector": "[data-gt-id='dp-preselect-temp-deactivate'] #deact-temp",
+      "element": "Pre-selected 'Deactivate temporarily' radio with 'Recommended' pill tag — the option that auto-restores on next login",
+      "why": "The user navigated through 4 settings screens to GET to the deactivation page (high-intent signal that they want to leave). The pre-selection pushes the company-favoring option (temporary deactivation, which silently auto-restores on any login) over the option that matches the user's revealed intent (permanent deletion). Pre-selecting the company-favoring outcome inside a user-initiated leaving flow benefits Facebook (continued ad-revenue surface on accidental return) at the user's cost (silent reactivation of an account they thought was gone). Same harm test as Netflix's dp-preselect-pause and NYT's dp-preselect-annual.",
+      "accepts_types": ["Preselection"]
+    },
+    {
+      "gt_id": "dp-hidden-data-terms",
+      "type": "Hidden information",
+      "selector": "[data-gt-id='dp-hidden-data-terms']",
+      "element": "'What happens to your data when you deactivate' collapsed disclosure that hides decision-critical post-deactivation behavior",
+      "why": "Decision-critical information about what 'deactivation' actually means — that logging back in within 30 days SILENTLY restores the full account (no confirmation step), that messages the user sent remain visible to recipients, that 3rd-party apps using Facebook Login retain visibility on the user's account via the API — is concealed in a collapsed, low-contrast disclosure (10px gray, no chevron icon). A user who deactivates without expanding it will be shocked to discover their account silently revived after an accidental login on a shared device. Same harm-test fingerprint as Booking's dp-hidden-fees, NYT's dp-hidden-renewal-terms, and Netflix's dp-hidden-cancel-terms: decision-critical info hidden at the moment of commitment.",
+      "accepts_types": ["Hidden information"]
+    },
+    {
+      "gt_id": "dp-forced-reason",
+      "type": "Forced Action",
+      "selector": "[data-gt-id='dp-forced-reason']",
+      "element": "Required reason picker (radio group + textarea) with explicit '* You must select a reason before you can continue' blocker message",
+      "why": "The user is REQUIRED to provide a reason for leaving (radio selection mandatory; explicit blocker message says 'You must select a reason before you can continue') in order to complete the deactivation. The user is entitled to deactivate (it's their account); requiring them to JUSTIFY the request to the platform is coercion to an UNRELATED demand — Facebook does not need the reason to perform the deactivation; the form exists only for Facebook's product-research benefit, at the user's friction cost. Distinct from a re-auth password prompt (which would be intrinsic to the security of an account-state change). This is a Facebook-canonical Forced Action documented in DP literature.",
+      "accepts_types": ["Forced Action"]
+    },
+    {
+      "gt_id": "dp-cancel-pill-dominant",
+      "type": "False hierarchy",
+      "selector": "[data-gt-id='dp-cancel-pill-dominant']",
+      "element": "'Cancel Deactivation — Keep My Account' giant blue pill button (full-width, 16px bold, Facebook brand blue #1877f2) — vs the secondary 'Continue with Deactivation' bordered button below (CE-2)",
+      "why": "The user navigated through 4 settings screens to GET to the deactivation page. The visually dominant action in the action row is the CANCEL pill (full-width, bright Facebook blue #1877f2, 16px bold), while the option that matches the user's revealed intent (continue with deactivation — see CE-2) is a smaller secondary button. Prominence misaligned with revealed user intent — not a feature suggestion, a deliberate visual demotion of the user's chosen path. Same architectural shape as Amazon's '3-Year Protection', Booking's Cancel-Anytime, NYT's 'Add Sunday Print', and Netflix's PAUSE pill — false-hierarchy fingerprint.",
+      "accepts_types": ["False hierarchy"]
+    }
+  ],
+
+  "counterexamples": [
+    {
+      "gt_id": "ce-signout-link",
+      "looks_like": "Forced Action",
+      "selector": "[data-gt-id='ce-signout-link']",
+      "element": "'Sign Out' link in the top nav header",
+      "why_not": "A standard navigation link present on every Facebook page. Nothing on this deactivation page depends on the user signing out, and the link doesn't gate or coerce anything. Account-management nav affordances are routine."
+    },
+    {
+      "gt_id": "ce-real-deactivate-button",
+      "looks_like": "False hierarchy / Disguised ad",
+      "selector": "#deactivate-button, [data-gt-id='ce-real-deactivate-button'] .real-deactivate-btn",
+      "element": "The 'Continue with Deactivation' button — full-width, dark-bordered white button below the Cancel pill",
+      "why_not": "This IS the legitimate deactivate CTA — does what its label promises (navigates to the deactivation-confirm step). Visually less prominent than the Cancel pill (DP-6) but NOT visually buried: full-width, clearly bordered, easily clickable, label exactly matches the action. The harm test for False hierarchy requires the legitimate option be visually buried (e.g., 9px gray no-underline link); this button doesn't meet that test. Compare DP-6 (the visually-dominant misaligned-with-intent CTA which IS the false-hierarchy DP)."
+    },
+    {
+      "gt_id": "ce-email-receipt-default",
+      "looks_like": "Preselection",
+      "selector": "[data-gt-id='ce-email-receipt-default']",
+      "element": "Pre-checked 'Email me a confirmation when this completes' checkbox",
+      "why_not": "A pre-checked checkbox inside a settings flow — visually adjacent to DP-3 (the pre-selected temp-deactivate radio) — but the option is a sensible transactional default: sending the user a record of an account-state change they just initiated. Not a paid add-on, not marketing, not data extraction. Compare DP-3 (Recommended-tagged pre-selected radio that pushes a Facebook-favoring option) — same surface shape, opposite harm-test answer."
+    },
+    {
+      "gt_id": "ce-recent-friends-list",
+      "looks_like": "Fake social proof / Confirm shaming",
+      "selector": "[data-gt-id='ce-recent-friends-list']",
+      "element": "'Recently active friends' card listing actual friend names + last-active timestamps",
+      "why_not": "Same friend-photo UI surface as DP-1 (the 'will miss you' shaming banner), but here the content is purely INFORMATIONAL — a friend list with real last-active timestamps that Facebook genuinely has. No 'will miss you' framing, no 'they need you', no shaming language; just an informational reminder of who the user knows on the platform. Informs rather than pressures. The DP-1 vs CE-4 contrast is the most useful test of the model's harm-test discrimination on this fixture: same UI primitive, opposite harm-test answer."
+    },
+    {
+      "gt_id": "ce-help-link",
+      "looks_like": "Forced Action",
+      "selector": "[data-gt-id='ce-help-link']",
+      "element": "'Need a hand? Visit our Help Center' link in the page footer",
+      "why_not": "A footer help link is not coercive friction — it's an optional support affordance that the user can ignore entirely while completing deactivation. The harm test for Forced Action requires the user be FORCED to take an action; this link doesn't force anything. Compare DP-5 (the required reason picker, which DOES gate). Having both on the same page is a deliberate FP-trap to test the model's distinction between 'gating' and 'optional helper'."
+    }
+  ],
+
+  "fixture_notes": [
+    "6 DPs (vs the 8-DP convention from #12-13). Per the realism-first principle: not every fixture should pad to 8 DPs to maximize schema-type coverage — types should appear on a fixture only when they're actually canonical to that surface. Trick wording (double-negative button pair) and Pop-up ad (cross-promo modal) were considered but dropped: Facebook isn't famous for double-negative button labels on this flow, and Facebook does retention via inline messaging on the deactivation page, not via overlay popups. Both would have been padding for type-coverage at the cost of authenticity. Schema-type coverage across the full 5-fixture starter set still reaches 8 of 9 canonical types; missing types (in this fixture: Trick wording, Pop-up ad, Disguised ad) are well-covered by amazon/booking/netflix/nytimes.",
+    "5 CEs (matching the netflix convention; one fewer than #12-13's 6-CE convention). The cancel/leave flows don't naturally surface a 'real Subscribe CTA' counterexample because the user is already a member; consistent with netflix-cancel-flow.",
+    "DP-1 (friend-faces shaming) and CE-4 (recent-friends informational list) are the most useful contrast pair on this fixture — same friend-photo UI primitive, opposite harm-test answer. The model's ability to distinguish them is a high-signal test of harm-test reasoning vs surface-pattern matching.",
+    "dp-forced-reason is the weakest harm-test pass on this fixture — the prompt's Forced Action carve-out (src/shared/prompt.ts ~391-432) says Forced Action is an UNRELATED demand. A 'why are you leaving?' picker is *adjacent* to the deactivation (Facebook uses it for product-research feedback), so a strict reader could call it intrinsic to the cancel flow's feedback step. Defensible ground: Facebook does not NEED the reason to perform the deactivation, the form exists only for Facebook's benefit at the user's friction cost. Treat as a deliberate stress test similar to nytimes #13's paywall-as-Forced-Action — the model's response is itself useful data on the prompt's edge cases."
+  ],
+
+  "scoring": {
+    "true_positive": "Model output contains an entry whose target element matches a `dark_patterns` gt_id (by selector / html_evidence overlap) AND whose dark_pattern_type is in that entry's `accepts_types`.",
+    "false_negative": "A `dark_patterns` gt_id has no matching entry in the model output.",
+    "false_positive": "Model output contains an entry whose target element matches a `counterexamples` gt_id, OR an entry whose target element matches no gt_id at all.",
+    "wrong_type": "Model flags the right element (a `dark_patterns` gt_id) but with a dark_pattern_type NOT in `accepts_types`. Count separately from TP/FP — found something real but mislabeled it.",
+    "page_eval": "Separately, score expected_page_evaluation as correct/incorrect per its scoring_note.",
+    "headline_metrics": [
+      "precision = TP / (TP + FP)",
+      "recall = TP / (TP + FN)   [TP + FN = 6, the count of injected dark patterns on this fixture]",
+      "false_positive_rate = FP / (number of counterexamples + extraneous flags) — this is the metric the recent prompt rewrite targets",
+      "Note: maxItems is 3 in the schema, so the model can report at most 3 patterns per run. Recall is bounded at 3/6 in a single pass — run the page multiple times, or accept that 'top 3' coverage is the realistic ceiling. Track WHICH 3 it picks and whether they are all real."
+    ]
+  }
+}

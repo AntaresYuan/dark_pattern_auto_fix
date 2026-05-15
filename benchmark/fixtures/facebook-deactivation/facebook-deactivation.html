@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<!--
+  Dark Pattern Detection Benchmark — Facebook Account Deactivation (replica)
+
+  CONTROLLED TEST FIXTURE. Mimics a Facebook account-deactivation page: the user
+  has navigated through Settings → Your Facebook Information → Deactivation and
+  Deletion → Continue to Account Deactivation, and lands on the retention /
+  confirmation step. Deliberately injected dark patterns + counterexamples.
+
+  Ground truth (which element is which) lives in ./ground-truth.json.
+  Every benchmarked element carries a data-gt-id attribute and an HTML comment.
+
+  Notation:
+    [DP-x] = injected dark pattern (the model SHOULD flag this)
+    [CE-x] = counterexample (the model should NOT flag this; tests false positives)
+
+  Run: serve via `python3 -m http.server 8000` from the benchmark/ root, then
+  visit http://localhost:8000/fixtures/facebook-deactivation/facebook-deactivation.html
+-->
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Deactivate Account | Facebook</title>
+  <meta property="og:type" content="website" />
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI Historic", "Segoe UI", "Helvetica", "Arial", sans-serif;
+      color: #1c1e21; background: #f0f2f5; font-size: 15px;
+    }
+    a { color: #1877f2; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* --- Top nav (Facebook blue) --- */
+    .nav-top {
+      background: #fff; border-bottom: 1px solid #dadde1; padding: 10px 16px;
+      display: flex; align-items: center; justify-content: space-between;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    .nav-logo {
+      color: #1877f2; font-size: 28px; font-weight: 900; letter-spacing: -1px;
+      font-family: "Helvetica", "Arial", sans-serif;
+    }
+    .nav-search {
+      background: #f0f2f5; border-radius: 50px; padding: 8px 14px;
+      width: 240px; font-size: 14px; color: #65676b;
+    }
+    .nav-right { display: flex; align-items: center; gap: 12px; font-size: 13px; }
+    .nav-right .icon-pill {
+      width: 36px; height: 36px; background: #e4e6eb; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      color: #050505; font-weight: 700;
+    }
+
+    /* --- Layout (two-col with settings sidebar) --- */
+    .page-grid {
+      display: grid; grid-template-columns: 240px minmax(0, 1fr);
+      gap: 16px; max-width: 980px; margin: 16px auto; padding: 0 16px;
+    }
+    .settings-side {
+      background: #fff; border-radius: 8px; border: 1px solid #dadde1;
+      padding: 12px 0; height: fit-content;
+    }
+    .settings-side .side-title {
+      font-size: 18px; font-weight: 700; padding: 6px 16px 12px;
+    }
+    .settings-side ul { list-style: none; padding: 0; margin: 0; }
+    .settings-side li { padding: 8px 16px; font-size: 14px; cursor: pointer; }
+    .settings-side li:hover { background: #f0f2f5; }
+    .settings-side li.active { background: #e7f3ff; color: #1877f2; font-weight: 600; }
+
+    /* --- Main panel --- */
+    .panel {
+      background: #fff; border-radius: 8px; border: 1px solid #dadde1;
+      padding: 24px; margin-bottom: 16px;
+    }
+    .panel h1 { font-size: 22px; font-weight: 700; margin: 0 0 8px 0; }
+    .panel h2 { font-size: 17px; font-weight: 700; margin: 0 0 12px 0; }
+    .panel .meta { color: #65676b; font-size: 14px; }
+
+    /* --- Friends miss-you banner (DP-1 confirm shaming) --- */
+    .friends-banner {
+      background: #f0f7ff; border: 1px solid #cfdef9; border-radius: 8px;
+      padding: 16px; margin: 12px 0;
+    }
+    .friends-banner h3 {
+      font-size: 16px; margin: 0 0 8px 0; color: #1c1e21;
+    }
+    .friends-banner .friend-row {
+      display: flex; gap: 14px; align-items: center; margin-top: 12px;
+    }
+    .friend-tile { text-align: center; font-size: 12px; color: #1c1e21; }
+    .friend-tile .face {
+      width: 64px; height: 64px; border-radius: 50%; margin: 0 auto 6px;
+      background: linear-gradient(135deg, #f4b400, #1877f2);
+      display: flex; align-items: center; justify-content: center;
+      color: rgba(255,255,255,0.9); font-weight: 700; font-size: 22px;
+    }
+    .friend-tile.f2 .face { background: linear-gradient(135deg, #fa3e3e, #1877f2); }
+    .friend-tile.f3 .face { background: linear-gradient(135deg, #34c759, #1877f2); }
+    .friend-tile.f4 .face { background: linear-gradient(135deg, #b06ab3, #1877f2); }
+    .friends-banner .miss-you {
+      font-size: 14px; color: #1c1e21; margin: 12px 0 0 0; font-weight: 600;
+    }
+
+    /* --- Fake retention stat (DP-7) --- */
+    .retention-stat {
+      background: #fff8e1; border: 1px solid #f4d56a; padding: 10px 14px;
+      border-radius: 6px; margin: 12px 0; font-size: 13px; color: #5a4500;
+    }
+    .retention-stat strong { color: #332700; }
+
+    /* --- Reason picker (DP-8 forced action) --- */
+    .reason-row { padding: 10px 0; }
+    .reason-row label { display: flex; gap: 8px; cursor: pointer; align-items: flex-start; padding: 4px 0; font-size: 14px; }
+    .reason-row textarea {
+      width: 100%; min-height: 80px; padding: 10px; border: 1px solid #dadde1;
+      border-radius: 6px; font-family: inherit; font-size: 14px; resize: vertical;
+      margin-top: 8px;
+    }
+    .required-tag {
+      color: #fa3e3e; font-size: 12px; margin-left: 4px;
+    }
+    .reason-blocker-msg {
+      font-size: 12px; color: #fa3e3e; margin-top: 6px; font-style: italic;
+    }
+
+    /* --- Deactivate vs Delete radio (DP-2 preselection) --- */
+    .deact-option {
+      border: 1px solid #dadde1; border-radius: 6px;
+      padding: 14px; margin-bottom: 10px; cursor: pointer; position: relative;
+    }
+    .deact-option.preselected {
+      border: 2px solid #1877f2; background: #f0f7ff;
+    }
+    .deact-option .pill-tag {
+      position: absolute; top: -8px; right: 14px;
+      background: #1877f2; color: #fff; padding: 2px 10px; font-size: 10px;
+      text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700;
+    }
+    .deact-option label { display: flex; align-items: flex-start; gap: 10px; cursor: pointer; }
+    .deact-option label input { margin-top: 4px; }
+    .deact-option .opt-name { font-weight: 700; font-size: 15px; display: block; }
+    .deact-option .opt-desc { color: #65676b; font-size: 13px; margin-top: 4px; }
+
+    /* --- Hidden data terms (DP-5) --- */
+    details.data-terms summary {
+      cursor: pointer; color: #999; font-size: 12px;
+      list-style: none; padding: 4px 0;
+    }
+    details.data-terms summary::-webkit-details-marker { display: none; }
+    details.data-terms summary::before { content: "› "; color: #ccc; }
+    details.data-terms[open] summary::before { content: "⌄ "; }
+    details.data-terms div {
+      margin-top: 6px; font-size: 11px; color: #999; line-height: 1.5;
+    }
+
+    /* --- Email confirmation (CE) --- */
+    .email-receipt {
+      font-size: 13px; color: #65676b; padding: 12px 0;
+      display: flex; gap: 8px; align-items: center;
+    }
+
+    /* --- Action area --- */
+    .action-row { padding: 16px 0; display: flex; flex-direction: column; gap: 10px; }
+    .cancel-pill {
+      display: block; width: 100%; padding: 14px;
+      background: #1877f2; color: #fff;
+      font-size: 16px; font-weight: 700; text-align: center;
+      border: none; border-radius: 6px; cursor: pointer;
+    }
+    .cancel-pill:hover { background: #166fe5; }
+
+    /* --- Real deactivate button (CE-2) --- */
+    .real-deactivate-btn {
+      display: block; width: 100%; padding: 11px; text-align: center;
+      background: #fff; color: #1c1e21;
+      border: 1px solid #1c1e21; border-radius: 6px;
+      font-size: 14px; font-weight: 600; cursor: pointer;
+      text-decoration: none;
+    }
+    .real-deactivate-btn:hover {
+      background: #e4e6eb; text-decoration: none; color: #1c1e21;
+    }
+
+    /* --- Recent friends sidebar (CE-4) --- */
+    .recent-friends-card {
+      background: #fff; border: 1px solid #dadde1; border-radius: 8px;
+      padding: 14px; margin-top: 12px;
+    }
+    .recent-friends-card h4 { font-size: 14px; margin: 0 0 8px 0; }
+    .recent-friends-card .rf-row {
+      display: flex; align-items: center; gap: 10px; padding: 6px 0;
+      font-size: 13px; color: #1c1e21;
+    }
+    .recent-friends-card .rf-face {
+      width: 32px; height: 32px; border-radius: 50%;
+      background: linear-gradient(135deg, #f4b400, #1877f2);
+      display: flex; align-items: center; justify-content: center;
+      color: rgba(255,255,255,0.9); font-weight: 700; font-size: 13px;
+    }
+
+    .footer-help {
+      text-align: center; padding: 24px 0; font-size: 12px; color: #65676b;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ---- Top nav ---- -->
+  <nav class="nav-top">
+    <div style="display:flex;align-items:center;gap:12px;">
+      <div class="nav-logo">facebook</div>
+      <div class="nav-search">🔍 Search Facebook</div>
+    </div>
+    <div class="nav-right">
+      <span style="color:#65676b;font-size:13px;">Notifications</span>
+
+      <!-- [CE-1] Plain "Sign out" link in the top nav. Looks like Forced Action
+           because it's an account-related affordance, but it's just the standard
+           sign-out option present on every Facebook page. Nothing on this
+           deactivation page depends on it. NOT a DP. -->
+      <a href="/logout" data-gt-id="ce-signout-link" style="color:#65676b;">Sign Out</a>
+
+      <div class="icon-pill">A</div>
+    </div>
+  </nav>
+
+  <main class="page-grid">
+
+    <!-- ---- Settings sidebar ---- -->
+    <aside class="settings-side">
+      <div class="side-title">Settings</div>
+      <ul>
+        <li>General</li>
+        <li>Security and Login</li>
+        <li class="active">Your Facebook Information</li>
+        <li>Privacy</li>
+        <li>Profile and Tagging</li>
+        <li>Public Posts</li>
+        <li>Blocking</li>
+        <li>Language and Region</li>
+        <li>Notifications</li>
+      </ul>
+    </aside>
+
+    <!-- ---- Main column ---- -->
+    <section>
+      <div class="panel">
+        <h1>Deactivate Account</h1>
+        <p class="meta">Your <strong>2,847 friends</strong> won't be able to find you on Facebook while your account is deactivated. You can reactivate any time by logging back in.</p>
+
+        <!-- [DP-1] CONFIRM SHAMING — friends' photos and names with the explicit
+             "X, Y, and Z will miss you" framing. The shaming is in the LABEL/UI
+             of the leaving action — Facebook personalizes the cost of leaving
+             by surfacing specific named friends. The user can still proceed,
+             but the option is wrapped in emotional copy ("miss you", "won't
+             see your posts") designed to make declining the deactivation feel
+             like a betrayal of those specific people. Manipulation is in the
+             framing, not the action. Same harm test as Booking's bki_confirm_shaming
+             ("Wait! Don't miss out … Do you really want to miss out?"), but
+             personalized to the user's social graph. -->
+        <div class="friends-banner" data-gt-id="dp-friend-faces">
+          <h3>Daniel, Maya, and 4 other friends will miss you.</h3>
+          <p style="font-size:13px;color:#65676b;margin:0;">If you deactivate, they won't see your posts, won't get your messages, and won't know how to reach you on Facebook.</p>
+          <div class="friend-row">
+            <div class="friend-tile"><div class="face">D</div>Daniel</div>
+            <div class="friend-tile f2"><div class="face">M</div>Maya</div>
+            <div class="friend-tile f3"><div class="face">P</div>Priya</div>
+            <div class="friend-tile f4"><div class="face">J</div>Jordan</div>
+          </div>
+          <p class="miss-you">You'll be missed.</p>
+        </div>
+
+        <!-- [DP-2] FAKE SOCIAL PROOF — unverifiable retention statistic with
+             no source or methodology, used to pressure the user away from
+             deactivation. The "98% reactivate within 30 days" claim has no
+             cited source and the user cannot audit it. Same shape as Netflix's
+             dp-fake-retention-stats ("9 out of 10 paused members return within
+             30 days") and NYT's dp-fake-readers ("96% of our readers choose
+             to subscribe"). -->
+        <div class="retention-stat" data-gt-id="dp-fake-stats">
+          ⓘ <strong>98% of users who deactivated reactivated within 30 days.</strong> Why not just take a break instead?
+        </div>
+      </div>
+
+      <!-- ---- Deactivation type panel ---- -->
+      <div class="panel">
+        <h2>What would you like to do?</h2>
+
+        <!-- [DP-3] PRESELECTION — "Deactivate temporarily" is pre-selected
+             with a "Recommended" tag, pushing the user toward the easier-to-
+             reverse path even though the user navigated here to perform the
+             stronger action (deactivation already implies deletion-curious).
+             The temporary option benefits Facebook (account silently
+             auto-restores on next login, the user keeps generating ad-revenue
+             surface). Pre-selecting the company-favoring outcome inside a
+             user-initiated cancel-equivalent flow is the textbook Preselection
+             harm test. Same shape as Netflix's dp-preselect-pause and NYT's
+             dp-preselect-annual. -->
+        <div class="deact-option preselected" data-gt-id="dp-preselect-temp-deactivate">
+          <span class="pill-tag">Recommended</span>
+          <label>
+            <input type="radio" name="deact-type" id="deact-temp" checked>
+            <span>
+              <span class="opt-name">Deactivate temporarily</span>
+              <span class="opt-desc">Hide your timeline, photos, and posts. You can reactivate anytime by logging back in — your data stays where it is.</span>
+            </span>
+          </label>
+        </div>
+
+        <div class="deact-option">
+          <label>
+            <input type="radio" name="deact-type">
+            <span>
+              <span class="opt-name">Permanently delete account</span>
+              <span class="opt-desc">Delete your account and all data after a 30-day grace period. This cannot be undone after 30 days.</span>
+            </span>
+          </label>
+        </div>
+
+        <!-- [DP-4] HIDDEN INFORMATION — decision-critical post-deactivation
+             details (a 30-day grace period during which logging in AUTOMATICALLY
+             restores the full account; messages sent to the user remain visible
+             to friends; the user is still subscribable in 3rd-party FB-Login
+             integrations) are concealed in a collapsed low-contrast disclosure.
+             A user who deactivates without expanding it doesn't learn they're
+             still discoverable / will be silently restored on accidental login.
+             Same harm-test fingerprint as Booking/NYT/Netflix collapse-the-fees. -->
+        <details class="data-terms" data-gt-id="dp-hidden-data-terms">
+          <summary>What happens to your data when you deactivate</summary>
+          <div>
+            Deactivation hides your profile, timeline, photos, and posts from other users. <strong>Logging back in within 30 days automatically restores the full account</strong> — there is no separate confirmation step, so an accidental login on any device (or a shared device used by family / coworkers) will silently restore your account. <strong>Messages you sent to friends will remain visible to those friends</strong> — they cannot be retracted. Your data continues to be retained on Facebook's servers for the duration of the deactivation. Third-party apps using Facebook Login that you previously connected to <strong>will continue to be able to look up your account</strong> via the API and may display you as available; you must revoke each integration separately. Permanent deletion (the other option above) initiates a 30-day grace period before data is removed; logging in during that window cancels the deletion request.
+          </div>
+        </details>
+      </div>
+
+      <!-- ---- Reason panel (DP-8 forced action) ---- -->
+      <div class="panel">
+        <h2>Tell us why you're leaving<span class="required-tag">* required</span></h2>
+
+        <!-- [DP-5] FORCED ACTION — the user is required to provide a reason
+             (radio group + a free-text field if "Other") in order to complete
+             the deactivation. The user is entitled to deactivate (it's their
+             account); requiring them to JUSTIFY the request to the platform
+             is coercion to a UNRELATED demand (Facebook does not need the
+             reason to perform the deactivation; the form exists only for
+             Facebook's product-research benefit, at the user's friction cost).
+             Distinct from a re-auth password prompt (which would be intrinsic
+             to the security of an account-state change). The "required" tag +
+             "* you must select a reason to continue" blocker make the gating
+             explicit. -->
+        <div class="reason-row" data-gt-id="dp-forced-reason">
+          <label><input type="radio" name="reason"> This is temporary, I'll be back</label>
+          <label><input type="radio" name="reason"> I have privacy concerns</label>
+          <label><input type="radio" name="reason"> I spend too much time on Facebook</label>
+          <label><input type="radio" name="reason"> I get too many emails / notifications</label>
+          <label><input type="radio" name="reason"> I don't find Facebook useful</label>
+          <label><input type="radio" name="reason"> Other (please explain)</label>
+          <textarea placeholder="Optional unless you selected 'Other' — but you must select at least one reason above to continue."></textarea>
+          <div class="reason-blocker-msg">* You must select a reason before you can continue.</div>
+        </div>
+
+        <!-- [CE-2] Pre-checked "Email me a confirmation" checkbox. Looks like
+             Preselection (a default is checked), but the option is a sensible
+             transactional default — sending the user a record of an
+             account-state change they just initiated. Not a paid add-on, not
+             marketing, not data extraction. Compare DP-2 (Recommended-tagged
+             pre-selected radio that pushes a Facebook-favoring option) — same
+             surface shape, opposite harm-test answer. -->
+        <label class="email-receipt" data-gt-id="ce-email-receipt-default">
+          <input type="checkbox" checked>
+          Email me a confirmation when this completes
+        </label>
+
+        <!-- ---- Action area ---- -->
+        <div class="action-row">
+          <!-- [DP-6] FALSE HIERARCHY — the "Cancel Deactivation" CTA is the
+               visually dominant action: full-width, bright Facebook blue
+               (#1877f2), 16px bold, the primary visual focus of the action
+               row. The legitimate action that matches the user's actual intent
+               (continue with deactivation — see CE-2 below) is a smaller
+               white-bordered secondary button. Prominence misaligned with
+               revealed user intent — the user navigated through 4 settings
+               screens to GET to the deactivation page; the dominant CTA pushes
+               them back. Same architectural shape as Amazon's "3-Year
+               Protection", Booking's Cancel-Anytime, NYT's "Add Sunday Print",
+               and Netflix's PAUSE pill — false-hierarchy fingerprint. -->
+          <button class="cancel-pill" data-gt-id="dp-cancel-pill-dominant">Cancel Deactivation — Keep My Account</button>
+
+          <!-- [CE-3] The REAL "Continue with Deactivation" button — clearly
+               labeled, visible, secondary visual prominence. Bordered white
+               button below the Cancel pill (DP-3). The harm test for False
+               hierarchy requires the legitimate option be visually BURIED
+               against user intent (e.g., 9px gray no-underline link); this
+               button doesn't meet that test — it's a normal secondary action
+               button with adequate visual presence. Compare DP-3 (the
+               visually-dominant misaligned-with-intent CTA). NOT a DP. -->
+          <a id="deactivate-button" class="real-deactivate-btn" data-gt-id="ce-real-deactivate-button" href="/account/deactivate/confirm">Continue with Deactivation</a>
+        </div>
+      </div>
+
+      <!-- ---- Recent-friends sidebar (CE-4) ---- -->
+      <!-- [CE-4] "Recently active friends" card. Looks like Fake social proof
+           (numbered list of friends with photos), but it's a genuine UI
+           element informing the user who they'll lose touch with — drawn
+           from the user's actual friend list with last-active timestamps that
+           are real (Facebook knows when these friends were last online).
+           Informational, not pressuring; doesn't claim popularity or urgency
+           around the deactivation decision itself. Compare DP-1 (the same
+           friend-photo UI used to actively shame the user about leaving).
+           Same surface shape, opposite harm test. -->
+      <div class="recent-friends-card" data-gt-id="ce-recent-friends-list">
+        <h4>Recently active friends</h4>
+        <div class="rf-row"><div class="rf-face">L</div>Lila — active 3h ago</div>
+        <div class="rf-row"><div class="rf-face">S</div>Sam — active 8h ago</div>
+        <div class="rf-row"><div class="rf-face">N</div>Niki — active yesterday</div>
+        <div class="rf-row"><div class="rf-face">R</div>Rohan — active 2d ago</div>
+      </div>
+
+      <!-- [CE-5] "Help Center" link in the page footer. Looks like Forced
+           Action (taking the user away from the deactivation page might be
+           perceived as friction), but it's a standard utility link — doesn't
+           gate or coerce; the user can complete deactivation without clicking
+           it. Compare DP-8 (the required reason picker, which DOES gate). -->
+      <div class="footer-help" data-gt-id="ce-help-link">
+        Need a hand? Visit our <a href="/help/deactivate-delete">Help Center</a>.
+      </div>
+
+    </section>
+  </main>
+
+</body>
+</html>
