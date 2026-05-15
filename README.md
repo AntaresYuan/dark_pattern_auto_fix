@@ -96,6 +96,15 @@ cd benchmark
 python3 -m http.server 8000
 ```
 
+Fake site URLs (after the server is running):
+
+- Amazon product page — http://localhost:8000/fixtures/amazon-product-page/amazon-product-page.html
+- Booking hotel checkout — http://localhost:8000/fixtures/booking-hotel-checkout/booking-hotel-checkout.html
+- Facebook deactivation — http://localhost:8000/fixtures/facebook-deactivation/facebook-deactivation.html
+- Netflix cancel flow — http://localhost:8000/fixtures/netflix-cancel-flow/netflix-cancel-flow.html
+- NYTimes article paywall — http://localhost:8000/fixtures/nytimes-article-paywall/nytimes-article-paywall.html
+- PayPal account close — http://localhost:8000/fixtures/paypal-account-close/paypal-account-close.html
+
 ## Notes
 
 - The screenshot capture is intentionally best-effort in v1 and uses the visible tab capture path.
