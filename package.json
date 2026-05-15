@@ -5,11 +5,13 @@
   "type": "module",
   "scripts": {
     "build": "node ./scripts/build.mjs",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist",
+    "sync-benchmark-to-sheet": "node ./benchmark/scripts/sync-to-sheet.cjs"
   },
   "devDependencies": {
     "@types/chrome": "^0.0.307",
     "esbuild": "^0.25.1",
+    "googleapis": "^144.0.0",
     "typescript": "^5.8.2"
   }
 }
