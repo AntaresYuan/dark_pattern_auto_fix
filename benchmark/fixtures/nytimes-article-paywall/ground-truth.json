@@ -16,8 +16,12 @@
       "finish reading the article",
       "read the news story they navigated to"
     ],
-    "scoring_note": "Mark page_evaluation correct if page_type ∈ {article, paywall, news} AND user_primary_intent is a reasonable paraphrase of 'read this article'. Vague intents ('browsing news', 'subscribe') or wrong ones ('cancel a subscription', 'manage account') are incorrect — every downstream harm test depends on this. Note: the user's intent is to READ, not to subscribe; the paywall is the obstacle, not the goal."
+    "scoring_note": "Mark page_evaluation correct if page_type == 'article' AND user_primary_intent is a reasonable paraphrase of 'read this article'. Vague intents ('browsing news', 'subscribe') or wrong ones ('cancel a subscription', 'manage account') are incorrect — every downstream harm test depends on this. Note: the user's intent is to READ, not to subscribe; the paywall is the obstacle, not the goal."
   },
+
+  "known_stress_test_notes": [
+    "dp-paywall-modal as 'Forced Action' is in deliberate tension with the prompt's current Forced Action definition (src/shared/prompt.ts ~391-432), which says Forced Action is an UNRELATED demand and gives bank-login as an intrinsic-to-service counterexample. A publisher paywall is structurally similar to a bank login (gated content is intrinsic to the paid service). The literature is split: some classify paywalls as Forced Action (no non-paid escape from a gate to information user came for), others as legitimate business model. We ship this fixture's paywall AS Forced Action to (a) measure how the current prompt scores this contested case, and (b) inform whether the prompt should add a paywall sub-case. Treat as expected-fail-OR-pass; the result is the data point."
+  ],
 
   "dark_patterns": [
     {
