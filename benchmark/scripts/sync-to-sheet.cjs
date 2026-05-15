@@ -116,9 +116,11 @@ async function getSheetsClient() {
 
 function loadFixtures() {
   const fixturesDir = path.join(__dirname, "..", "fixtures");
+  // Sort slugs for deterministic append order across runs.
   const slugs = fs
     .readdirSync(fixturesDir)
-    .filter((name) => fs.statSync(path.join(fixturesDir, name)).isDirectory());
+    .filter((name) => fs.statSync(path.join(fixturesDir, name)).isDirectory())
+    .sort();
 
   const fixtures = [];
   for (const slug of slugs) {
@@ -128,6 +130,24 @@ function loadFixtures() {
     fixtures.push({ slug, ground_truth: gt, gt_path_rel: path.posix.join("benchmark/fixtures", slug, "ground-truth.json") });
   }
   return fixtures;
+}
+
+// Convert 1-based column index to A1 letters (1->A, 26->Z, 27->AA, 28->AB, ...).
+// `String.fromCharCode(64 + n)` only works up to Z; this is the safe version.
+function colToA1(n) {
+  let s = "";
+  while (n > 0) {
+    const r = (n - 1) % 26;
+    s = String.fromCharCode(65 + r) + s;
+    n = Math.floor((n - 1) / 26);
+  }
+  return s;
+}
+
+function assertNoDoubleColon(s, kind) {
+  if (typeof s === "string" && s.includes("::")) {
+    throw new Error(`${kind} contains '::' which collides with the composite gt_id separator: ${s}`);
+  }
 }
 
 // -------- Row construction ---------------------------------------------------
@@ -150,6 +170,8 @@ function buildSummaryRow(fixture) {
   ];
 }
 
+// Sheets cells handle 50k chars; reviewer noted 200/300 truncation lost the second
+// half of most `why` explanations. Bumped to 2000 for `element` and 5000 for `why`.
 function shortenForCell(s, max) {
   if (!s) return "";
   const cleaned = s.replace(/\s+/g, " ").trim();
@@ -161,11 +183,14 @@ function buildDetailRows(fixture) {
   const fixtureUrlRel = `benchmark/fixtures/${fixture.slug}/${fixture.slug}.html`;
   const where = gt.page_type || gt.expected_page_evaluation?.page_type || fixture.slug;
 
+  assertNoDoubleColon(fixture.slug, "fixture slug");
+
   const rows = [];
   for (const dp of gt.dark_patterns || []) {
+    assertNoDoubleColon(dp.gt_id, `dp.gt_id (in fixture ${fixture.slug})`);
     rows.push([
-      shortenForCell(dp.element, 200),                      // Pattern String
-      shortenForCell(dp.why, 300),                          // Comment
+      shortenForCell(dp.element, 2000),                     // Pattern String
+      shortenForCell(dp.why, 5000),                         // Comment
       TYPE_TO_MATHUR_CATEGORY[dp.type] || "",               // Pattern Category
       dp.type,                                              // Pattern Type
       where,                                                // Where in website?
@@ -177,9 +202,10 @@ function buildDetailRows(fixture) {
     ]);
   }
   for (const ce of gt.counterexamples || []) {
+    assertNoDoubleColon(ce.gt_id, `ce.gt_id (in fixture ${fixture.slug})`);
     rows.push([
-      shortenForCell(ce.element, 200),
-      shortenForCell(ce.why_not, 300),
+      shortenForCell(ce.element, 2000),
+      shortenForCell(ce.why_not, 5000),
       TYPE_TO_MATHUR_CATEGORY[ce.looks_like] || "",
       ce.looks_like || "",
       where,
@@ -206,35 +232,58 @@ async function listTabs(sheets, sheetId) {
 }
 
 // Find which tab contains Section 2 by searching col A for "dp_id" header.
+// Tolerant of leading/trailing whitespace and case.
 async function findSection2Location(sheets, sheetId, tabs) {
   for (const tab of tabs) {
     const range = `${tab.title}!A1:A${tab.rowCount}`;
     const res = await sheets.spreadsheets.values.get({ spreadsheetId: sheetId, range });
     const colA = (res.data.values || []).flat();
-    const headerRow = colA.findIndex((v) => v === "dp_id");
+    const headerRow = colA.findIndex(
+      (v) => typeof v === "string" && v.trim().toLowerCase() === "dp_id"
+    );
     if (headerRow !== -1) {
       return { tab: tab.title, headerRow1: headerRow + 1 }; // 1-indexed
     }
   }
   throw new Error(
     "Could not find Section 2 header (a row with 'dp_id' in column A) in any tab. " +
-      "Make sure the new fixture-summary section exists with that exact header in column A."
+      "Make sure the new fixture-summary section exists with that exact header in column A " +
+      "(case-insensitive; whitespace OK)."
   );
 }
 
-async function readExistingSummaryDpIds(sheets, sheetId, location) {
-  // Read column A from headerRow+1 to end of tab.
+// Read col A under Section 2's header. Returns:
+//   - existing: Map<dp_id, rowIndex1based>
+//   - nextEmptyRow1: the first row after the last filled dp_id row (where to append).
+// We compute nextEmptyRow explicitly instead of relying on Sheets API `append` —
+// `append` finds the end of the *enclosing table*, which can be wrong when
+// Section 1 sits above Section 2 in the same tab.
+async function readSection2State(sheets, sheetId, location) {
   const range = `${location.tab}!A${location.headerRow1 + 1}:A`;
   const res = await sheets.spreadsheets.values.get({ spreadsheetId: sheetId, range });
-  const values = (res.data.values || []).map((r) => r[0]).filter(Boolean);
-  // Return Map<dp_id, rowIndex1based>
-  const map = new Map();
-  values.forEach((v, i) => map.set(v, location.headerRow1 + 1 + i));
-  return map;
+  const rows = res.data.values || [];
+
+  const existing = new Map();
+  let lastFilledOffset = -1; // offset within rows[] of the last non-empty dp_id
+  rows.forEach((r, i) => {
+    const v = r[0];
+    if (v === undefined || v === null || v === "") return;
+    if (existing.has(v)) {
+      console.warn(
+        `WARN: duplicate dp_id "${v}" in Section 2 — script will only update the FIRST occurrence.`
+      );
+      return;
+    }
+    existing.set(v, location.headerRow1 + 1 + i);
+    lastFilledOffset = i;
+  });
+
+  const nextEmptyRow1 = location.headerRow1 + 1 + lastFilledOffset + 1;
+  return { existing, nextEmptyRow1 };
 }
 
 async function writeRow(sheets, sheetId, tab, row1based, row, columnCount) {
-  const lastCol = String.fromCharCode(64 + columnCount); // 1=A, 2=B, ...
+  const lastCol = colToA1(columnCount);
   const range = `${tab}!A${row1based}:${lastCol}${row1based}`;
   await sheets.spreadsheets.values.update({
     spreadsheetId: sheetId,
@@ -244,9 +293,25 @@ async function writeRow(sheets, sheetId, tab, row1based, row, columnCount) {
   });
 }
 
+// Explicit-row append: writes `rows` starting at `startRow1`. Required when
+// Section 2 lives below Section 1 in the same tab — Sheets API `append`
+// would mis-target the end of Section 1's table.
+async function writeRowsAt(sheets, sheetId, tab, startRow1, rows, columnCount) {
+  if (rows.length === 0) return;
+  const endRow1 = startRow1 + rows.length - 1;
+  const lastCol = colToA1(columnCount);
+  await sheets.spreadsheets.values.update({
+    spreadsheetId: sheetId,
+    range: `${tab}!A${startRow1}:${lastCol}${endRow1}`,
+    valueInputOption: "USER_ENTERED",
+    requestBody: { values: rows },
+  });
+}
+
+// For tabs we own end-to-end (the auto-created detail tab), `append` is safe.
 async function appendRows(sheets, sheetId, tab, rows, columnCount) {
   if (rows.length === 0) return;
-  const lastCol = String.fromCharCode(64 + columnCount);
+  const lastCol = colToA1(columnCount);
   await sheets.spreadsheets.values.append({
     spreadsheetId: sheetId,
     range: `${tab}!A1:${lastCol}1`,
@@ -306,7 +371,7 @@ async function main() {
   const section2 = await findSection2Location(sheets, sheetId, tabs);
   console.log(`Section 2 found in tab "${section2.tab}", header at row ${section2.headerRow1}`);
 
-  const existingSummary = await readExistingSummaryDpIds(sheets, sheetId, section2);
+  const { existing: existingSummary, nextEmptyRow1 } = await readSection2State(sheets, sheetId, section2);
   const newSummaryRows = [];
   let summaryUpdated = 0;
   for (const fixture of fixtures) {
@@ -319,18 +384,11 @@ async function main() {
     }
   }
   if (newSummaryRows.length > 0) {
-    // Append after the existing Section 2 rows. Use sheets append on a range
-    // that starts at headerRow1, which appends below the last filled row.
-    const lastCol = String.fromCharCode(64 + SECTION_2_HEADER.length);
-    await sheets.spreadsheets.values.append({
-      spreadsheetId: sheetId,
-      range: `${section2.tab}!A${section2.headerRow1}:${lastCol}${section2.headerRow1}`,
-      valueInputOption: "USER_ENTERED",
-      insertDataOption: "INSERT_ROWS",
-      requestBody: { values: newSummaryRows },
-    });
+    // Use explicit-row write (not append) — Section 2 may live below Section 1
+    // in the same tab; Sheets API append would mis-target the wrong table.
+    await writeRowsAt(sheets, sheetId, section2.tab, nextEmptyRow1, newSummaryRows, SECTION_2_HEADER.length);
   }
-  console.log(`Section 2: ${summaryUpdated} updated, ${newSummaryRows.length} appended`);
+  console.log(`Section 2: ${summaryUpdated} updated, ${newSummaryRows.length} appended at row ${nextEmptyRow1}`);
 
   // ---- Detail tab (per-DP + per-CE) -----------------------------------------
   await ensureDetailTab(sheets, sheetId, tabs);

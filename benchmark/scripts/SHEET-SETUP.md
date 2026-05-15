@@ -62,16 +62,17 @@ In the repo (https://github.com/AntaresYuan/dark_pattern_auto_fix) → Settings 
 After Phases A–D are done, fire the workflow manually to backfill the existing fixtures:
 
 1. Repo → Actions → "Sync benchmark fixtures to Google Sheet" → Run workflow → main → Run.
-2. Wait ~30 seconds. Click the run, look at the logs. Should see:
+2. Wait ~30 seconds. Click the run, look at the logs. Should see something like:
    ```
    fixtures loaded: 2 (amazon-product-page, booking-hotel-checkout)
    tabs in sheet: <existing tab name(s)>
    Section 2 found in tab "<x>", header at row N
-   Section 2: 0 updated, 2 appended
+   Section 2: 0 updated, 2 appended at row N+1
    created tab "Synthetic DP Detail"
-   Detail tab: 0 updated, 14 appended
+   Detail tab: 0 updated, 30 appended
    done.
    ```
+   (Detail count = 8 amazon DPs + 8 amazon CEs + 8 booking DPs + 6 booking CEs = 30.)
 
 After that, every merge to `main` that touches `benchmark/fixtures/**/ground-truth.json` will auto-sync.
 
@@ -96,7 +97,7 @@ Same output as Phase E, but doesn't require GitHub Actions.
 | Error | Why | Fix |
 |---|---|---|
 | `403 The caller does not have permission` | Sheet not shared with service account | Re-do Phase C |
-| `Could not find Section 2 header` | Section 2's first column doesn't say `dp_id` | Verify the header text exactly |
+| `Could not find Section 2 header` | Section 2's column A doesn't contain `dp_id` (script searches col A only — case-insensitive, whitespace tolerant). If you moved `dp_id` to column B, the script can't find it. | Move `dp_id` back to column A |
 | `Requested entity was not found` | Wrong sheet ID | Re-check `GOOGLE_SHEET_ID` |
 | `Login Required` | Service account JSON missing/malformed | Re-paste secret; ensure it's the full JSON |
 
