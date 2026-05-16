@@ -36,11 +36,21 @@ Sheet mirror of every fixture's ground truth.
 ## Current experiment (in evaluation, do not modify without context)
 
 `benchmark/scripts/build-unified-view-experimental.cjs` + manual workflow
-`.github/workflows/build-unified-view.yml` write two tabs:
-`Unified Detail (experimental)` (flat one-row-per-gt_id) and
-`Unified Pivot (experimental)` (three native Sheets pivot tables). Design
-intent: flat detail tab as single source of truth + pivot tables that scale
-with fixture count, replacing the legacy 2-tab split if accepted.
+`.github/workflows/build-unified-view.yml` write a **single tab** —
+`Unified Detail (experimental)` — with two zones:
+
+- Rows 1-12: per-type coverage matrix (9 types × Active DPs / CEs / Total),
+  formula-driven via `COUNTIFS`, frozen so it stays visible while scrolling.
+- Row 14 + below: flat detail data, one row per gt_id (DP / CE only),
+  13 columns, no truncation.
+
+v4 design (current). Earlier iterations: v1 = single tab with per-fixture
+summary (rejected — summary grew with fixture count); v2 = two tabs detail +
+pivot (rejected — two tabs inconvenient); v3 = single tab with retired_DP
+column + retired_DP rows pulled from a pre-audit commit (rejected — retired
+data not wanted). v4's design: only current state, per-type matrix fixed at
+9 rows, per-fixture stats via Google Sheets Filter Views on the detail data.
+Legacy v1 + v2 tabs are auto-deleted on each run.
 
 ## Deep docs
 
