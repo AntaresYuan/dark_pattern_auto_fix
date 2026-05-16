@@ -103,6 +103,22 @@ Same output as Phase E, but doesn't require GitHub Actions.
 
 ## What the script does NOT do
 
-- It does not delete rows. If you remove a fixture's `ground-truth.json`, the row stays in the sheet (you can clean it up by hand, or run a future "garbage collect" script).
+- It does not delete rows. If you remove a DP from a `ground-truth.json` (e.g., during an audit), the row stays in the sheet as an **orphan**. Manual cleanup needed until the script is refactored. Tracked as **issue #29**.
 - It does not validate the sheet is well-formed before writing. If you broke the Section 2 header by accident, the script will append rows in unexpected places.
 - It does not edit Section 1 (the real-world observation log). That stays untouched.
+
+## Experimental: unified-view tabs
+
+A parallel script `build-unified-view-experimental.cjs` (triggered by the
+manual workflow `.github/workflows/build-unified-view.yml`) writes a scalable
+2-tab design currently in evaluation:
+
+- `Unified Detail (experimental)` — flat data table, one row per gt_id (DP /
+  CE / `retired_DP`), all fields, no truncation. Single source of truth.
+- `Unified Pivot (experimental)` — three native Sheets pivot tables pointing
+  at the detail tab and auto-recomputing: Fixture × Type (active DPs),
+  Fixture × Kind, and Type × Kind (coverage map).
+
+If the design is accepted, this replaces the legacy 2-tab split (Section 2 +
+Synthetic DP Detail) and the orphan-row problem above goes away (the
+experimental script clears + rewrites the tabs on each run).

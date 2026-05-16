@@ -1,5 +1,11 @@
 # Benchmark Fixture Plan — first 5 (starter batch)
 
+> **STATUS (archived)**: all 5 fixtures shipped (#21, #23, #24, #25, #26) plus
+> the pre-existing amazon-product-page. The 2026-05-15 realism audit (PR #28,
+> issue #27) then dropped non-canonical DPs per fixture — current totals are
+> in [`benchmark/README.md`](../README.md), not here. This doc is preserved
+> for planning context. Devloop is paused; future fixtures 6+ are unscoped.
+
 This is the queue of fixtures to build in issues #12–#16. After #16 merges, devloop pauses for human review before scaling to fixtures 6+ (eventual target: ~50 sites).
 
 ## Picking criteria applied

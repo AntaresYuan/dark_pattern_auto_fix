@@ -242,3 +242,23 @@ No ScheduleWakeup after #16. No issues auto-created for fixtures 6+. Ready for u
 
 ---
 
+## Post-devloop manual work (not produced by /devloop)
+
+- **2026-05-15 — Realism audit (issue #27, PR #28)**: full pass across the 6
+  starter fixtures dropped 23 non-canonical DPs. Totals shifted **44 → 21 DPs**
+  (CEs unchanged at 34). Two DP types lost all active coverage by design
+  (Disguised ad, Trick wording). Per-fixture state lives in
+  `benchmark/README.md` and each fixture's `fixture_notes[]`.
+- **2026-05-15 — Pop-up close X fix (commit 8b9ecb9)**: wired functional
+  `onclick` handlers on the close X of all 4 popup overlays (amazon, booking,
+  netflix, nytimes-cooking). Visual degradation stays — the dark pattern is
+  intact — but clicking the X now actually closes the overlay.
+- **2026-05-15 — Sheet sync orphan-row gotcha (issue #29)**: the audit revealed
+  the upsert-only sync leaves rows for removed gt_ids as orphans. Tracked for
+  the `spreadsheets.values.batchUpdate` refactor.
+- **2026-05-15 — Experimental unified-view sheet builder (PRs #30, #31)**:
+  added `benchmark/scripts/build-unified-view-experimental.cjs` +
+  `.github/workflows/build-unified-view.yml`. In evaluation; if accepted will
+  replace the legacy sync.
+
+

@@ -58,7 +58,7 @@ Example archive:
 
 ## OpenAI configuration
 
-Edit [src/config.ts](/Users/antaresyuan/Downloads/dark_pattern_fix/src/config.ts) or set keys in `.env`.
+Edit [src/config.ts](./src/config.ts) or set keys in `.env`.
 
 - Choose the active provider by changing `AI_CONFIG.activeProvider` to `"gpt"` or `"gemini"`.
 - For GPT/OpenAI: set `providers.gpt.model` and either `providers.gpt.proxyUrl` or `GPT_API_KEY` in `.env`.
