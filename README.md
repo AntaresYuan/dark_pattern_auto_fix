@@ -90,20 +90,15 @@ npm run build
 5. Click `Load unpacked`.
 6. Select the `dist` folder.
 
-## Run Benchmark
-```bash
-cd benchmark
-python3 -m http.server 8000
-```
+## Benchmark / eval harness
 
-Fake site URLs (after the server is running):
+The benchmark fixture suite + ground-truth + scoring harness used to evaluate this extension's detection prompt **lives in a separate repo** as of 2026-05-16:
 
-- Amazon product page — http://localhost:8000/fixtures/amazon-product-page/amazon-product-page.html
-- Booking hotel checkout — http://localhost:8000/fixtures/booking-hotel-checkout/booking-hotel-checkout.html
-- Facebook deactivation — http://localhost:8000/fixtures/facebook-deactivation/facebook-deactivation.html
-- Netflix cancel flow — http://localhost:8000/fixtures/netflix-cancel-flow/netflix-cancel-flow.html
-- NYTimes article paywall — http://localhost:8000/fixtures/nytimes-article-paywall/nytimes-article-paywall.html
-- PayPal account close — http://localhost:8000/fixtures/paypal-account-close/paypal-account-close.html
+→ [`AntaresYuan/dark-pattern-benchmark`](https://github.com/AntaresYuan/dark-pattern-benchmark)
+
+It contains the 6 fake-site fixtures (Amazon PDP, Booking checkout, NYTimes paywall, Netflix cancel flow, Facebook deactivation, PayPal close), the `sites.json` Tranco-sourced candidate list, the per-fixture `ground-truth.json` answer keys, and the Google Sheets sync workflow. Extracted because of different lifecycle, toolchain, and contributor profile.
+
+The canonical 9-type DP taxonomy lives here (`src/shared/schema.ts:52-62`) and is mirrored at `schema/dp-types.json` in the benchmark repo; if you rename a type here, update there too.
 
 ## Notes
 
