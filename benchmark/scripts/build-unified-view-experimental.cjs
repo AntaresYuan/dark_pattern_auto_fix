@@ -332,6 +332,20 @@ async function writeDetailTab(sheets, sheetId, tabSheetId, rows) {
             fields: "gridProperties.frozenRowCount",
           },
         },
+        // Unmerge title row across ALL columns first — clears any merge left
+        // over from a prior run that used a different col span (e.g. v3 used
+        // A-E, v4 uses A-D; overlapping but non-equal merges throw).
+        {
+          unmergeCells: {
+            range: {
+              sheetId: tabSheetId,
+              startRowIndex: SUMMARY_TITLE_ROW - 1,
+              endRowIndex: SUMMARY_TITLE_ROW,
+              startColumnIndex: 0,
+              endColumnIndex: HEADER.length,
+            },
+          },
+        },
         // Merge title row across summary cols (A-D).
         {
           mergeCells: {
