@@ -1,20 +1,13 @@
 name: Build experimental unified-view sheet tab
 
 on:
-  workflow_dispatch:
-    inputs:
-      prev_commit:
-        description: "SHA of the commit just before the realism audit (defaults to 8b9ecb9). Used to detect retired DPs."
-        required: false
-        default: "8b9ecb9"
+  workflow_dispatch: {}
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0  # need history so `git show <prev>:<path>` works
 
       - uses: actions/setup-node@v4
         with:
@@ -28,5 +21,4 @@ jobs:
         env:
           GOOGLE_SHEET_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SHEET_SERVICE_ACCOUNT_JSON }}
           GOOGLE_SHEET_ID: ${{ secrets.GOOGLE_SHEET_ID }}
-          PREV_COMMIT: ${{ inputs.prev_commit }}
         run: node benchmark/scripts/build-unified-view-experimental.cjs

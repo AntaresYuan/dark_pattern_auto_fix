@@ -1,31 +1,27 @@
 #!/usr/bin/env node
 
-// EXPERIMENTAL v3: single-tab design (frozen per-type coverage block + flat detail).
+// EXPERIMENTAL v4: single-tab design (frozen per-type coverage block + flat detail).
 //
 // One tab — "Unified Detail (experimental)" — contains:
-//   Rows 1-12: per-type coverage matrix (fixed 9 rows × 5 cols, formula-driven
+//   Rows 1-12: per-type coverage matrix (fixed 9 rows × 4 cols, formula-driven
 //     via COUNTIFS, recomputes automatically when detail rows below change).
 //     Frozen + bold + tinted so they stay visible while scrolling detail.
 //   Row 13: blank divider.
 //   Row 14: detail header (13 cols).
-//   Rows 15+: detail data, one row per gt_id (DP / CE / retired_DP).
+//   Rows 15+: detail data, one row per gt_id (DP / CE).
 //
 // Why single-tab vs v2's 2-tab pivot design: per user feedback, two tabs is
 // inconvenient for the "open the sheet, see everything" workflow. v1 (single
 // tab w/ per-fixture summary at top) failed because the summary grew linearly
-// with fixture count. v3 fixes that by putting only the PER-TYPE matrix at
-// top (fixed 9 rows regardless of fixture count). Per-fixture stats are
-// available via Google Sheets Filter Views on the detail tab — one click,
-// no scrolling, no schema growth.
+// with fixture count. v3 fixed that by putting only the PER-TYPE matrix at
+// top (fixed 9 rows regardless of fixture count). v4 (current) drops the
+// retired_DP rows + column per user — only current state is tracked.
+// Per-fixture stats are available via Google Sheets Filter Views on the
+// detail tab — one click, no scrolling, no schema growth.
 //
 // Pivot tables can't live in the same range as their source data (circular
 // reference), so the COUNTIFS approach replaces them. Trade-off: less
 // interactive than native pivots, but cheap to maintain and always visible.
-//
-// Retired_DP rows: pulled live from a previous git commit (default 8b9ecb9,
-// the pre-realism-audit baseline) so the 23 dropped entries stay visible in
-// the detail tab as a transparent audit trail and as a baseline signal for
-// future model evals (the model used to flag these — does it still?).
 //
 // Idempotent: clears + rewrites the single tab on each run. Deletes any
 // leftover tabs from v1 ("Unified View (experimental)") and v2
@@ -40,13 +36,11 @@
 
 const fs = require("fs");
 const path = require("path");
-const { execSync } = require("child_process");
 const { google } = require("googleapis");
 
 const DETAIL_TAB = "Unified Detail (experimental)";
 const LEGACY_V1_TAB = "Unified View (experimental)";
 const LEGACY_PIVOT_TAB = "Unified Pivot (experimental)";  // v2 leftover, auto-deleted
-const PREV_COMMIT = process.env.PREV_COMMIT || "8b9ecb9";
 
 // 0-indexed column offsets within the detail data area (rows 15+).
 const COL = {
@@ -156,31 +150,8 @@ function loadCurrentFixtures() {
   });
 }
 
-function loadPreAuditFixtures(commit) {
-  const fixturesDir = path.join(__dirname, "..", "fixtures");
-  const slugs = fs
-    .readdirSync(fixturesDir)
-    .filter((n) => fs.statSync(path.join(fixturesDir, n)).isDirectory())
-    .sort();
-  const out = [];
-  for (const slug of slugs) {
-    const relPath = `benchmark/fixtures/${slug}/ground-truth.json`;
-    try {
-      const raw = execSync(`git show ${commit}:${relPath}`, {
-        encoding: "utf8",
-        stdio: ["pipe", "pipe", "pipe"],
-      });
-      out.push({ slug, gt: JSON.parse(raw) });
-    } catch (err) {
-      console.warn(`warn: could not read ${slug} at ${commit} — skipping retired-DP detection: ${err.message}`);
-    }
-  }
-  return out;
-}
-
-function buildDetailRows(currentFixtures, preAuditFixtures) {
+function buildDetailRows(currentFixtures) {
   const rows = [];
-  const preBySlug = new Map(preAuditFixtures.map((f) => [f.slug, f]));
 
   for (const { slug, gt } of currentFixtures) {
     const sourceRel = `benchmark/fixtures/${slug}/ground-truth.json`;
@@ -219,36 +190,10 @@ function buildDetailRows(currentFixtures, preAuditFixtures) {
         sourceRel,
       ]);
     }
-
-    const pre = preBySlug.get(slug);
-    if (pre) {
-      const currentDpIds = new Set((gt.dark_patterns || []).map((d) => d.gt_id));
-      const preCategory = pre.gt.category || category;
-      const prePageType = pre.gt.page_type || pre.gt.expected_page_evaluation?.page_type || pageType;
-      const preMimicked = pre.gt.mimicked_site || mimicked;
-      for (const oldDp of pre.gt.dark_patterns || []) {
-        if (currentDpIds.has(oldDp.gt_id)) continue;
-        rows.push([
-          slug,
-          preMimicked,
-          preCategory,
-          prePageType,
-          "retired_DP",
-          oldDp.type || "",
-          oldDp.gt_id,
-          oldDp.element || "",
-          oldDp.why || "",
-          oldDp.selector || "",
-          Array.isArray(oldDp.accepts_types) ? oldDp.accepts_types.join(", ") : (oldDp.accepts_types || ""),
-          "retired_2026-05-15 (PR #28, see #27)",
-          sourceRel,
-        ]);
-      }
-    }
   }
 
-  // Stable sort: fixture, then DP < CE < retired_DP, then gt_id
-  const kindOrder = { DP: 0, CE: 1, retired_DP: 2 };
+  // Stable sort: fixture, then DP < CE, then gt_id
+  const kindOrder = { DP: 0, CE: 1 };
   rows.sort((a, b) => {
     if (a[COL.FIXTURE] !== b[COL.FIXTURE]) return a[COL.FIXTURE] < b[COL.FIXTURE] ? -1 : 1;
     if (a[COL.KIND] !== b[COL.KIND]) return kindOrder[a[COL.KIND]] - kindOrder[b[COL.KIND]];
@@ -315,30 +260,33 @@ async function clearAllCells(sheets, sheetId, tabSheetId) {
   });
 }
 
+// Summary block columns: A=Pattern Type | B=Active DPs | C=CEs | D=Total.
+const SUMMARY_COL_COUNT = 4;
+
 function buildSummaryBlock() {
   // Returns a 2D array of values/formulas covering rows 1..SUMMARY_TOTAL_ROW
-  // (12) and cols A..E (5 cols). Detail header + data appended separately.
+  // (12) and cols A..D (4 cols). Detail header + data appended separately.
   const block = [];
 
-  // Row 1: title spanning A-E (formatted as merged cell in batchUpdate).
+  // Row 1: title spanning A-D (formatted as merged cell in batchUpdate).
   block.push([
     "Coverage by Pattern Type (auto-recomputes from detail rows below)",
-    "", "", "", ""
+    "", "", ""
   ]);
 
   // Row 2: summary header.
-  block.push(["Pattern Type", "Active DPs", "Retired DPs", "CEs", "Total"]);
+  block.push(["Pattern Type", "Active DPs", "CEs", "Total"]);
 
   // Rows 3..11: one per canonical DP type.
-  for (const type of DP_TYPES) {
-    // Escape any double-quotes in type names (none today, defensive).
+  for (let i = 0; i < DP_TYPES.length; i++) {
+    const type = DP_TYPES[i];
     const t = type.replace(/"/g, '\\"');
+    const r = SUMMARY_FIRST_TYPE_ROW + i;
     block.push([
       type,
       `=COUNTIFS(${KIND_RANGE},"DP",${TYPE_RANGE},"${t}")`,
-      `=COUNTIFS(${KIND_RANGE},"retired_DP",${TYPE_RANGE},"${t}")`,
       `=COUNTIFS(${KIND_RANGE},"CE",${TYPE_RANGE},"${t}")`,
-      `=SUM(B${SUMMARY_FIRST_TYPE_ROW + DP_TYPES.indexOf(type)}:D${SUMMARY_FIRST_TYPE_ROW + DP_TYPES.indexOf(type)})`,
+      `=SUM(B${r}:C${r})`,
     ]);
   }
 
@@ -348,7 +296,6 @@ function buildSummaryBlock() {
     `=SUM(B${SUMMARY_FIRST_TYPE_ROW}:B${SUMMARY_LAST_TYPE_ROW})`,
     `=SUM(C${SUMMARY_FIRST_TYPE_ROW}:C${SUMMARY_LAST_TYPE_ROW})`,
     `=SUM(D${SUMMARY_FIRST_TYPE_ROW}:D${SUMMARY_LAST_TYPE_ROW})`,
-    `=SUM(E${SUMMARY_FIRST_TYPE_ROW}:E${SUMMARY_LAST_TYPE_ROW})`,
   ]);
 
   return block;
@@ -385,7 +332,7 @@ async function writeDetailTab(sheets, sheetId, tabSheetId, rows) {
             fields: "gridProperties.frozenRowCount",
           },
         },
-        // Merge title row across cols A-E.
+        // Merge title row across summary cols (A-D).
         {
           mergeCells: {
             range: {
@@ -393,7 +340,7 @@ async function writeDetailTab(sheets, sheetId, tabSheetId, rows) {
               startRowIndex: SUMMARY_TITLE_ROW - 1,
               endRowIndex: SUMMARY_TITLE_ROW,
               startColumnIndex: 0,
-              endColumnIndex: 5,
+              endColumnIndex: SUMMARY_COL_COUNT,
             },
             mergeType: "MERGE_ALL",
           },
@@ -429,7 +376,7 @@ async function writeDetailTab(sheets, sheetId, tabSheetId, rows) {
               startRowIndex: SUMMARY_HEADER_ROW - 1,
               endRowIndex: SUMMARY_HEADER_ROW,
               startColumnIndex: 0,
-              endColumnIndex: 5,
+              endColumnIndex: SUMMARY_COL_COUNT,
             },
             cell: {
               userEnteredFormat: {
@@ -448,7 +395,7 @@ async function writeDetailTab(sheets, sheetId, tabSheetId, rows) {
               startRowIndex: SUMMARY_TOTAL_ROW - 1,
               endRowIndex: SUMMARY_TOTAL_ROW,
               startColumnIndex: 0,
-              endColumnIndex: 5,
+              endColumnIndex: SUMMARY_COL_COUNT,
             },
             cell: {
               userEnteredFormat: {
@@ -522,15 +469,11 @@ function colWidthRequest(tabSheetId, colIdx, pixels) {
   if (!sheetId) throw new Error("GOOGLE_SHEET_ID env var required");
 
   console.log(`single tab: ${DETAIL_TAB}`);
-  console.log(`prev commit for retired-DP detection: ${PREV_COMMIT}`);
 
   const current = loadCurrentFixtures();
   console.log(`current fixtures loaded: ${current.length} (${current.map((f) => f.slug).join(", ")})`);
 
-  const preAudit = loadPreAuditFixtures(PREV_COMMIT);
-  console.log(`pre-audit fixtures loaded from ${PREV_COMMIT}: ${preAudit.length}`);
-
-  const detailRows = buildDetailRows(current, preAudit);
+  const detailRows = buildDetailRows(current);
   const counts = detailRows.reduce((acc, r) => {
     acc[r[COL.KIND]] = (acc[r[COL.KIND]] || 0) + 1;
     return acc;

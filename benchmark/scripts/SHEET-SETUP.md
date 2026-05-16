@@ -107,16 +107,16 @@ Same output as Phase E, but doesn't require GitHub Actions.
 - It does not validate the sheet is well-formed before writing. If you broke the Section 2 header by accident, the script will append rows in unexpected places.
 - It does not edit Section 1 (the real-world observation log). That stays untouched.
 
-## Experimental: unified-view tab (single tab — v3)
+## Experimental: unified-view tab (single tab — v4)
 
 A parallel script `build-unified-view-experimental.cjs` (triggered by the
 manual workflow `.github/workflows/build-unified-view.yml`) writes a single
 tab `Unified Detail (experimental)` currently in evaluation:
 
-- Rows 1-12: per-type coverage matrix — 9 DP types × (Active DPs / Retired
-  DPs / CEs / Total). Formula-driven (`COUNTIFS`), auto-recomputes when the
-  detail rows below change. Frozen so it stays visible while scrolling.
-- Row 14 + below: flat data table, one row per gt_id (DP / CE / `retired_DP`),
+- Rows 1-12: per-type coverage matrix — 9 DP types × (Active DPs / CEs /
+  Total). Formula-driven (`COUNTIFS`), auto-recomputes when the detail rows
+  below change. Frozen so it stays visible while scrolling.
+- Row 14 + below: flat data table, one row per gt_id (DP or CE only),
   13 columns, no truncation. Single source of truth.
 
 Per-fixture stats are accessible via Google Sheets Filter Views on the
