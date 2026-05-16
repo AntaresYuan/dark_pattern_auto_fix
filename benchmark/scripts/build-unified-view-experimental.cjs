@@ -1,30 +1,35 @@
 #!/usr/bin/env node
 
-// EXPERIMENTAL v2: scalable two-tab design.
+// EXPERIMENTAL v3: single-tab design (frozen per-type coverage block + flat detail).
 //
-//   1. "Unified Detail (experimental)" — flat data table, one row per gt_id,
-//      all fields, no truncation. This is the single source of truth.
+// One tab — "Unified Detail (experimental)" — contains:
+//   Rows 1-12: per-type coverage matrix (fixed 9 rows × 5 cols, formula-driven
+//     via COUNTIFS, recomputes automatically when detail rows below change).
+//     Frozen + bold + tinted so they stay visible while scrolling detail.
+//   Row 13: blank divider.
+//   Row 14: detail header (13 cols).
+//   Rows 15+: detail data, one row per gt_id (DP / CE / retired_DP).
 //
-//   2. "Unified Pivot (experimental)" — three native Sheets pivot tables that
-//      consume the detail tab. Pivot 1 = Fixture × Pattern Type (filtered to
-//      active DPs — this replicates the legacy Section 2 view). Pivot 2 =
-//      Fixture × Kind (active DPs / retired DPs / CEs per fixture). Pivot 3 =
-//      Pattern Type × Kind (coverage map across the whole benchmark, makes
-//      the Disguised-ad / Trick-wording coverage gap visible at a glance).
+// Why single-tab vs v2's 2-tab pivot design: per user feedback, two tabs is
+// inconvenient for the "open the sheet, see everything" workflow. v1 (single
+// tab w/ per-fixture summary at top) failed because the summary grew linearly
+// with fixture count. v3 fixes that by putting only the PER-TYPE matrix at
+// top (fixed 9 rows regardless of fixture count). Per-fixture stats are
+// available via Google Sheets Filter Views on the detail tab — one click,
+// no scrolling, no schema growth.
 //
-// Why this design scales: the detail tab is just rows; adding fixtures /
-// types / kinds doesn't change the schema. Pivots auto-recompute. The
-// original v1 layout (in-tab summary block at the top) was rejected because
-// the per-fixture summary grew linearly with fixture count, pushing detail
-// rows further down on every addition.
+// Pivot tables can't live in the same range as their source data (circular
+// reference), so the COUNTIFS approach replaces them. Trade-off: less
+// interactive than native pivots, but cheap to maintain and always visible.
 //
 // Retired_DP rows: pulled live from a previous git commit (default 8b9ecb9,
 // the pre-realism-audit baseline) so the 23 dropped entries stay visible in
 // the detail tab as a transparent audit trail and as a baseline signal for
 // future model evals (the model used to flag these — does it still?).
 //
-// Idempotent: clears + rewrites both experimental tabs on each run. Also
-// deletes any leftover "Unified View (experimental)" tab from v1.
+// Idempotent: clears + rewrites the single tab on each run. Deletes any
+// leftover tabs from v1 ("Unified View (experimental)") and v2
+// ("Unified Pivot (experimental)").
 //
 // Usage (local):
 //   GOOGLE_APPLICATION_CREDENTIALS=~/secrets/sa.json \
@@ -39,12 +44,11 @@ const { execSync } = require("child_process");
 const { google } = require("googleapis");
 
 const DETAIL_TAB = "Unified Detail (experimental)";
-const PIVOT_TAB = "Unified Pivot (experimental)";
 const LEGACY_V1_TAB = "Unified View (experimental)";
+const LEGACY_PIVOT_TAB = "Unified Pivot (experimental)";  // v2 leftover, auto-deleted
 const PREV_COMMIT = process.env.PREV_COMMIT || "8b9ecb9";
 
-// 0-indexed column offsets within the detail tab. Pivot tables reference
-// these to identify the rows / columns / values / filters fields.
+// 0-indexed column offsets within the detail data area (rows 15+).
 const COL = {
   FIXTURE: 0,
   MIMICKED_SITE: 1,
@@ -76,6 +80,41 @@ const HEADER = [
   "Audit Status",
   "Source",
 ];
+
+// 9 canonical DP types from src/shared/schema.ts:52-62 (must stay in sync).
+const DP_TYPES = [
+  "Disguised ad",
+  "False hierarchy",
+  "Preselection",
+  "Pop-up ad",
+  "Trick wording",
+  "Confirm shaming",
+  "Fake social proof",
+  "Forced Action",
+  "Hidden information",
+];
+
+// Summary block layout (1-indexed rows for spreadsheet notation):
+//   Row 1: title (merged across cols A-E)
+//   Row 2: summary header (Pattern Type | Active DPs | Retired DPs | CEs | Total)
+//   Rows 3..3+DP_TYPES.length-1: one row per type (formula-driven)
+//   Row 3+DP_TYPES.length: TOTAL footer (sum across types)
+//   Row 3+DP_TYPES.length+1: blank divider
+//   Row 3+DP_TYPES.length+2: detail header (full HEADER, 13 cols)
+//   Rows 3+DP_TYPES.length+3..: detail data
+const SUMMARY_TITLE_ROW = 1;
+const SUMMARY_HEADER_ROW = 2;
+const SUMMARY_FIRST_TYPE_ROW = 3;
+const SUMMARY_LAST_TYPE_ROW = SUMMARY_FIRST_TYPE_ROW + DP_TYPES.length - 1;  // 11
+const SUMMARY_TOTAL_ROW = SUMMARY_LAST_TYPE_ROW + 1;  // 12
+const BLANK_DIVIDER_ROW = SUMMARY_TOTAL_ROW + 1;  // 13
+const DETAIL_HEADER_ROW = BLANK_DIVIDER_ROW + 1;  // 14
+const DETAIL_FIRST_DATA_ROW = DETAIL_HEADER_ROW + 1;  // 15
+
+// COUNTIFS references the Kind column (E) and Pattern Type column (F) of the
+// detail data, starting at row DETAIL_FIRST_DATA_ROW and running open-ended.
+const KIND_RANGE = `$E$${DETAIL_FIRST_DATA_ROW}:$E`;
+const TYPE_RANGE = `$F$${DETAIL_FIRST_DATA_ROW}:$F`;
 
 // -----------------------------------------------------------------------------
 // Auth
@@ -276,29 +315,141 @@ async function clearAllCells(sheets, sheetId, tabSheetId) {
   });
 }
 
+function buildSummaryBlock() {
+  // Returns a 2D array of values/formulas covering rows 1..SUMMARY_TOTAL_ROW
+  // (12) and cols A..E (5 cols). Detail header + data appended separately.
+  const block = [];
+
+  // Row 1: title spanning A-E (formatted as merged cell in batchUpdate).
+  block.push([
+    "Coverage by Pattern Type (auto-recomputes from detail rows below)",
+    "", "", "", ""
+  ]);
+
+  // Row 2: summary header.
+  block.push(["Pattern Type", "Active DPs", "Retired DPs", "CEs", "Total"]);
+
+  // Rows 3..11: one per canonical DP type.
+  for (const type of DP_TYPES) {
+    // Escape any double-quotes in type names (none today, defensive).
+    const t = type.replace(/"/g, '\\"');
+    block.push([
+      type,
+      `=COUNTIFS(${KIND_RANGE},"DP",${TYPE_RANGE},"${t}")`,
+      `=COUNTIFS(${KIND_RANGE},"retired_DP",${TYPE_RANGE},"${t}")`,
+      `=COUNTIFS(${KIND_RANGE},"CE",${TYPE_RANGE},"${t}")`,
+      `=SUM(B${SUMMARY_FIRST_TYPE_ROW + DP_TYPES.indexOf(type)}:D${SUMMARY_FIRST_TYPE_ROW + DP_TYPES.indexOf(type)})`,
+    ]);
+  }
+
+  // Row 12: TOTAL footer.
+  block.push([
+    "TOTAL",
+    `=SUM(B${SUMMARY_FIRST_TYPE_ROW}:B${SUMMARY_LAST_TYPE_ROW})`,
+    `=SUM(C${SUMMARY_FIRST_TYPE_ROW}:C${SUMMARY_LAST_TYPE_ROW})`,
+    `=SUM(D${SUMMARY_FIRST_TYPE_ROW}:D${SUMMARY_LAST_TYPE_ROW})`,
+    `=SUM(E${SUMMARY_FIRST_TYPE_ROW}:E${SUMMARY_LAST_TYPE_ROW})`,
+  ]);
+
+  return block;
+}
+
 async function writeDetailTab(sheets, sheetId, tabSheetId, rows) {
+  const summary = buildSummaryBlock();
+  // Pad summary rows to HEADER.length cols so single update covers full width.
+  const padded = summary.map((r) => [...r, ...Array(HEADER.length - r.length).fill("")]);
+  const blankDivider = Array(HEADER.length).fill("");
+
+  const values = [
+    ...padded,           // rows 1..12 (summary)
+    blankDivider,        // row 13
+    HEADER,              // row 14 (detail header)
+    ...rows,             // rows 15+
+  ];
+
   await sheets.spreadsheets.values.update({
     spreadsheetId: sheetId,
     range: `${DETAIL_TAB}!A1`,
-    valueInputOption: "RAW",
-    requestBody: { values: [HEADER, ...rows] },
+    valueInputOption: "USER_ENTERED",  // formulas evaluate
+    requestBody: { values },
   });
 
   await sheets.spreadsheets.batchUpdate({
     spreadsheetId: sheetId,
     requestBody: {
       requests: [
-        // Freeze the header row.
+        // Freeze all rows up to and including the detail header.
         {
           updateSheetProperties: {
-            properties: { sheetId: tabSheetId, gridProperties: { frozenRowCount: 1 } },
+            properties: { sheetId: tabSheetId, gridProperties: { frozenRowCount: DETAIL_HEADER_ROW } },
             fields: "gridProperties.frozenRowCount",
           },
         },
-        // Bold header.
+        // Merge title row across cols A-E.
+        {
+          mergeCells: {
+            range: {
+              sheetId: tabSheetId,
+              startRowIndex: SUMMARY_TITLE_ROW - 1,
+              endRowIndex: SUMMARY_TITLE_ROW,
+              startColumnIndex: 0,
+              endColumnIndex: 5,
+            },
+            mergeType: "MERGE_ALL",
+          },
+        },
+        // Title row: bold + larger + slate background.
         {
           repeatCell: {
-            range: { sheetId: tabSheetId, startRowIndex: 0, endRowIndex: 1 },
+            range: {
+              sheetId: tabSheetId,
+              startRowIndex: SUMMARY_TITLE_ROW - 1,
+              endRowIndex: SUMMARY_TITLE_ROW,
+            },
+            cell: {
+              userEnteredFormat: {
+                textFormat: {
+                  bold: true,
+                  fontSize: 12,
+                  foregroundColor: { red: 1, green: 1, blue: 1 },
+                },
+                backgroundColor: { red: 0.27, green: 0.31, blue: 0.38 },
+                horizontalAlignment: "CENTER",
+                verticalAlignment: "MIDDLE",
+              },
+            },
+            fields: "userEnteredFormat(textFormat,backgroundColor,horizontalAlignment,verticalAlignment)",
+          },
+        },
+        // Summary header row (row 2): bold + medium gray background.
+        {
+          repeatCell: {
+            range: {
+              sheetId: tabSheetId,
+              startRowIndex: SUMMARY_HEADER_ROW - 1,
+              endRowIndex: SUMMARY_HEADER_ROW,
+              startColumnIndex: 0,
+              endColumnIndex: 5,
+            },
+            cell: {
+              userEnteredFormat: {
+                textFormat: { bold: true },
+                backgroundColor: { red: 0.85, green: 0.85, blue: 0.85 },
+              },
+            },
+            fields: "userEnteredFormat(textFormat,backgroundColor)",
+          },
+        },
+        // TOTAL row (row 12): bold + light gray background.
+        {
+          repeatCell: {
+            range: {
+              sheetId: tabSheetId,
+              startRowIndex: SUMMARY_TOTAL_ROW - 1,
+              endRowIndex: SUMMARY_TOTAL_ROW,
+              startColumnIndex: 0,
+              endColumnIndex: 5,
+            },
             cell: {
               userEnteredFormat: {
                 textFormat: { bold: true },
@@ -308,15 +459,32 @@ async function writeDetailTab(sheets, sheetId, tabSheetId, rows) {
             fields: "userEnteredFormat(textFormat,backgroundColor)",
           },
         },
-        // Wrap text + top-align everywhere below the header.
+        // Detail header (row 14): bold + light gray background.
         {
           repeatCell: {
-            range: { sheetId: tabSheetId, startRowIndex: 1 },
+            range: {
+              sheetId: tabSheetId,
+              startRowIndex: DETAIL_HEADER_ROW - 1,
+              endRowIndex: DETAIL_HEADER_ROW,
+            },
+            cell: {
+              userEnteredFormat: {
+                textFormat: { bold: true },
+                backgroundColor: { red: 0.93, green: 0.93, blue: 0.93 },
+              },
+            },
+            fields: "userEnteredFormat(textFormat,backgroundColor)",
+          },
+        },
+        // Wrap text + top-align for detail data rows (row 15 onward).
+        {
+          repeatCell: {
+            range: { sheetId: tabSheetId, startRowIndex: DETAIL_FIRST_DATA_ROW - 1 },
             cell: { userEnteredFormat: { wrapStrategy: "WRAP", verticalAlignment: "TOP" } },
             fields: "userEnteredFormat(wrapStrategy,verticalAlignment)",
           },
         },
-        // Column widths.
+        // Column widths (apply to detail data; summary uses same A-E widths).
         ...colWidthRequest(tabSheetId, COL.FIXTURE, 200),
         ...colWidthRequest(tabSheetId, COL.MIMICKED_SITE, 130),
         ...colWidthRequest(tabSheetId, COL.CATEGORY, 150),
@@ -348,150 +516,12 @@ function colWidthRequest(tabSheetId, colIdx, pixels) {
 }
 
 // -----------------------------------------------------------------------------
-// Pivot tables
-// -----------------------------------------------------------------------------
-
-function pivotRequest(pivotTabSheetId, anchor, label, pivot, detailSheetId) {
-  // Write a label cell at one row above the pivot, then drop the pivot at
-  // {row, col}. Returns an array of batchUpdate request objects.
-  return [
-    {
-      updateCells: {
-        rows: [
-          {
-            values: [
-              {
-                userEnteredValue: { stringValue: label },
-                userEnteredFormat: { textFormat: { bold: true, fontSize: 12 } },
-              },
-            ],
-          },
-        ],
-        fields: "userEnteredValue,userEnteredFormat.textFormat",
-        start: { sheetId: pivotTabSheetId, rowIndex: anchor.row - 1, columnIndex: anchor.col },
-      },
-    },
-    {
-      updateCells: {
-        rows: [
-          {
-            values: [
-              {
-                pivotTable: {
-                  source: {
-                    sheetId: detailSheetId,
-                    startRowIndex: 0,
-                    startColumnIndex: 0,
-                    endColumnIndex: HEADER.length,
-                    // endRowIndex omitted: pivot grows with the source.
-                  },
-                  ...pivot,
-                },
-              },
-            ],
-          },
-        ],
-        fields: "pivotTable",
-        start: { sheetId: pivotTabSheetId, rowIndex: anchor.row, columnIndex: anchor.col },
-      },
-    },
-  ];
-}
-
-async function buildPivotTab(sheets, sheetId, pivotTabSheetId, detailSheetId) {
-  // Pivot 1: Fixture × Pattern Type, count of gt_id, filtered to Kind=DP.
-  // This replicates the legacy Section 2 view.
-  const pivot1 = {
-    rows: [{ sourceColumnOffset: COL.FIXTURE, showTotals: true, sortOrder: "ASCENDING" }],
-    columns: [{ sourceColumnOffset: COL.PATTERN_TYPE, showTotals: true, sortOrder: "ASCENDING" }],
-    values: [
-      {
-        summarizeFunction: "COUNTA",
-        sourceColumnOffset: COL.GT_ID,
-        name: "DPs",
-      },
-    ],
-    criteria: {
-      [COL.KIND]: { visibleValues: ["DP"] },
-    },
-    valueLayout: "HORIZONTAL",
-  };
-
-  // Pivot 2: Fixture × Kind, count of gt_id (no filter — shows DP, CE, retired_DP).
-  const pivot2 = {
-    rows: [{ sourceColumnOffset: COL.FIXTURE, showTotals: true, sortOrder: "ASCENDING" }],
-    columns: [{ sourceColumnOffset: COL.KIND, showTotals: true, sortOrder: "ASCENDING" }],
-    values: [
-      {
-        summarizeFunction: "COUNTA",
-        sourceColumnOffset: COL.GT_ID,
-        name: "Count",
-      },
-    ],
-    valueLayout: "HORIZONTAL",
-  };
-
-  // Pivot 3: Pattern Type × Kind, count. Coverage map for the whole benchmark.
-  // Makes it obvious where Disguised ad / Trick wording have active=0 with
-  // retired>0 (the deliberate post-audit coverage gap).
-  const pivot3 = {
-    rows: [{ sourceColumnOffset: COL.PATTERN_TYPE, showTotals: true, sortOrder: "ASCENDING" }],
-    columns: [{ sourceColumnOffset: COL.KIND, showTotals: true, sortOrder: "ASCENDING" }],
-    values: [
-      {
-        summarizeFunction: "COUNTA",
-        sourceColumnOffset: COL.GT_ID,
-        name: "Count",
-      },
-    ],
-    valueLayout: "HORIZONTAL",
-  };
-
-  // Anchor positions: leave generous gaps (each pivot can grow). All three
-  // anchored in column A, stacked vertically. Rough sizing per pivot:
-  //   Pivot 1: ~7 cols × ~10 rows. Anchor row 2.
-  //   Pivot 2: ~5 cols × ~10 rows. Anchor row 25.
-  //   Pivot 3: ~5 cols × ~12 rows. Anchor row 45.
-  // Anchors are 0-indexed in the API; labels go one row above the anchor.
-
-  const requests = [
-    ...pivotRequest(
-      pivotTabSheetId,
-      { row: 1, col: 0 }, // pivot at A2, label at A1
-      "Pivot 1 — Active DPs by Fixture × Pattern Type (replaces legacy Section 2)",
-      pivot1,
-      detailSheetId
-    ),
-    ...pivotRequest(
-      pivotTabSheetId,
-      { row: 24, col: 0 }, // pivot at A25, label at A24
-      "Pivot 2 — All entries by Fixture × Kind (DP / CE / retired_DP)",
-      pivot2,
-      detailSheetId
-    ),
-    ...pivotRequest(
-      pivotTabSheetId,
-      { row: 44, col: 0 }, // pivot at A45, label at A44
-      "Pivot 3 — Coverage map: Pattern Type × Kind (active=0 + retired>0 = post-audit gap)",
-      pivot3,
-      detailSheetId
-    ),
-  ];
-
-  await sheets.spreadsheets.batchUpdate({
-    spreadsheetId: sheetId,
-    requestBody: { requests },
-  });
-}
-
-// -----------------------------------------------------------------------------
 
 (async () => {
   const sheetId = process.env.GOOGLE_SHEET_ID;
   if (!sheetId) throw new Error("GOOGLE_SHEET_ID env var required");
 
-  console.log(`detail tab: ${DETAIL_TAB}`);
-  console.log(`pivot tab: ${PIVOT_TAB}`);
+  console.log(`single tab: ${DETAIL_TAB}`);
   console.log(`prev commit for retired-DP detection: ${PREV_COMMIT}`);
 
   const current = loadCurrentFixtures();
@@ -509,21 +539,18 @@ async function buildPivotTab(sheets, sheetId, pivotTabSheetId, detailSheetId) {
 
   const sheets = await getSheetsClient();
 
-  // Cleanup: kill the v1 tab if it's still around.
-  const removed = await deleteTabIfExists(sheets, sheetId, LEGACY_V1_TAB);
-  if (removed) console.log(`removed legacy v1 tab "${LEGACY_V1_TAB}"`);
+  // Cleanup: kill leftover tabs from v1 and v2.
+  for (const stale of [LEGACY_V1_TAB, LEGACY_PIVOT_TAB]) {
+    const removed = await deleteTabIfExists(sheets, sheetId, stale);
+    if (removed) console.log(`removed legacy tab "${stale}"`);
+  }
 
-  // Detail tab.
-  const detailSheetId = await ensureTab(sheets, sheetId, DETAIL_TAB, Math.max(200, detailRows.length + 20), HEADER.length + 1);
+  // Single tab: summary (rows 1-12) + divider (row 13) + detail header (row 14) + data (15+).
+  const totalRowsNeeded = DETAIL_FIRST_DATA_ROW + detailRows.length + 20;
+  const detailSheetId = await ensureTab(sheets, sheetId, DETAIL_TAB, Math.max(200, totalRowsNeeded), HEADER.length + 1);
   await clearAllCells(sheets, sheetId, detailSheetId);
   await writeDetailTab(sheets, sheetId, detailSheetId, detailRows);
-  console.log(`wrote ${detailRows.length} detail rows to "${DETAIL_TAB}"`);
-
-  // Pivot tab.
-  const pivotSheetId = await ensureTab(sheets, sheetId, PIVOT_TAB, 80, 18);
-  await clearAllCells(sheets, sheetId, pivotSheetId);
-  await buildPivotTab(sheets, sheetId, pivotSheetId, detailSheetId);
-  console.log(`wrote 3 pivot tables to "${PIVOT_TAB}"`);
+  console.log(`wrote summary (rows 1-${SUMMARY_TOTAL_ROW}) + ${detailRows.length} detail rows to "${DETAIL_TAB}"`);
 
   console.log("done.");
 })().catch((err) => {

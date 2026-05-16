@@ -107,18 +107,23 @@ Same output as Phase E, but doesn't require GitHub Actions.
 - It does not validate the sheet is well-formed before writing. If you broke the Section 2 header by accident, the script will append rows in unexpected places.
 - It does not edit Section 1 (the real-world observation log). That stays untouched.
 
-## Experimental: unified-view tabs
+## Experimental: unified-view tab (single tab — v3)
 
 A parallel script `build-unified-view-experimental.cjs` (triggered by the
-manual workflow `.github/workflows/build-unified-view.yml`) writes a scalable
-2-tab design currently in evaluation:
+manual workflow `.github/workflows/build-unified-view.yml`) writes a single
+tab `Unified Detail (experimental)` currently in evaluation:
 
-- `Unified Detail (experimental)` — flat data table, one row per gt_id (DP /
-  CE / `retired_DP`), all fields, no truncation. Single source of truth.
-- `Unified Pivot (experimental)` — three native Sheets pivot tables pointing
-  at the detail tab and auto-recomputing: Fixture × Type (active DPs),
-  Fixture × Kind, and Type × Kind (coverage map).
+- Rows 1-12: per-type coverage matrix — 9 DP types × (Active DPs / Retired
+  DPs / CEs / Total). Formula-driven (`COUNTIFS`), auto-recomputes when the
+  detail rows below change. Frozen so it stays visible while scrolling.
+- Row 14 + below: flat data table, one row per gt_id (DP / CE / `retired_DP`),
+  13 columns, no truncation. Single source of truth.
+
+Per-fixture stats are accessible via Google Sheets Filter Views on the
+detail data (no second tab needed).
 
 If the design is accepted, this replaces the legacy 2-tab split (Section 2 +
-Synthetic DP Detail) and the orphan-row problem above goes away (the
-experimental script clears + rewrites the tabs on each run).
+Synthetic DP Detail) and the orphan-row problem (issue #29) goes away — the
+experimental script clears + rewrites the tab on each run. Legacy tabs from
+earlier iterations (`Unified View (experimental)` from v1,
+`Unified Pivot (experimental)` from v2) are auto-deleted on each run.
