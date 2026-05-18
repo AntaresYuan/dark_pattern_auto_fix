@@ -1,6 +1,4 @@
-import { extractRawHtml } from "./htmlExtractor";
-import { extractCleanedHtml } from "./truncated_new";
-import { extractTruncatedHtml as extractTruncatedHtmlOld } from "./truncated";
+import { extractRawHtml, extractCleanedHtml } from "./htmlExtractor";
 import { planAndApplyFixes } from "./fixPlanner";
 import { applyFixesToPage } from "./patchInjector";
 import { getPageKeyFromUrl } from "../shared/pageKey";
@@ -62,14 +60,8 @@ chrome.runtime.onMessage.addListener((message: ExtensionMessage, _sender, sendRe
         return;
       case "COLLECT_HTML_DEBUG": {
         const rawHtml = extractRawHtml();
-        const truncatedHtml = extractCleanedHtml();
-        const truncatedHtmlOld = extractTruncatedHtmlOld();
-        console.log(
-          `[html-debug] original: ${rawHtml.length} chars` +
-          ` | truncated_new: ${truncatedHtml.length} chars (${(truncatedHtml.length / rawHtml.length * 100).toFixed(1)}% of original)` +
-          ` | truncated_old: ${truncatedHtmlOld.length} chars (${(truncatedHtmlOld.length / rawHtml.length * 100).toFixed(1)}% of original)`
-        );
-        sendResponse({ rawHtml, truncatedHtml, truncatedHtmlOld });
+        const cleanedHtml = extractCleanedHtml();
+        sendResponse({ rawHtml, cleanedHtml });
         step.finish({ traceId, pageKey, messageType: message.type });
         return;
       }
