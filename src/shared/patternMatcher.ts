@@ -1,18 +1,10 @@
-import type { HtmlSignature, SignatureScoreBreakdown, TemplateMatchFeatures } from "./types";
+import type { HtmlSignature, SignatureScoreBreakdown } from "./types";
 
 /**
- * Minimum combined score for the signature-only (fallback) path.
- * Score = 0.2 × tagJaccard + 0.4 × classJaccard + 0.4 × attrJaccard.
+ * Minimum combined score for a pattern cache hit.
+ * Score = 0.70 × (0.20 × tagJaccard + 0.40 × classJaccard + 0.40 × attrJaccard) + 0.30 × urlConsistency.
  */
-export const PATTERN_SIMILARITY_THRESHOLD = 0.6;
-
-/**
- * Minimum combined score for the LLM-feature-primary path.
- * Lower than the signature threshold because LLM features are semantically precise
- * and URL consistency is scored jointly (not hard-gated).
- * Final score = 0.55 × llmFeatureScore + 0.25 × sigScore + 0.20 × urlConsistencyScore.
- */
-export const LLM_FEATURE_THRESHOLD = 0.72;
+export const PATTERN_SIMILARITY_THRESHOLD = 0.65;
 
 const MAX_TAG_TOKENS = 50;
 const MAX_CLASS_TOKENS = 200;
@@ -195,76 +187,3 @@ export function scoreSignatureBreakdown(
   return { tagScore, classScore, attrScore, combinedScore };
 }
 
-/**
- * Score a page (described by its HtmlSignature and urlShape) against LLM-extracted
- * template match features stored in a PatternArchive.
- *
- * Formula:
- *   rawScore = 0.45 × requiredCoverage
- *            + 0.20 × optionalJaccard
- *            + 0.25 × fingerprintJaccard
- *            + 0.10 × urlMatchRate
- *   penalty  = 0.50 × negativeHitRate
- *   llmScore = max(0, rawScore − penalty)
- *
- * The combined final score in findBestPatternMatch is:
- *   finalScore = 0.70 × llmScore + 0.30 × sigScore
- *
- * requiredCoverage: fraction of required_attributes found in page attrTokens.
- * negativeHitRate:  fraction of negative_attributes found — each hit reduces score.
- */
-export function scoreLlmFeatures(
-  features: TemplateMatchFeatures,
-  sig: HtmlSignature,
-  urlShape: string,
-): {
-  score: number;
-  requiredCoverage: number;
-  negativePenalty: number;
-  optionalScore: number;
-  fingerprintScore: number;
-  urlMatchRate: number;
-  negativeHitRate: number;
-} {
-  const pageAttrSet = new Set(Array.isArray(sig.attrTokens) ? sig.attrTokens : []);
-
-  // required_coverage — high weight; these must be present for a template match
-  const reqTotal = features.required_attributes.length;
-  const reqFound = features.required_attributes.filter((a) => pageAttrSet.has(a)).length;
-  const requiredCoverage = reqTotal === 0 ? 1 : reqFound / reqTotal;
-
-  // optional coverage — fraction of optional attrs found in page (not Jaccard: page token set
-  // is too large, causing Jaccard to be near-zero even when all optional attrs are present)
-  const optTotal = features.optional_attributes.length;
-  const optFound = features.optional_attributes.filter((a) => pageAttrSet.has(a)).length;
-  const optionalScore = optTotal === 0 ? 1 : optFound / optTotal;
-
-  // fingerprint coverage — fraction of fingerprint class tokens found in page class tokens
-  const pageClassTokens = Array.isArray(sig.classTokens) ? sig.classTokens : [];
-  const pageClassSet = new Set(pageClassTokens);
-  const fpTotal = features.fingerprint_tokens.length;
-  const fpFound = features.fingerprint_tokens.filter((c) => pageClassSet.has(c)).length;
-  const fingerprintScore = fpTotal === 0 ? 1 : fpFound / fpTotal;
-
-  // url path match — fraction of url_path_tokens found as segments in urlShape
-  const urlParts = new Set(urlShape.split("/"));
-  const urlTotal = features.url_path_tokens.length;
-  const urlFound = features.url_path_tokens.filter((t) => urlParts.has(t)).length;
-  const urlMatchRate = urlTotal === 0 ? 1 : urlFound / urlTotal;
-
-  // negative penalty — presence of any negative attr indicates wrong template
-  const negTotal = features.negative_attributes.length;
-  const negFound = features.negative_attributes.filter((a) => pageAttrSet.has(a)).length;
-  const negativeHitRate = negTotal === 0 ? 0 : negFound / negTotal;
-
-  const rawScore =
-    0.45 * requiredCoverage +
-    0.20 * optionalScore +
-    0.25 * fingerprintScore +
-    0.10 * urlMatchRate;
-
-  const negativePenalty = 0.50 * negativeHitRate;
-  const score = Math.max(0, rawScore - negativePenalty);
-
-  return { score, requiredCoverage, negativePenalty, optionalScore, fingerprintScore, urlMatchRate, negativeHitRate };
-}

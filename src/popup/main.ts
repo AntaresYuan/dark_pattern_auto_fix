@@ -367,7 +367,6 @@ async function maybeApplyPatternArchive(pageContext: PageContext): Promise<boole
   logInfo("pattern:hit", {
     urlShape,
     score: Number(match.score.toFixed(3)),
-    matchPath: match.scoreBreakdown.matchPath,
     urlConsistencyScore: match.scoreBreakdown.urlConsistencyScore != null
       ? Number(match.scoreBreakdown.urlConsistencyScore.toFixed(3))
       : undefined,
@@ -509,7 +508,7 @@ async function startFixFlow(): Promise<void> {
 
     // Persist pattern archive (fire-and-forget — must not block or break main flow)
     const sig = extractHtmlSignature(pageContext.truncatedHtml);
-    void upsertPatternArchive(activePageKey, sig, fixResult.archive.fixes, detectionResult).then((outcome: UpsertOutcome) => {
+    void upsertPatternArchive(activePageKey, sig, fixResult.archive.fixes).then((outcome: UpsertOutcome) => {
       const urlShape = deriveUrlShape(activePageKey);
       if (outcome.wrote) {
         recordPatternUpsertSuccess(`Pattern archive ${outcome.action} for ${urlShape} (${outcome.fixCount} fix(es))`);
