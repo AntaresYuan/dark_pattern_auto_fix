@@ -15,8 +15,7 @@ export type ExtensionMessage = { meta?: MessageMeta } & (
 
 export interface HtmlDebugPayload {
   rawHtml: string;
-  truncatedHtml: string;
-  truncatedHtmlOld: string;
+  cleanedHtml: string;
 }
 
 export type ExtensionMessageResponse = PageContext | FixApplicationResult | HtmlDebugPayload | { ok: true };
