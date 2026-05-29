@@ -9,6 +9,46 @@ interface GeminiPart {
   inlineData?: { mimeType: string; data: string };
 }
 
+/**
+ * Gemini compiles `responseJsonSchema` into a constrained-decoding FSM before
+ * generation; the canonical DARK_PATTERN_SCHEMA trips its "too many states for
+ * serving" limit (400) because of long `description` text, nested `maxItems`
+ * arrays, and `anyOf` unions. This strips those state-multiplying constructs at
+ * send time ONLY — the canonical schema (and the OpenAI path, which doesn't hit
+ * this limit) are left untouched. Enum values and field shapes are preserved, so
+ * downstream parsing is unaffected; the guidance the descriptions carried already
+ * lives in prompt.ts. Reversible: delete this and pass DARK_PATTERN_SCHEMA raw.
+ */
+function stripSchemaForGemini(node: unknown): unknown {
+  if (Array.isArray(node)) {
+    return node.map(stripSchemaForGemini);
+  }
+  if (node && typeof node === "object") {
+    const obj = node as Record<string, unknown>;
+    // Collapse `anyOf: [{type:"string"}, {type:"null"}]` to its single non-null branch.
+    if (Array.isArray(obj.anyOf)) {
+      const nonNull = obj.anyOf.filter(
+        (branch) => !(branch && typeof branch === "object" && (branch as Record<string, unknown>).type === "null")
+      );
+      if (nonNull.length === 1) {
+        const { anyOf, ...rest } = obj;
+        return stripSchemaForGemini({ ...rest, ...(nonNull[0] as Record<string, unknown>) });
+      }
+    }
+    const out: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(obj)) {
+      // `description` is redundant with prompt.ts; `maxItems`/`minItems` force the
+      // FSM to unroll arrays N times (the dominant state multiplier).
+      if (key === "description" || key === "maxItems" || key === "minItems") continue;
+      out[key] = stripSchemaForGemini(value);
+    }
+    return out;
+  }
+  return node;
+}
+
+const GEMINI_RESPONSE_SCHEMA = stripSchemaForGemini(DARK_PATTERN_SCHEMA);
+
 interface GeminiGenerateContentResponse {
   candidates?: Array<{
     content?: {
@@ -51,7 +91,7 @@ export const geminiProvider: DetectionProvider = {
           contents: [{ parts }],
           generationConfig: {
             responseMimeType: "application/json",
-            responseJsonSchema: DARK_PATTERN_SCHEMA
+            responseJsonSchema: GEMINI_RESPONSE_SCHEMA
           }
         })
       });
