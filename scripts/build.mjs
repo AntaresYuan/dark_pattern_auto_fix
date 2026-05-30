@@ -12,7 +12,8 @@ const envFilePath = path.join(rootDir, ".env");
 const entries = {
   popup: path.join(sourceDir, "popup/main.ts"),
   content: path.join(sourceDir, "content/index.ts"),
-  background: path.join(sourceDir, "background/index.ts")
+  background: path.join(sourceDir, "background/index.ts"),
+  runner: path.join(sourceDir, "runner/main.ts")
 };
 
 function parseDotenv(sourceText) {
@@ -57,6 +58,7 @@ function loadBuildEnv() {
 }
 
 const buildEnv = loadBuildEnv();
+const buildId = new Date().toISOString();
 
 function normalizeModuleId(filePath) {
   return path.relative(rootDir, filePath).split(path.sep).join("/");
@@ -107,6 +109,9 @@ function bundleEntry(entryFile) {
     if (normalizedPath === path.join(sourceDir, "config.ts")) {
       sourceText = sourceText.replace(/"__GPT_API_KEY__"/g, JSON.stringify(buildEnv.GPT_API_KEY));
       sourceText = sourceText.replace(/"__GEMINI_API_KEY__"/g, JSON.stringify(buildEnv.GEMINI_API_KEY));
+    }
+    if (normalizedPath === path.join(sourceDir, "shared/buildInfo.ts")) {
+      sourceText = sourceText.replace(/"__BUILD_ID__"/g, JSON.stringify(buildId));
     }
     const transpiled = transpileModule(normalizedPath, sourceText);
     const dependencies = [];
@@ -163,9 +168,11 @@ mkdirSync(distDir, { recursive: true });
 writeFileSync(path.join(distDir, "popup.js"), bundleEntry(entries.popup), "utf8");
 writeFileSync(path.join(distDir, "content.js"), bundleEntry(entries.content), "utf8");
 writeFileSync(path.join(distDir, "background.js"), bundleEntry(entries.background), "utf8");
+writeFileSync(path.join(distDir, "runner.js"), bundleEntry(entries.runner), "utf8");
 
 cpSync(path.join(rootDir, "src/popup/index.html"), path.join(distDir, "popup.html"));
 cpSync(path.join(rootDir, "src/popup/styles.css"), path.join(distDir, "styles.css"));
+cpSync(path.join(rootDir, "src/runner/index.html"), path.join(distDir, "runner.html"));
 
 const manifest = {
   manifest_version: 3,

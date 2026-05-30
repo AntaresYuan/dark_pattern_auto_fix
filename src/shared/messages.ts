@@ -1,3 +1,4 @@
+import type { F1Result } from "./f1";
 import type { FixApplicationResult, IdentifiedDarkPattern, PageContext, PageFixArchive } from "./types";
 
 export interface MessageMeta {
@@ -11,6 +12,7 @@ export type ExtensionMessage = { meta?: MessageMeta } & (
   | { type: "COLLECT_HTML_DEBUG" }
   | { type: "PLAN_AND_APPLY_FIXES"; patterns: IdentifiedDarkPattern[] }
   | { type: "APPLY_SAVED_FIXES"; archive: PageFixArchive }
+  | { type: "SCORE_F1"; patterns: IdentifiedDarkPattern[] }
 );
 
 export interface HtmlDebugPayload {
@@ -18,4 +20,9 @@ export interface HtmlDebugPayload {
   cleanedHtml: string;
 }
 
-export type ExtensionMessageResponse = PageContext | FixApplicationResult | HtmlDebugPayload | { ok: true };
+export type ExtensionMessageResponse =
+  | PageContext
+  | FixApplicationResult
+  | HtmlDebugPayload
+  | F1Result
+  | { ok: true };

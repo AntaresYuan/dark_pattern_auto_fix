@@ -33,7 +33,6 @@ export const DARK_PATTERN_SCHEMA = {
     },
     identified_dark_patterns: {
       type: "array",
-      maxItems: 3,
       items: {
         type: "object",
         properties: {

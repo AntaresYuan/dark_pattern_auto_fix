@@ -1,5 +1,6 @@
 import { extractRawHtml, extractCleanedHtml } from "./htmlExtractor";
 import { planAndApplyFixes } from "./fixPlanner";
+import { scoreF1 } from "./f1Scorer";
 import { applyFixesToPage } from "./patchInjector";
 import { getPageKeyFromUrl } from "../shared/pageKey";
 import { normalizeError } from "../shared/utils";
@@ -81,6 +82,12 @@ chrome.runtime.onMessage.addListener((message: ExtensionMessage, _sender, sendRe
       case "APPLY_SAVED_FIXES": {
         sendResponse(applySavedFixes(traceId, message.archive));
         step.finish({ traceId, pageKey, messageType: message.type, fixCount: message.archive.fixes.length });
+        return;
+      }
+      case "SCORE_F1": {
+        const result = await scoreF1(message.patterns);
+        sendResponse(result);
+        step.finish({ traceId, pageKey, messageType: message.type, ...result.counts });
         return;
       }
       default:

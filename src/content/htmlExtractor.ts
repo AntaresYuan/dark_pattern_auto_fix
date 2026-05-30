@@ -186,7 +186,13 @@ function cloneAndCleanBody(doc: Document): HTMLElement {
       el.removeAttribute("src"); el.removeAttribute("srcset"); el.removeAttribute("sizes");
     }
     for (const name of el.getAttributeNames()) {
-      if (name.startsWith("on")) el.removeAttribute(name);
+      // Drop event handlers, and benchmark answer-key anchors (data-gt-id / data-gt-*):
+      // those attributes name the ground-truth dark pattern, so leaking them to the LLM
+      // would invalidate any F1 measurement. They never appear on real sites, so stripping
+      // them is a no-op in production. The live DOM keeps them for the F1 scorer.
+      if (name.startsWith("on") || name === "data-gt-id" || name.startsWith("data-gt-")) {
+        el.removeAttribute(name);
+      }
     }
   }
 
