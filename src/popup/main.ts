@@ -22,6 +22,7 @@ import {
   recordPatternUpsertSuccess,
   recordResetCacheSuccess,
 } from "../shared/verificationTelemetry";
+import type { F1Result } from "../shared/f1";
 import type {
   ExtensionMessage,
   ExtensionMessageResponse,
@@ -53,6 +54,13 @@ const downloadLlmInputButton = document.getElementById(
 ) as HTMLButtonElement;
 const actionButton = document.getElementById(
   "action-button",
+) as HTMLButtonElement;
+const f1TestButton = document.getElementById(
+  "f1-test-button",
+) as HTMLButtonElement;
+const f1Output = document.getElementById("f1-output") as HTMLDivElement;
+const f1BatchButton = document.getElementById(
+  "f1-batch-button",
 ) as HTMLButtonElement;
 
 let activeTabId: number | null = null;
@@ -598,6 +606,121 @@ async function bootstrap(): Promise<void> {
   }
 }
 
+function pct(value: number): string {
+  return `${(value * 100).toFixed(1)}%`;
+}
+
+const F1_VERDICT_LABEL: Record<string, string> = {
+  tp: "✅ TP",
+  wrong_type: "🟡 wrong type",
+  fp_counterexample: "❌ FP · hit a counterexample",
+  fp_extraneous: "❌ FP · no ground-truth element",
+  unlocatable: "⚠️ FP · couldn't locate in DOM",
+  duplicate: "➖ duplicate (already matched)",
+};
+
+function appendLine(parent: HTMLElement, text: string, className: string): void {
+  const el = document.createElement("div");
+  el.className = className;
+  el.textContent = text;
+  parent.appendChild(el);
+}
+
+function renderF1Result(result: F1Result): void {
+  const c = result.counts;
+  f1Output.textContent = "";
+  f1Output.classList.remove("hidden");
+
+  // Always-visible headline.
+  appendLine(
+    f1Output,
+    `F1 = ${result.f1.toFixed(3)}   precision = ${pct(result.precision)}   recall = ${pct(result.recall)}`,
+    "f1-headline",
+  );
+  appendLine(
+    f1Output,
+    `predictions: ${result.predictionCount}   injected DPs: ${result.injectedTotal}`,
+    "f1-summary",
+  );
+  appendLine(
+    f1Output,
+    `TP ${c.tp}  FP ${c.fp}  FN ${c.fn}  wrong_type ${c.wrongType}  dup ${c.duplicate}  unlocatable ${c.unlocatable}`,
+    "f1-summary",
+  );
+  appendLine(f1Output, `content build: ${result.contentBuildId}`, "f1-summary");
+
+  // Collapsed-by-default per-prediction breakdown.
+  const details = document.createElement("details");
+  details.className = "f1-detail";
+  const summary = document.createElement("summary");
+  summary.textContent = `▸ Step-by-step breakdown (${result.predictions.length} prediction${result.predictions.length === 1 ? "" : "s"})`;
+  details.appendChild(summary);
+
+  result.predictions.forEach((p, index) => {
+    const row = document.createElement("div");
+    row.className = "f1-row";
+    const verdict = F1_VERDICT_LABEL[p.verdict] ?? p.verdict;
+    const target = p.matchedGtId ? ` → ${p.matchedGtId}` : " → (no gt anchor)";
+    appendLine(row, `${index + 1}. ${verdict} — predicted "${p.predictedType}"${target}`, "f1-row-head");
+    if (p.verdict === "wrong_type" && p.acceptsTypes) {
+      appendLine(row, `accepts: ${p.acceptsTypes.join(" | ")}`, "f1-row-sub");
+    }
+    appendLine(row, p.htmlEvidence, "f1-row-evidence");
+    details.appendChild(row);
+  });
+
+  if (result.missed.length > 0) {
+    const missed = document.createElement("div");
+    missed.className = "f1-row";
+    appendLine(missed, "Missed (FN) — injected DPs no prediction located:", "f1-row-head");
+    result.missed.forEach((m) => appendLine(missed, `· ${m.gt_id} [${m.type}]`, "f1-row-sub"));
+    details.appendChild(missed);
+  }
+
+  appendLine(details, `ground truth: ${result.groundTruthUrl}`, "f1-row-sub");
+  f1Output.appendChild(details);
+
+  console.info(`${POPUP_LOG_PREFIX} f1:result`, result);
+}
+
+/**
+ * Dev/eval helper: runs ONLY the identify step on the current page (bypassing the
+ * Layer 1/2 caches and the fix planner) and scores it against the fixture's sibling
+ * ground-truth.json. Does not apply or persist any fixes.
+ */
+async function runF1Test(): Promise<void> {
+  f1TestButton.disabled = true;
+  f1Output.classList.remove("hidden");
+  f1Output.textContent = "Running identify + scoring…";
+  logInfo("f1-test:start");
+  try {
+    if (!activeTabId) {
+      throw new Error("No active tab — open the extension on a served fixture page first.");
+    }
+    const pageContext =
+      cachedPageContext ?? (await sendMessage<PageContext>({ type: "COLLECT_PAGE_CONTEXT" }));
+    const { resized: screenshotDataUrl } = (await captureScreenshot());
+    const detection = await runDetection(pageContext, screenshotDataUrl);
+    const response = await sendMessage<F1Result>({
+      type: "SCORE_F1",
+      patterns: detection.identified_dark_patterns,
+    });
+    // The content-script error path returns a fix-shaped object carrying `.error`.
+    const errorField = (response as unknown as { error?: string }).error;
+    if (errorField) {
+      throw new Error(errorField);
+    }
+    renderF1Result(response);
+    logInfo("f1-test:done");
+  } catch (error) {
+    f1Output.textContent = `F1 test failed: ${normalizeError(error)}`;
+    f1Output.classList.remove("hidden");
+    logError("f1-test:failed", error);
+  } finally {
+    f1TestButton.disabled = false;
+  }
+}
+
 function downloadHtmlFile(filename: string, content: string): void {
   const blob = new Blob([content], { type: "text/html" });
   const url = URL.createObjectURL(blob);
@@ -649,3 +772,6 @@ resetButton.onclick = () => void resetCache();
 downloadHtmlButton.onclick = () => void downloadHtmlDebug();
 downloadScreenshotButton.onclick = () => downloadScreenshot(lastRawScreenshotDataUrl, "raw_screenshot");
 downloadLlmInputButton.onclick = () => downloadScreenshot(lastScreenshotDataUrl, "llm_input");
+f1TestButton.onclick = () => void runF1Test();
+f1BatchButton.onclick = () =>
+  void chrome.tabs.create({ url: chrome.runtime.getURL("runner.html") });

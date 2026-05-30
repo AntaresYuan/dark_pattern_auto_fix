@@ -42,6 +42,18 @@ function escapeAttrValue(val: string): string {
 }
 
 /**
+ * Returns just the first element's opening tag from an html_evidence string.
+ * The model often copies a parent tag followed by descendants
+ * (e.g. `<label ...> <input type="radio" name="x" checked>`); selector derivation
+ * and candidate scoring must use ONLY the first tag's attributes — scraping a child's
+ * attributes onto the parent produces a selector that matches nothing.
+ */
+function firstOpeningTag(evidence: string): string {
+  const match = evidence.match(/<[a-z][a-z0-9-]*\b[^>]*>/i);
+  return match ? match[0] : evidence;
+}
+
+/**
  * Derives a querySelector-compatible selector from a verbatim HTML opening tag.
  * Priority: #id → [data-*] → stable class names → tag+type/name/role.
  * Returns null if no stable anchor is found, which causes the pattern to be skipped.
@@ -49,15 +61,19 @@ function escapeAttrValue(val: string): string {
 function deriveSelector(evidence: string): string | null {
   if (!evidence) return null;
 
-  const tagMatch = evidence.match(/^<([a-z][a-z0-9-]*)/i);
+  // Only consider the first element's opening tag — never descendants.
+  const head = firstOpeningTag(evidence);
+  const tagMatch = head.match(/^<([a-z][a-z0-9-]*)/i);
   const tag = tagMatch ? tagMatch[1].toLowerCase() : "";
 
-  // id is always globally unique — skip everything else
-  const idMatch = evidence.match(/\bid="([^"]+)"/);
+  // id is always globally unique — skip everything else.
+  // Anchor to a preceding space so `data-product-id="…"` isn't misread as `id` —
+  // (it instead flows to the attribute branch below as a stable [data-*] anchor).
+  const idMatch = head.match(/(?:^|\s)id="([^"]+)"/);
   if (idMatch) return `#${CSS.escape(idMatch[1])}`;
 
   // Stable class tokens → .class1.class2
-  const classMatch = evidence.match(/\bclass="([^"]+)"/);
+  const classMatch = head.match(/(?:^|\s)class="([^"]+)"/);
   const classStr = classMatch
     ? classMatch[1].trim().split(/\s+/)
         .filter((c) => !looksLikeDynamicClass(c))
@@ -66,7 +82,7 @@ function deriveSelector(evidence: string): string | null {
     : "";
 
   // Every other attribute → [attr="val"], skipping id, class, style, and Vue scoped data-v-*
-  const attrStr = Array.from(evidence.matchAll(/\b([\w-]+)="([^"]*)"/g))
+  const attrStr = Array.from(head.matchAll(/\b([\w-]+)="([^"]*)"/g))
     .filter(([, name]) =>
       name !== "id" &&
       name !== "class" &&
@@ -126,7 +142,7 @@ function pickBestMatch(
 ): Element {
   if (candidates.length === 1) return candidates[0];
 
-  const evidenceAttrs = parseEvidenceAttributes(evidence);
+  const evidenceAttrs = parseEvidenceAttributes(firstOpeningTag(evidence));
   let bestScore = -1;
   let bestElement = candidates[0];
 
@@ -758,6 +774,72 @@ function createFixesForPattern(pattern: IdentifiedDarkPattern, traceId: string):
 
 function isPageFix(fix: PageFix | null): fix is PageFix {
   return Boolean(fix);
+}
+
+/**
+ * Locates the live-DOM element a model's html_evidence refers to, using the exact
+ * same selector derivation + best-match scoring the fix path uses. Returns null when
+ * no stable selector can be derived or nothing matches. Used by the F1 scorer so that
+ * "which element did the model flag" is resolved identically to "which element gets fixed".
+ */
+export function locateElementForEvidence(
+  htmlEvidence: string,
+  modelSelector?: string,
+  traceId = "f1",
+): Element | null {
+  // 1. Selector derived from the verbatim opening tag (most precise).
+  const derived = deriveSelector(htmlEvidence);
+  if (derived) {
+    try {
+      const candidates = document.querySelectorAll(derived);
+      if (candidates.length > 0) {
+        return pickBestMatch(candidates, htmlEvidence, traceId, derived);
+      }
+    } catch {
+      // fall through
+    }
+  }
+  // 2. The model's own css_selector — survives when html_evidence truncates on a quote.
+  if (modelSelector && modelSelector.trim()) {
+    try {
+      const candidates = document.querySelectorAll(modelSelector);
+      if (candidates.length > 0) {
+        return pickBestMatch(candidates, htmlEvidence, traceId, modelSelector);
+      }
+    } catch {
+      // invalid selector — fall through
+    }
+  }
+  // 3. Text-content match for attribute-less evidence like `<a>No thanks…</a>`.
+  return locateByText(htmlEvidence);
+}
+
+/**
+ * Last-resort locator for the F1 scorer: finds the smallest element of the evidence's
+ * tag whose normalized text equals (or tightly contains) the evidence's text. Used only
+ * for "did the model point at this element" scoring — never for applying a fix.
+ */
+function locateByText(evidence: string): Element | null {
+  const head = firstOpeningTag(evidence);
+  const tagMatch = head.match(/^<([a-z][a-z0-9-]*)/i);
+  const tag = tagMatch ? tagMatch[1].toLowerCase() : "";
+  const text = evidence.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+  if (text.length < 4) return null; // too short to disambiguate reliably
+
+  const scope = tag ? document.querySelectorAll(tag) : document.querySelectorAll("*");
+  let best: Element | null = null;
+  let bestLen = Infinity;
+  for (const element of Array.from(scope)) {
+    const elementText = (element.textContent ?? "").replace(/\s+/g, " ").trim();
+    if (!elementText) continue;
+    const isMatch = elementText === text || elementText.includes(text);
+    // Prefer the most specific (shortest-text) element that still contains the evidence text.
+    if (isMatch && elementText.length < bestLen) {
+      best = element;
+      bestLen = elementText.length;
+    }
+  }
+  return best;
 }
 
 export function planAndApplyFixes(

@@ -20,6 +20,12 @@ export interface IdentifiedDarkPattern {
   dark_pattern_type: DarkPatternType;
   /** Exact opening tag copied verbatim from the provided HTML for the target element. */
   html_evidence: string;
+  /**
+   * The model's own selector for the target element. The fix planner re-derives its
+   * selector from html_evidence and ignores this, but the F1 locator uses it as a
+   * fallback when html_evidence is truncated/unusable (it has no quotes to truncate on).
+   */
+  css_selector?: string;
   issues: IssueTag[];
 }
 

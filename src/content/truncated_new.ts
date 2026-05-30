@@ -264,7 +264,11 @@ function cloneAndCleanVisibleBody(doc: Document): HTMLElement {
 
     const attributeNames = attrElement.getAttributeNames();
     for (const name of attributeNames) {
-      if (name.startsWith("on")) {
+      // Drop event handlers, and benchmark answer-key anchors (data-gt-id / data-gt-*):
+      // those attributes name the ground-truth dark pattern, so leaking them to the
+      // LLM would invalidate any F1 measurement. They never appear on real sites, so
+      // stripping them is a no-op in production. The live DOM keeps them for scoring.
+      if (name.startsWith("on") || name === "data-gt-id" || name.startsWith("data-gt-")) {
         attrElement.removeAttribute(name);
       }
     }
