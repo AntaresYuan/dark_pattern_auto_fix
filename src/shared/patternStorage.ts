@@ -1,5 +1,4 @@
 import type {
-  DetectionResult,
   HtmlSignature,
   PageFix,
   PatternArchive,
@@ -8,10 +7,8 @@ import type {
 import {
   deriveUrlShape,
   getHostFromUrlShape,
-  LLM_FEATURE_THRESHOLD,
   PATTERN_SIMILARITY_THRESHOLD,
   scoreSignatureBreakdown,
-  scoreLlmFeatures,
   scoreSignatureSimilarity,
   urlShapeConsistency,
 } from "./patternMatcher";
@@ -86,14 +83,9 @@ export async function loadAllPatternArchives(): Promise<PatternArchive[]> {
  * Find the pattern archive with the highest similarity score for the given URL shape
  * and HTML signature. Returns null if no archive scores above the threshold.
  *
- * Candidate recall: same hostname (not exact urlShape) — urlShape is a soft score component.
- * Score formula:
- *   LLM-primary path (archive has llmMatchFeatures):
- *     score = 0.55 × llmFeatureScore + 0.25 × sigScore + 0.20 × urlConsistencyScore
- *     threshold = LLM_FEATURE_THRESHOLD (0.50)
- *   Signature-fallback path (old archives without llmMatchFeatures):
- *     score = 0.70 × sigScore + 0.30 × urlConsistencyScore
- *     threshold = PATTERN_SIMILARITY_THRESHOLD (0.60)
+ * Candidate pool: all archives for the same hostname.
+ * Score formula: 0.70 × sigScore + 0.30 × urlConsistencyScore
+ *   where sigScore = 0.20 × tagJaccard + 0.40 × classJaccard + 0.40 × attrJaccard
  */
 export async function findBestPatternMatch(
   urlShape: string,
@@ -109,9 +101,8 @@ export async function findBestPatternMatch(
   let headerLogged = false;
 
   for (const archive of archives) {
-    // Candidate recall: same hostname — cross-site matches are never valid
-    const archiveHost = getHostFromUrlShape(archive.urlShape);
-    if (currentHost !== archiveHost) continue;
+    // Cross-site matches are never valid — filter by hostname first
+    if (getHostFromUrlShape(archive.urlShape) !== currentHost) continue;
 
     candidateCount += 1;
 
@@ -122,48 +113,21 @@ export async function findBestPatternMatch(
 
     const sigBreakdown = scoreSignatureBreakdown(sig, archive.htmlSignature);
     const urlScore = urlShapeConsistency(urlShape, archive.urlShape);
+    const score = 0.70 * sigBreakdown.combinedScore + 0.30 * urlScore;
+    const breakdown: PatternMatchResult["scoreBreakdown"] = {
+      ...sigBreakdown,
+      combinedScore: score,
+      urlConsistencyScore: urlScore,
+    };
 
-    let score: number;
-    let breakdown: PatternMatchResult["scoreBreakdown"];
+    console.info(
+      `${PATTERN_LOG_PREFIX} Candidate "${archive.urlShape}" (${archive.fixes.length} fix(es), ${archive.hitCount} hit(s))\n` +
+      `  Sig score  = 0.20×${fmt(sigBreakdown.tagScore)} (tags) + 0.40×${fmt(sigBreakdown.classScore)} (classes) + 0.40×${fmt(sigBreakdown.attrScore)} (attrs) = ${fmt(sigBreakdown.combinedScore)}\n` +
+      `  URL match  = ${fmt(urlScore)}\n` +
+      `  Final      = 0.70×${fmt(sigBreakdown.combinedScore)} + 0.30×${fmt(urlScore)} = ${fmt(score)}  (threshold ${fmt(PATTERN_SIMILARITY_THRESHOLD)}) → ${score >= PATTERN_SIMILARITY_THRESHOLD ? "✓ ABOVE THRESHOLD" : "✗ BELOW THRESHOLD"}`,
+    );
 
-    if (archive.llmMatchFeatures) {
-      const llmDetail = scoreLlmFeatures(archive.llmMatchFeatures, sig, urlShape);
-      score = 0.35 * llmDetail.score + 0.45 * sigBreakdown.combinedScore + 0.20 * urlScore;
-      breakdown = {
-        ...sigBreakdown,
-        combinedScore: score,
-        llmFeatureScore: llmDetail.score,
-        requiredCoverage: llmDetail.requiredCoverage,
-        negativePenalty: llmDetail.negativePenalty,
-        urlConsistencyScore: urlScore,
-        matchPath: "llm_primary",
-      };
-      console.info(
-        `${PATTERN_LOG_PREFIX} Candidate "${archive.urlShape}" (${archive.fixes.length} fix(es), ${archive.hitCount} hit(s)) — path: LLM-primary\n` +
-        `  LLM score  = 0.45×${fmt(llmDetail.requiredCoverage)} (required attrs) + 0.20×${fmt(llmDetail.optionalScore)} (optional) + 0.25×${fmt(llmDetail.fingerprintScore)} (fingerprint classes) + 0.10×${fmt(llmDetail.urlMatchRate)} (url path) − 0.50×${fmt(llmDetail.negativeHitRate)} (negative penalty) = ${fmt(llmDetail.score)}\n` +
-        `  Sig score  = 0.20×${fmt(sigBreakdown.tagScore)} (tags) + 0.40×${fmt(sigBreakdown.classScore)} (classes) + 0.40×${fmt(sigBreakdown.attrScore)} (attrs) = ${fmt(sigBreakdown.combinedScore)}\n` +
-        `  URL match  = ${fmt(urlScore)}\n` +
-        `  Final      = 0.35×${fmt(llmDetail.score)} + 0.45×${fmt(sigBreakdown.combinedScore)} + 0.20×${fmt(urlScore)} = ${fmt(score)}  (threshold ${fmt(LLM_FEATURE_THRESHOLD)}) → ${score >= LLM_FEATURE_THRESHOLD ? "✓ ABOVE THRESHOLD" : "✗ BELOW THRESHOLD"}`,
-      );
-    } else {
-      score = 0.70 * sigBreakdown.combinedScore + 0.30 * urlScore;
-      breakdown = {
-        ...sigBreakdown,
-        combinedScore: score,
-        urlConsistencyScore: urlScore,
-        matchPath: "signature_fallback",
-      };
-      console.info(
-        `${PATTERN_LOG_PREFIX} Candidate "${archive.urlShape}" (${archive.fixes.length} fix(es), ${archive.hitCount} hit(s)) — path: signature-fallback (no LLM features)\n` +
-        `  Sig score  = 0.20×${fmt(sigBreakdown.tagScore)} (tags) + 0.40×${fmt(sigBreakdown.classScore)} (classes) + 0.40×${fmt(sigBreakdown.attrScore)} (attrs) = ${fmt(sigBreakdown.combinedScore)}\n` +
-        `  URL match  = ${fmt(urlScore)}\n` +
-        `  Final      = 0.70×${fmt(sigBreakdown.combinedScore)} + 0.30×${fmt(urlScore)} = ${fmt(score)}  (threshold ${fmt(PATTERN_SIMILARITY_THRESHOLD)}) → ${score >= PATTERN_SIMILARITY_THRESHOLD ? "✓ ABOVE THRESHOLD" : "✗ BELOW THRESHOLD"}`,
-      );
-    }
-
-    const threshold = archive.llmMatchFeatures ? LLM_FEATURE_THRESHOLD : PATTERN_SIMILARITY_THRESHOLD;
-
-    if (score >= threshold && score > bestScore) {
+    if (score >= PATTERN_SIMILARITY_THRESHOLD && score > bestScore) {
       bestArchive = archive;
       bestScore = score;
       bestScoreBreakdown = breakdown;
@@ -206,37 +170,11 @@ export async function upsertPatternArchive(
   pageKey: string,
   sig: HtmlSignature,
   fixes: PageFix[],
-  detectionResult: DetectionResult,
 ): Promise<UpsertOutcome> {
-  const rawFeatures = detectionResult.template_match_features;
-  const patternCount = detectionResult.identified_dark_patterns.length;
-
-  // Normalize LLM features against the actual extracted signature so we never
-  // store hallucinated tokens (tokens the LLM invented from world knowledge but
-  // that don't appear in the truncated HTML the extractor sees).
-  const pageAttrSet = new Set(sig.attrTokens ?? []);
-  const pageClassSet = new Set(sig.classTokens ?? []);
-  const llmMatchFeatures: typeof rawFeatures = {
-    ...rawFeatures,
-    required_attributes: rawFeatures.required_attributes.filter((a) => pageAttrSet.has(a)),
-    optional_attributes: rawFeatures.optional_attributes.filter((a) => pageAttrSet.has(a)),
-    fingerprint_tokens: rawFeatures.fingerprint_tokens.filter((c) => pageClassSet.has(c)),
-  };
-
-  // Always use rule-based derivation for the canonical urlShape key so it matches
-  // what findBestPatternMatch uses during lookup. The LLM-supplied url_shape may
-  // omit "www." or use a different hostname format, causing a host-mismatch and
-  // zero candidates on the next run.
   const urlShape = deriveUrlShape(pageKey);
   const archives = await loadAllPatternArchives();
   const host = getHostFromUrlShape(urlShape);
   const now = Date.now();
-
-  const detectionMeta = {
-    lastDetectionAt: now,
-    lastDetectionPatternCount: patternCount,
-    lastFixCount: fixes.length,
-  };
 
   // Find an existing archive to update (same urlShape + similar HTML signature)
   let bestMatch: PatternArchive | null = null;
@@ -260,8 +198,8 @@ export async function upsertPatternArchive(
       htmlSignature: sig,
       hitCount: bestMatch.hitCount + 1,
       lastHitAt: now,
-      ...detectionMeta,
-      ...(llmMatchFeatures !== undefined && { llmMatchFeatures }),
+      lastDetectionAt: now,
+      lastFixCount: fixes.length,
     };
     action = "updated";
   } else {
@@ -274,8 +212,8 @@ export async function upsertPatternArchive(
       hitCount: 1,
       createdAt: now,
       lastHitAt: now,
-      ...detectionMeta,
-      ...(llmMatchFeatures !== undefined && { llmMatchFeatures }),
+      lastDetectionAt: now,
+      lastFixCount: fixes.length,
     };
     action = "created";
   }

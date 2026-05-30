@@ -375,7 +375,6 @@ async function maybeApplyPatternArchive(pageContext: PageContext): Promise<boole
   logInfo("pattern:hit", {
     urlShape,
     score: Number(match.score.toFixed(3)),
-    matchPath: match.scoreBreakdown.matchPath,
     urlConsistencyScore: match.scoreBreakdown.urlConsistencyScore != null
       ? Number(match.scoreBreakdown.urlConsistencyScore.toFixed(3))
       : undefined,
@@ -517,7 +516,7 @@ async function startFixFlow(): Promise<void> {
 
     // Persist pattern archive (fire-and-forget — must not block or break main flow)
     const sig = extractHtmlSignature(pageContext.truncatedHtml);
-    void upsertPatternArchive(activePageKey, sig, fixResult.archive.fixes, detectionResult).then((outcome: UpsertOutcome) => {
+    void upsertPatternArchive(activePageKey, sig, fixResult.archive.fixes).then((outcome: UpsertOutcome) => {
       const urlShape = deriveUrlShape(activePageKey);
       if (outcome.wrote) {
         recordPatternUpsertSuccess(`Pattern archive ${outcome.action} for ${urlShape} (${outcome.fixCount} fix(es))`);
@@ -738,13 +737,11 @@ async function downloadHtmlDebug(): Promise<void> {
     const payload = await sendMessage<HtmlDebugPayload>({ type: "COLLECT_HTML_DEBUG" });
     const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
     console.log(
-      `[html-debug] original: ${payload.rawHtml.length} chars` +
-      ` | truncated_new: ${payload.truncatedHtml.length} chars (${(payload.truncatedHtml.length / payload.rawHtml.length * 100).toFixed(1)}% of original)` +
-      ` | truncated_old: ${payload.truncatedHtmlOld.length} chars (${(payload.truncatedHtmlOld.length / payload.rawHtml.length * 100).toFixed(1)}% of original)`
+      `[html-debug] raw: ${payload.rawHtml.length} chars` +
+      ` | cleaned: ${payload.cleanedHtml.length} chars (${(payload.cleanedHtml.length / payload.rawHtml.length * 100).toFixed(1)}% of original)`
     );
     downloadHtmlFile(`raw_${timestamp}.html`, payload.rawHtml);
-    downloadHtmlFile(`truncated_new_${timestamp}.html`, payload.truncatedHtml);
-    downloadHtmlFile(`truncated_old_${timestamp}.html`, payload.truncatedHtmlOld);
+    downloadHtmlFile(`cleaned_${timestamp}.html`, payload.cleanedHtml);
     logInfo("download-html:done");
   } catch (error) {
     logError("download-html:failed", error);

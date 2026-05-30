@@ -1,4 +1,4 @@
-import { LLM_FEATURE_THRESHOLD, PATTERN_SIMILARITY_THRESHOLD } from "./patternMatcher";
+import { PATTERN_SIMILARITY_THRESHOLD } from "./patternMatcher";
 import type { SignatureScoreBreakdown } from "./types";
 
 type CaseStatus = "PASS" | "NOT_RUN";
@@ -196,30 +196,16 @@ export function flushVerification(finalState: "finished" | "initial" | "unknown"
   );
 
   if (score && active.layer2Result === "HIT") {
-    const path = score.matchPath ?? "unknown";
-    const lines: string[] = [`${VERIFICATION_LOG_PREFIX} Winning match score breakdown (path: ${path})`];
-
-    if (path === "llm_primary") {
-      lines.push(
-        `  LLM component  = 0.55 × ${score.llmFeatureScore?.toFixed(3) ?? "n/a"} (llmFeatureScore)`,
-        `    └─ required attr coverage : ${score.requiredCoverage?.toFixed(3) ?? "n/a"}`,
-        `    └─ negative penalty       : −${score.negativePenalty?.toFixed(3) ?? "n/a"}`,
-        `  Sig component  = 0.25 × ${score.combinedScore != null ? ((score.combinedScore - 0.55 * (score.llmFeatureScore ?? 0) - 0.20 * (score.urlConsistencyScore ?? 0)) / 0.25).toFixed(3) : "n/a"} (sigScore)`,
-        `    └─ tags: ${score.tagScore.toFixed(3)}  classes: ${score.classScore.toFixed(3)}  attrs: ${score.attrScore.toFixed(3)}`,
-        `  URL component  = 0.20 × ${score.urlConsistencyScore?.toFixed(3) ?? "n/a"} (urlConsistency)`,
-        `  ─────────────────────────────────────────`,
-        `  Final score    = ${score.combinedScore.toFixed(3)}  (threshold ${LLM_FEATURE_THRESHOLD.toFixed(3)}) → ✓ PASSED`,
-      );
-    } else {
-      lines.push(
+    console.info(
+      [
+        `${VERIFICATION_LOG_PREFIX} Winning match score breakdown`,
         `  Sig component  = 0.70 × sigScore`,
         `    └─ tags: ${score.tagScore.toFixed(3)}  classes: ${score.classScore.toFixed(3)}  attrs: ${score.attrScore.toFixed(3)}`,
         `  URL component  = 0.30 × ${score.urlConsistencyScore?.toFixed(3) ?? "n/a"} (urlConsistency)`,
         `  ─────────────────────────────────────────`,
         `  Final score    = ${score.combinedScore.toFixed(3)}  (threshold ${PATTERN_SIMILARITY_THRESHOLD.toFixed(3)}) → ✓ PASSED`,
-      );
-    }
-    console.info(lines.join("\n"));
+      ].join("\n"),
+    );
   }
 
   const passedCases = Object.entries(active.cases).filter(([, v]) => v.status === "PASS");

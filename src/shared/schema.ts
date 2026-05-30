@@ -97,58 +97,10 @@ export const DARK_PATTERN_SCHEMA = {
         additionalProperties: false
       }
     },
-    template_match_features: {
-      type: "object",
-      properties: {
-        url_path_tokens: {
-          type: "array",
-          maxItems: 6,
-          items: { type: "string" }
-        },
-        required_attributes: {
-          type: "array",
-          maxItems: 12,
-          items: { type: "string" }
-        },
-        optional_attributes: {
-          type: "array",
-          maxItems: 10,
-          items: { type: "string" }
-        },
-        negative_attributes: {
-          type: "array",
-          maxItems: 8,
-          items: { type: "string" }
-        },
-        fingerprint_tokens: {
-          type: "array",
-          maxItems: 15,
-          items: { type: "string" }
-        },
-        match_confidence: {
-          type: "string",
-          enum: ["high", "medium", "low"]
-        },
-        url_shape: {
-          anyOf: [{ type: "string" }, { type: "null" }]
-        }
-      },
-      required: [
-        "url_path_tokens",
-        "required_attributes",
-        "optional_attributes",
-        "negative_attributes",
-        "fingerprint_tokens",
-        "match_confidence",
-        "url_shape"
-      ],
-      additionalProperties: false
-    }
   },
   required: [
     "page_evaluation",
-    "identified_dark_patterns",
-    "template_match_features"
+    "identified_dark_patterns"
   ],
   additionalProperties: false
 } as const;

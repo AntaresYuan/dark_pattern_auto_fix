@@ -29,34 +29,8 @@ export interface IdentifiedDarkPattern {
   issues: IssueTag[];
 }
 
-/**
- * LLM-extracted features used for local-only L2 pattern matching on future visits.
- * All tokens must be template-stable (not page-specific content).
- */
-export interface TemplateMatchFeatures {
-  /** Normalized path segments that identify this URL template (e.g. ["dp", "{id}"]). */
-  url_path_tokens: string[];
-  /** Attributes that MUST be present on every page of this template. Format: "data-X", "role:val", "type:val", "aria-X". */
-  required_attributes: string[];
-  /** Attributes that appear on most pages of this template but are not guaranteed. */
-  optional_attributes: string[];
-  /** Attributes whose presence indicates a DIFFERENT template (false-positive guard). */
-  negative_attributes: string[];
-  /** Distinctive CSS class names or structural cues from the site's design system. */
-  fingerprint_tokens: string[];
-  /** LLM-assessed confidence that these features are stable and reusable. */
-  match_confidence: "high" | "medium" | "low";
-  /**
-   * LLM-derived canonical URL shape: hostname + normalized path (e.g. "amazon.com/dp/{id}").
-   * When present, overrides the rule-based deriveUrlShape() result for this archive.
-   * Absent if the LLM could not determine a stable URL template.
-   */
-  url_shape?: string;
-}
-
 export interface DetectionResult {
   identified_dark_patterns: IdentifiedDarkPattern[];
-  template_match_features: TemplateMatchFeatures;
 }
 
 export interface CssFix {
@@ -114,8 +88,6 @@ export interface PatternArchive {
   /** URL shape with variable segments replaced: pure-numbers→{id}, ASINs→{id}, long slugs→{slug} */
   urlShape: string;
   htmlSignature: HtmlSignature;
-  /** LLM-extracted features for local matching. Absent on pre-migration archives — fall back to signature scoring. */
-  llmMatchFeatures?: TemplateMatchFeatures;
   /**
    * Page fixes produced by the fix planner on the last detection run.
    * May be empty when the LLM found patterns but the planner could not map them to
@@ -129,25 +101,17 @@ export interface PatternArchive {
   lastHitAt: number; // unix ms
   /** Unix ms timestamp of the most recent LLM detection run that produced this archive. */
   lastDetectionAt?: number;
-  /** Number of dark patterns the LLM identified in the most recent detection run. */
-  lastDetectionPatternCount?: number;
   /** Number of page fixes the fix planner produced in the most recent detection run. */
   lastFixCount?: number;
 }
 
 export interface SignatureScoreBreakdown {
-  // Algorithmic signature components
   tagScore: number;
   classScore: number;
   attrScore: number;
-  combinedScore: number; // final blended score used for threshold comparison
-  // LLM-feature components (present only on llm_primary path)
-  llmFeatureScore?: number;
-  requiredCoverage?: number;
-  negativePenalty?: number;
-  // URL consistency score (present when URL soft-scoring is active)
+  /** Final blended score = 0.70 × sigScore + 0.30 × urlConsistencyScore */
+  combinedScore: number;
   urlConsistencyScore?: number;
-  matchPath?: "llm_primary" | "signature_fallback";
 }
 
 export interface PatternMatchResult {
