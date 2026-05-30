@@ -21,7 +21,7 @@ CRITICAL DEFAULT: Most webpages contain ZERO dark patterns. The expected output 
 Identify all the dark patterns on the page. Only include a candidate if you can clearly justify it against the harm test for its specific type (defined per type below). If you cannot articulate concrete user harm, do NOT include it. Do not pad the list to reach a target count. A high-confidence empty list is strictly better than a padded list with weak candidates.
 
 You are given a screenshot (provided as a separate vision input) and the truncated HTML of the page.
-Use the HTML as your primary evidence. Use the screenshot for visual confirmation and to resolve ambiguities the HTML alone cannot clarify.
+Use the screenshot as your primary evidence. Use the html for secondary confirmation and to resolve ambiguities the screenshot alone cannot clarify.
 
 Only identify dark patterns from the taxonomy below.
 Do not invent any new dark pattern types.
@@ -498,7 +498,7 @@ Identification rules:
 
 1. Identify every dark pattern present on the page — there is no maximum. But each one must independently pass its harm test; the anti-padding rule above still holds (an empty list beats weak candidates).
 2. Rank them from most obvious to least obvious.
-3. Use HTML evidence first, and then for more detailed dark pattern issues, use screenshot evidence as a support.
+3. Use the screenshot first to spot candidate dark patterns across the full page; then use the HTML as secondary support to confirm details and pin down the exact element.
 4. Screenshot covers the full page. Use it alongside the HTML to identify dark patterns throughout.
 5. Use HTML to help localize or confirm the suspicious element.
 6. Only use issue tags from this set: ["color", "font_size", "background_color", "add_advertisement_title", "enhance_advertisement_title"].
