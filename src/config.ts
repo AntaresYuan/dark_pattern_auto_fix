@@ -18,7 +18,7 @@ export const AI_CONFIG = {
       // Build script injects GEMINI_API_KEY from .env for local prototyping.
       apiKey: "__GEMINI_API_KEY__",
       // Change this model when activeProvider is "gemini".
-      model: "gemini-2.5-pro",
+      model: "gemini-3.1-pro-preview",
       apiBaseUrl: "https://generativelanguage.googleapis.com/v1beta",
     },
   },
