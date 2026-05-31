@@ -23,6 +23,11 @@ interface FixtureOutcome {
   url: string;
   result?: F1Result;
   error?: string;
+  // The exact artifacts sent to the LLM, kept in memory for the per-row download
+  // icons. Deliberately stripped from the JSON/CSV export (buildReport) so a
+  // batch report doesn't balloon with 50 base64 screenshots.
+  truncatedHtml?: string;
+  screenshotDataUrl?: string;
 }
 
 interface BatchReport {
@@ -136,7 +141,13 @@ async function identify(pageContext: PageContext, screenshotDataUrl: string, pag
   return detectDarkPatterns({ prompt, screenshotDataUrl });
 }
 
-async function scoreOneFixture(tabId: number, url: string): Promise<F1Result> {
+interface ScoredFixture {
+  result: F1Result;
+  truncatedHtml: string;
+  screenshotDataUrl: string;
+}
+
+async function scoreOneFixture(tabId: number, url: string): Promise<ScoredFixture> {
   await navigateAndWait(tabId, url);
   // Settle: let late layout + the auto-injected content script come up.
   await new Promise((r) => setTimeout(r, 900));
@@ -149,7 +160,7 @@ async function scoreOneFixture(tabId: number, url: string): Promise<F1Result> {
   });
   const errorField = (response as unknown as { error?: string }).error;
   if (errorField) throw new Error(errorField);
-  return response;
+  return { result: response, truncatedHtml: pageContext.truncatedHtml, screenshotDataUrl };
 }
 
 async function fetchFixtureUrls(base: string): Promise<string[]> {
@@ -196,7 +207,10 @@ function buildReport(base: string, outcomes: FixtureOutcome[]): BatchReport {
     generatedAt: new Date().toISOString(),
     base,
     fixtureCount: outcomes.length,
-    fixtures: outcomes,
+    // Strip the heavy in-memory-only artifacts (truncatedHtml / screenshotDataUrl)
+    // so the exported JSON stays small — the download icons read them off the live
+    // `outcomes` objects, not off the report.
+    fixtures: outcomes.map(({ truncatedHtml: _html, screenshotDataUrl: _shot, ...rest }) => rest),
     aggregate: {
       scored: scored.length,
       failed: outcomes.length - scored.length,
@@ -253,8 +267,33 @@ function renderResultsTable(outcomes: FixtureOutcome[]): void {
     }
     cells.forEach((text, columnIndex) => {
       const td = document.createElement("td");
-      td.textContent = text;
-      if (columnIndex === 1) td.className = "runner-cell-fixture";
+      if (columnIndex === 1) {
+        td.className = "runner-cell-fixture";
+        const name = document.createElement("span");
+        name.textContent = text;
+        td.appendChild(name);
+        // Download icons for the exact artifacts sent to the LLM (only once scored).
+        if (o.truncatedHtml) {
+          const htmlBtn = document.createElement("button");
+          htmlBtn.type = "button";
+          htmlBtn.className = "runner-dl";
+          htmlBtn.textContent = "📄";
+          htmlBtn.title = "Download the truncated HTML sent to the LLM";
+          htmlBtn.onclick = () => download(`${o.slug}-truncated.html`, o.truncatedHtml!, "text/html");
+          td.appendChild(htmlBtn);
+        }
+        if (o.screenshotDataUrl) {
+          const shotBtn = document.createElement("button");
+          shotBtn.type = "button";
+          shotBtn.className = "runner-dl";
+          shotBtn.textContent = "🖼️";
+          shotBtn.title = "Download the screenshot sent to the LLM";
+          shotBtn.onclick = () => downloadDataUrl(`${o.slug}-screenshot.jpg`, o.screenshotDataUrl!);
+          td.appendChild(shotBtn);
+        }
+      } else {
+        td.textContent = text;
+      }
       tr.appendChild(td);
     });
     if (o.error) tr.title = o.error;
@@ -304,6 +343,13 @@ function download(filename: string, content: string, mime: string): void {
   anchor.download = filename;
   anchor.click();
   URL.revokeObjectURL(url);
+}
+
+function downloadDataUrl(filename: string, dataUrl: string): void {
+  const anchor = document.createElement("a");
+  anchor.href = dataUrl;
+  anchor.download = filename;
+  anchor.click();
 }
 
 function toCsv(report: BatchReport): string {
@@ -365,7 +411,10 @@ async function runBatch(): Promise<void> {
       const outcome = outcomes[i];
       setStatus(`Running ${i + 1}/${urls.length}: ${outcome.slug}…`);
       try {
-        outcome.result = await scoreOneFixture(targetTabId, outcome.url);
+        const scored = await scoreOneFixture(targetTabId, outcome.url);
+        outcome.result = scored.result;
+        outcome.truncatedHtml = scored.truncatedHtml;
+        outcome.screenshotDataUrl = scored.screenshotDataUrl;
         // Stale-code detector: the content script that scored must be this same build.
         if (outcome.result.contentBuildId !== BUILD_ID) {
           buildEl.textContent =

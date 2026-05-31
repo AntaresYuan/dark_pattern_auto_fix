@@ -265,6 +265,22 @@ button[disabled] {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
+.runner-dl {
+  margin-left: 4px;
+  padding: 0 2px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 12px;
+  line-height: 1;
+  opacity: 0.65;
+  vertical-align: middle;
+}
+
+.runner-dl:hover {
+  opacity: 1;
+}
+
 .runner-detail {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 11px;
