@@ -91,7 +91,9 @@ export const geminiProvider: DetectionProvider = {
           contents: [{ parts }],
           generationConfig: {
             responseMimeType: "application/json",
-            responseJsonSchema: GEMINI_RESPONSE_SCHEMA
+            responseJsonSchema: GEMINI_RESPONSE_SCHEMA,
+            // REST equivalent of the SDK's ThinkingConfig(thinking_level="high").
+            thinkingConfig: { thinkingLevel: "high" }
           }
         })
       });
