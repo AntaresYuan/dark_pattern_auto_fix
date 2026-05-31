@@ -1,4 +1,4 @@
-import type { AdvertisementLabelFix, CssFix, PageFix } from "../shared/types";
+import type { AdvertisementLabelFix, AnnotateFix, ClickFix, CssFix, PageFix, ReplaceTextFix, UncheckFix } from "../shared/types";
 import { logEvent, startStep, truncateText } from "../shared/logger";
 
 const STYLE_ELEMENT_ID = "dark-pattern-fixer-overrides";
@@ -102,6 +102,125 @@ function applyAdvertisementLabelFix(
   return "applied";
 }
 
+function applyReplaceTextFix(
+  fix: ReplaceTextFix,
+  logContext: { pageKey?: string; traceId?: string }
+): "applied" | "target_missing" {
+  const target = document.querySelector(fix.css_selector);
+  if (!target) {
+    logEvent("content", "patch.apply.replace_text", {
+      pageKey: logContext.pageKey,
+      selector: truncateText(fix.css_selector, 120),
+      traceId: logContext.traceId,
+      outcome: "target_missing"
+    }, "warn");
+    return "target_missing";
+  }
+
+  target.textContent = fix.replacement_text;
+  logEvent("content", "patch.apply.replace_text", {
+    pageKey: logContext.pageKey,
+    selector: truncateText(fix.css_selector, 120),
+    traceId: logContext.traceId,
+    replacementText: fix.replacement_text,
+    outcome: "applied"
+  }, "info");
+  return "applied";
+}
+
+function applyUncheckFix(
+  fix: UncheckFix,
+  logContext: { pageKey?: string; traceId?: string }
+): "applied" | "target_missing" | "not_checkable" {
+  const target = document.querySelector(fix.css_selector);
+  if (!target) {
+    logEvent("content", "patch.apply.uncheck", {
+      pageKey: logContext.pageKey,
+      selector: truncateText(fix.css_selector, 120),
+      traceId: logContext.traceId,
+      outcome: "target_missing"
+    }, "warn");
+    return "target_missing";
+  }
+
+  if (!(target instanceof HTMLInputElement) || (target.type !== "checkbox" && target.type !== "radio")) {
+    logEvent("content", "patch.apply.uncheck", {
+      pageKey: logContext.pageKey,
+      selector: truncateText(fix.css_selector, 120),
+      traceId: logContext.traceId,
+      outcome: "not_checkable"
+    }, "warn");
+    return "not_checkable";
+  }
+
+  target.checked = false;
+  // Dispatch change so any framework listeners (React, Vue, etc.) pick up the state update.
+  target.dispatchEvent(new Event("change", { bubbles: true }));
+  logEvent("content", "patch.apply.uncheck", {
+    pageKey: logContext.pageKey,
+    selector: truncateText(fix.css_selector, 120),
+    traceId: logContext.traceId,
+    outcome: "applied"
+  }, "info");
+  return "applied";
+}
+
+function applyAnnotateFix(
+  fix: AnnotateFix,
+  logContext: { pageKey?: string; traceId?: string }
+): "applied" | "target_missing" {
+  const target = document.querySelector(fix.css_selector);
+  if (!target) {
+    logEvent("content", "patch.apply.annotate", {
+      pageKey: logContext.pageKey,
+      selector: truncateText(fix.css_selector, 120),
+      traceId: logContext.traceId,
+      outcome: "target_missing"
+    }, "warn");
+    return "target_missing";
+  }
+
+  if (target instanceof HTMLElement) {
+    target.style.outline = fix.outline_style;
+    target.style.outlineOffset = "2px";
+    target.title = fix.warning_title;
+  }
+  logEvent("content", "patch.apply.annotate", {
+    pageKey: logContext.pageKey,
+    selector: truncateText(fix.css_selector, 120),
+    traceId: logContext.traceId,
+    outcome: "applied"
+  }, "info");
+  return "applied";
+}
+
+function applyClickFix(
+  fix: ClickFix,
+  logContext: { pageKey?: string; traceId?: string }
+): "applied" | "target_missing" {
+  const target = document.querySelector(fix.css_selector);
+  if (!target) {
+    logEvent("content", "patch.apply.click", {
+      pageKey: logContext.pageKey,
+      selector: truncateText(fix.css_selector, 120),
+      traceId: logContext.traceId,
+      outcome: "target_missing"
+    }, "warn");
+    return "target_missing";
+  }
+
+  if (target instanceof HTMLElement) {
+    target.click();
+  }
+  logEvent("content", "patch.apply.click", {
+    pageKey: logContext.pageKey,
+    selector: truncateText(fix.css_selector, 120),
+    traceId: logContext.traceId,
+    outcome: "applied"
+  }, "info");
+  return "applied";
+}
+
 export function applyFixesToPage(
   fixes: PageFix[],
   logContext: { pageKey?: string; traceId?: string } = {}
@@ -111,7 +230,11 @@ export function applyFixesToPage(
     traceId: logContext.traceId,
     totalFixes: fixes.length,
     cssFixCount: fixes.filter((fix): fix is CssFix => fix.patch_type === "css").length,
-    adLabelFixCount: fixes.filter((fix) => fix.patch_type === "advertisement_label").length
+    adLabelFixCount: fixes.filter((fix) => fix.patch_type === "advertisement_label").length,
+    replaceTextFixCount: fixes.filter((fix) => fix.patch_type === "replace_text").length,
+    uncheckFixCount: fixes.filter((fix) => fix.patch_type === "uncheck").length,
+    annotateFixCount: fixes.filter((fix) => fix.patch_type === "annotate").length,
+    clickFixCount: fixes.filter((fix) => fix.patch_type === "click").length
   });
 
   const requestedCssFixCount = fixes.filter((fix): fix is CssFix => fix.patch_type === "css").length;
@@ -154,6 +277,26 @@ export function applyFixesToPage(
 
       skippedAdLabelCount += 1;
       return count;
+    }
+
+    if (fix.patch_type === "replace_text") {
+      const outcome = applyReplaceTextFix(fix, logContext);
+      return count + (outcome === "applied" ? 1 : 0);
+    }
+
+    if (fix.patch_type === "uncheck") {
+      const outcome = applyUncheckFix(fix, logContext);
+      return count + (outcome === "applied" ? 1 : 0);
+    }
+
+    if (fix.patch_type === "annotate") {
+      const outcome = applyAnnotateFix(fix as AnnotateFix, logContext);
+      return count + (outcome === "applied" ? 1 : 0);
+    }
+
+    if (fix.patch_type === "click") {
+      const outcome = applyClickFix(fix as ClickFix, logContext);
+      return count + (outcome === "applied" ? 1 : 0);
     }
 
     return count + (serializeFix(fix) ? 1 : 0);

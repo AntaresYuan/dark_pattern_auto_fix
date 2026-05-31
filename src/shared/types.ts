@@ -27,6 +27,45 @@ export interface IdentifiedDarkPattern {
    */
   css_selector?: string;
   issues: IssueTag[];
+  /**
+   * Semantic fix guidance supplied by the detection source (e.g. an LLM).
+   * Type-specific semantics (how this field is populated is a pipeline concern):
+   *   • Confirm shaming    — neutral replacement label for the shame-laden decline option
+   *                          (e.g. "No thanks", "Decline", "Skip", "Maybe later").
+   *   • Trick wording      — corrected, unambiguous label that clearly describes the action
+   *                          (e.g. "Turn off notifications" instead of a double-negative).
+   *   • Hidden information — CSS selector of the hidden content element to reveal
+   *                          (e.g. ".fees-section", "#hidden-pricing-details").
+   *                          Only needed when the LLM's html_evidence points at the
+   *                          disclosure toggle rather than the hidden container itself.
+   *   • All other types    — unused; the fix planner ignores it.
+   */
+  fix_hint?: string;
+}
+
+export interface UncheckFix {
+  css_selector: string;
+  patch_type: "uncheck";
+  source_dark_pattern_type: DarkPatternType;
+  applied_issues: IssueTag[];
+}
+
+export interface AnnotateFix {
+  css_selector: string;
+  patch_type: "annotate";
+  /** CSS outline string applied inline (e.g. "2px solid #f59e0b") */
+  outline_style: string;
+  /** Value for the element's title attribute — shown as a browser tooltip on hover */
+  warning_title: string;
+  source_dark_pattern_type: DarkPatternType;
+  applied_issues: IssueTag[];
+}
+
+export interface ClickFix {
+  css_selector: string;
+  patch_type: "click";
+  source_dark_pattern_type: DarkPatternType;
+  applied_issues: IssueTag[];
 }
 
 export interface DetectionResult {
@@ -49,7 +88,15 @@ export interface AdvertisementLabelFix {
   applied_issues: IssueTag[];
 }
 
-export type PageFix = CssFix | AdvertisementLabelFix;
+export interface ReplaceTextFix {
+  css_selector: string;
+  patch_type: "replace_text";
+  replacement_text: string;
+  source_dark_pattern_type: DarkPatternType;
+  applied_issues: IssueTag[];
+}
+
+export type PageFix = CssFix | AdvertisementLabelFix | ReplaceTextFix | UncheckFix | AnnotateFix | ClickFix;
 
 export interface PageFixArchive {
   page_key: string;
